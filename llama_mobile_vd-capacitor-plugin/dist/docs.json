@@ -1,0 +1,653 @@
+{
+  "api": {
+    "name": "LlamaMobileVDPlugin",
+    "slug": "llamamobilevdplugin",
+    "docs": "LlamaMobileVD Capacitor Plugin API",
+    "tags": [],
+    "methods": [
+      {
+        "name": "createVectorStore",
+        "signature": "(options: VectorStoreOptions) => Promise<CreateResult>",
+        "parameters": [
+          {
+            "name": "options",
+            "docs": "Vector store creation options",
+            "type": "VectorStoreOptions"
+          }
+        ],
+        "returns": "Promise<CreateResult>",
+        "tags": [
+          {
+            "name": "param",
+            "text": "options Vector store creation options"
+          },
+          {
+            "name": "returns",
+            "text": "Promise with the created store ID"
+          }
+        ],
+        "docs": "Create a new vector store",
+        "complexTypes": [
+          "CreateResult",
+          "VectorStoreOptions"
+        ],
+        "slug": "createvectorstore"
+      },
+      {
+        "name": "createHNSWIndex",
+        "signature": "(options: HNSWIndexOptions) => Promise<CreateResult>",
+        "parameters": [
+          {
+            "name": "options",
+            "docs": "HNSW index creation options",
+            "type": "HNSWIndexOptions"
+          }
+        ],
+        "returns": "Promise<CreateResult>",
+        "tags": [
+          {
+            "name": "param",
+            "text": "options HNSW index creation options"
+          },
+          {
+            "name": "returns",
+            "text": "Promise with the created index ID"
+          }
+        ],
+        "docs": "Create a new HNSW index",
+        "complexTypes": [
+          "CreateResult",
+          "HNSWIndexOptions"
+        ],
+        "slug": "createhnswindex"
+      },
+      {
+        "name": "addVectorToStore",
+        "signature": "(params: AddVectorParams) => Promise<void>",
+        "parameters": [
+          {
+            "name": "params",
+            "docs": "Parameters for adding a vector",
+            "type": "AddVectorParams"
+          }
+        ],
+        "returns": "Promise<void>",
+        "tags": [
+          {
+            "name": "param",
+            "text": "params Parameters for adding a vector"
+          },
+          {
+            "name": "returns",
+            "text": "Promise that resolves when the vector is added"
+          }
+        ],
+        "docs": "Add a vector to a vector store",
+        "complexTypes": [
+          "AddVectorParams"
+        ],
+        "slug": "addvectortostore"
+      },
+      {
+        "name": "addVectorToIndex",
+        "signature": "(params: AddVectorParams) => Promise<void>",
+        "parameters": [
+          {
+            "name": "params",
+            "docs": "Parameters for adding a vector",
+            "type": "AddVectorParams"
+          }
+        ],
+        "returns": "Promise<void>",
+        "tags": [
+          {
+            "name": "param",
+            "text": "params Parameters for adding a vector"
+          },
+          {
+            "name": "returns",
+            "text": "Promise that resolves when the vector is added"
+          }
+        ],
+        "docs": "Add a vector to an HNSW index",
+        "complexTypes": [
+          "AddVectorParams"
+        ],
+        "slug": "addvectortoindex"
+      },
+      {
+        "name": "searchVectorStore",
+        "signature": "(params: VectorStoreSearchParams) => Promise<SearchResultList>",
+        "parameters": [
+          {
+            "name": "params",
+            "docs": "Parameters for searching",
+            "type": "VectorStoreSearchParams"
+          }
+        ],
+        "returns": "Promise<SearchResultList>",
+        "tags": [
+          {
+            "name": "param",
+            "text": "params Parameters for searching"
+          },
+          {
+            "name": "returns",
+            "text": "Promise with search results"
+          }
+        ],
+        "docs": "Search for nearest neighbors in a vector store",
+        "complexTypes": [
+          "SearchResultList",
+          "VectorStoreSearchParams"
+        ],
+        "slug": "searchvectorstore"
+      },
+      {
+        "name": "searchHNSWIndex",
+        "signature": "(params: HNSWIndexSearchParams) => Promise<SearchResultList>",
+        "parameters": [
+          {
+            "name": "params",
+            "docs": "Parameters for searching",
+            "type": "HNSWIndexSearchParams"
+          }
+        ],
+        "returns": "Promise<SearchResultList>",
+        "tags": [
+          {
+            "name": "param",
+            "text": "params Parameters for searching"
+          },
+          {
+            "name": "returns",
+            "text": "Promise with search results"
+          }
+        ],
+        "docs": "Search for nearest neighbors in an HNSW index",
+        "complexTypes": [
+          "SearchResultList",
+          "HNSWIndexSearchParams"
+        ],
+        "slug": "searchhnswindex"
+      },
+      {
+        "name": "getVectorStoreCount",
+        "signature": "(params: CountParams) => Promise<CountResult>",
+        "parameters": [
+          {
+            "name": "params",
+            "docs": "Parameters for getting count",
+            "type": "CountParams"
+          }
+        ],
+        "returns": "Promise<CountResult>",
+        "tags": [
+          {
+            "name": "param",
+            "text": "params Parameters for getting count"
+          },
+          {
+            "name": "returns",
+            "text": "Promise with the count of vectors"
+          }
+        ],
+        "docs": "Get the number of vectors in a vector store",
+        "complexTypes": [
+          "CountResult",
+          "CountParams"
+        ],
+        "slug": "getvectorstorecount"
+      },
+      {
+        "name": "getHNSWIndexCount",
+        "signature": "(params: CountParams) => Promise<CountResult>",
+        "parameters": [
+          {
+            "name": "params",
+            "docs": "Parameters for getting count",
+            "type": "CountParams"
+          }
+        ],
+        "returns": "Promise<CountResult>",
+        "tags": [
+          {
+            "name": "param",
+            "text": "params Parameters for getting count"
+          },
+          {
+            "name": "returns",
+            "text": "Promise with the count of vectors"
+          }
+        ],
+        "docs": "Get the number of vectors in an HNSW index",
+        "complexTypes": [
+          "CountResult",
+          "CountParams"
+        ],
+        "slug": "gethnswindexcount"
+      },
+      {
+        "name": "clearVectorStore",
+        "signature": "(params: ClearParams) => Promise<void>",
+        "parameters": [
+          {
+            "name": "params",
+            "docs": "Parameters for clearing",
+            "type": "ClearParams"
+          }
+        ],
+        "returns": "Promise<void>",
+        "tags": [
+          {
+            "name": "param",
+            "text": "params Parameters for clearing"
+          },
+          {
+            "name": "returns",
+            "text": "Promise that resolves when the store is cleared"
+          }
+        ],
+        "docs": "Clear all vectors from a vector store",
+        "complexTypes": [
+          "ClearParams"
+        ],
+        "slug": "clearvectorstore"
+      },
+      {
+        "name": "clearHNSWIndex",
+        "signature": "(params: ClearParams) => Promise<void>",
+        "parameters": [
+          {
+            "name": "params",
+            "docs": "Parameters for clearing",
+            "type": "ClearParams"
+          }
+        ],
+        "returns": "Promise<void>",
+        "tags": [
+          {
+            "name": "param",
+            "text": "params Parameters for clearing"
+          },
+          {
+            "name": "returns",
+            "text": "Promise that resolves when the index is cleared"
+          }
+        ],
+        "docs": "Clear all vectors from an HNSW index",
+        "complexTypes": [
+          "ClearParams"
+        ],
+        "slug": "clearhnswindex"
+      },
+      {
+        "name": "releaseVectorStore",
+        "signature": "(params: ReleaseParams) => Promise<void>",
+        "parameters": [
+          {
+            "name": "params",
+            "docs": "Parameters for releasing",
+            "type": "ReleaseParams"
+          }
+        ],
+        "returns": "Promise<void>",
+        "tags": [
+          {
+            "name": "param",
+            "text": "params Parameters for releasing"
+          },
+          {
+            "name": "returns",
+            "text": "Promise that resolves when the store is released"
+          }
+        ],
+        "docs": "Release a vector store and free resources",
+        "complexTypes": [
+          "ReleaseParams"
+        ],
+        "slug": "releasevectorstore"
+      },
+      {
+        "name": "releaseHNSWIndex",
+        "signature": "(params: ReleaseParams) => Promise<void>",
+        "parameters": [
+          {
+            "name": "params",
+            "docs": "Parameters for releasing",
+            "type": "ReleaseParams"
+          }
+        ],
+        "returns": "Promise<void>",
+        "tags": [
+          {
+            "name": "param",
+            "text": "params Parameters for releasing"
+          },
+          {
+            "name": "returns",
+            "text": "Promise that resolves when the index is released"
+          }
+        ],
+        "docs": "Release an HNSW index and free resources",
+        "complexTypes": [
+          "ReleaseParams"
+        ],
+        "slug": "releasehnswindex"
+      }
+    ],
+    "properties": []
+  },
+  "interfaces": [
+    {
+      "name": "CreateResult",
+      "slug": "createresult",
+      "docs": "Result containing the ID of a newly created store or index",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "id",
+          "tags": [],
+          "docs": "The ID of the created store or index",
+          "complexTypes": [],
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "VectorStoreOptions",
+      "slug": "vectorstoreoptions",
+      "docs": "Options for creating a VectorStore",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "dimension",
+          "tags": [],
+          "docs": "The dimension of the vectors",
+          "complexTypes": [],
+          "type": "number"
+        },
+        {
+          "name": "metric",
+          "tags": [],
+          "docs": "The distance metric to use for similarity search",
+          "complexTypes": [
+            "DistanceMetric"
+          ],
+          "type": "DistanceMetric"
+        }
+      ]
+    },
+    {
+      "name": "HNSWIndexOptions",
+      "slug": "hnswindexoptions",
+      "docs": "Options for creating an HNSWIndex",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "dimension",
+          "tags": [],
+          "docs": "The dimension of the vectors",
+          "complexTypes": [],
+          "type": "number"
+        },
+        {
+          "name": "metric",
+          "tags": [],
+          "docs": "The distance metric to use for similarity search",
+          "complexTypes": [
+            "DistanceMetric"
+          ],
+          "type": "DistanceMetric"
+        },
+        {
+          "name": "m",
+          "tags": [],
+          "docs": "The maximum number of connections per node",
+          "complexTypes": [],
+          "type": "number | undefined"
+        },
+        {
+          "name": "efConstruction",
+          "tags": [],
+          "docs": "The size of the dynamic list for candidate selection during construction",
+          "complexTypes": [],
+          "type": "number | undefined"
+        }
+      ]
+    },
+    {
+      "name": "AddVectorParams",
+      "slug": "addvectorparams",
+      "docs": "Parameters for adding a vector to a store or index",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "id",
+          "tags": [],
+          "docs": "The ID of the store or index",
+          "complexTypes": [],
+          "type": "string"
+        },
+        {
+          "name": "vector",
+          "tags": [],
+          "docs": "The vector to add",
+          "complexTypes": [],
+          "type": "number[]"
+        },
+        {
+          "name": "vectorId",
+          "tags": [],
+          "docs": "The ID to associate with the vector",
+          "complexTypes": [],
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "name": "SearchResultList",
+      "slug": "searchresultlist",
+      "docs": "Result containing search results",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "results",
+          "tags": [],
+          "docs": "Array of search results sorted by distance",
+          "complexTypes": [
+            "SearchResult"
+          ],
+          "type": "SearchResult[]"
+        }
+      ]
+    },
+    {
+      "name": "SearchResult",
+      "slug": "searchresult",
+      "docs": "A result from a vector search operation",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "id",
+          "tags": [],
+          "docs": "The ID of the vector",
+          "complexTypes": [],
+          "type": "number"
+        },
+        {
+          "name": "distance",
+          "tags": [],
+          "docs": "The distance between the query vector and the result vector",
+          "complexTypes": [],
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "name": "VectorStoreSearchParams",
+      "slug": "vectorstoresearchparams",
+      "docs": "Parameters for searching a VectorStore",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "id",
+          "tags": [],
+          "docs": "The ID of the vector store",
+          "complexTypes": [],
+          "type": "string"
+        },
+        {
+          "name": "queryVector",
+          "tags": [],
+          "docs": "The query vector",
+          "complexTypes": [],
+          "type": "number[]"
+        },
+        {
+          "name": "k",
+          "tags": [],
+          "docs": "The number of nearest neighbors to return",
+          "complexTypes": [],
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "name": "HNSWIndexSearchParams",
+      "slug": "hnswindexsearchparams",
+      "docs": "Parameters for searching an HNSWIndex",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "id",
+          "tags": [],
+          "docs": "The ID of the HNSW index",
+          "complexTypes": [],
+          "type": "string"
+        },
+        {
+          "name": "queryVector",
+          "tags": [],
+          "docs": "The query vector",
+          "complexTypes": [],
+          "type": "number[]"
+        },
+        {
+          "name": "k",
+          "tags": [],
+          "docs": "The number of nearest neighbors to return",
+          "complexTypes": [],
+          "type": "number"
+        },
+        {
+          "name": "efSearch",
+          "tags": [],
+          "docs": "The size of the dynamic list for candidate selection during search",
+          "complexTypes": [],
+          "type": "number | undefined"
+        }
+      ]
+    },
+    {
+      "name": "CountResult",
+      "slug": "countresult",
+      "docs": "Result containing the count of vectors",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "count",
+          "tags": [],
+          "docs": "The number of vectors in the store or index",
+          "complexTypes": [],
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "name": "CountParams",
+      "slug": "countparams",
+      "docs": "Parameters for getting the count of vectors",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "id",
+          "tags": [],
+          "docs": "The ID of the store or index",
+          "complexTypes": [],
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "ClearParams",
+      "slug": "clearparams",
+      "docs": "Parameters for clearing vectors",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "id",
+          "tags": [],
+          "docs": "The ID of the store or index",
+          "complexTypes": [],
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "ReleaseParams",
+      "slug": "releaseparams",
+      "docs": "Parameters for releasing a store or index",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "id",
+          "tags": [],
+          "docs": "The ID of the store or index",
+          "complexTypes": [],
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "enums": [
+    {
+      "name": "DistanceMetric",
+      "slug": "distancemetric",
+      "members": [
+        {
+          "name": "L2",
+          "value": "'L2'",
+          "tags": [],
+          "docs": "Euclidean distance (L2 norm)"
+        },
+        {
+          "name": "COSINE",
+          "value": "'COSINE'",
+          "tags": [],
+          "docs": "Cosine similarity"
+        },
+        {
+          "name": "DOT",
+          "value": "'DOT'",
+          "tags": [],
+          "docs": "Dot product"
+        }
+      ]
+    }
+  ],
+  "typeAliases": [],
+  "pluginConfigs": []
+}

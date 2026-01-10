@@ -1,0 +1,22 @@
+name: iOSSDKExample
+targets:
+  iOSSDKExample:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources: [Sources]
+    settings:
+      base:
+        DEVELOPMENT_TEAM: ""
+        PRODUCT_BUNDLE_IDENTIFIER: "com.llamamobile.iOSSdkExample"
+    entitlements:
+      path: iOSSDKExample.entitlements
+    info:
+      path: Info.plist
+      properties:
+        UILaunchStoryboardName: LaunchScreen
+        UIViewControllerBasedStatusBarAppearance: true
+    dependencies:
+      - framework: "../../../llama_mobile_vd-ios-SDK/LlamaMobileVD/LlamaMobileVD.xcframework"
+        embed: true
+        codeSign: true

@@ -1,0 +1,54 @@
+{
+  "name": "llama-mobile-vd",
+  "version": "0.0.1",
+  "description": "A high-performance vector database for React Native applications using LlamaMobileVD",
+  "main": "lib/index.js",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
+  },
+  "keywords": [
+    "react-native",
+    "vector",
+    "database",
+    "hnsw",
+    "ios",
+    "android"
+  ],
+  "author": "Llama Mobile Team",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/allenpeng0705/llama_mobile/llama_mobile_vd-react-native-SDK.git"
+  },
+  "bugs": {
+    "url": "https://github.com/allenpeng0705/llama_mobile/llama_mobile_vd-react-native-SDK/issues"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-native": "^0.60.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-native": "^0.60.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {},
+  "react-native": {
+    "ios": {
+      "podspecPath": "LlamaMobileVD.podspec"
+    },
+    "android": {
+      "packageInstance": "new LlamaMobileVDModule()"
+    }
+  },
+  "codegenConfig": {
+    "name": "LlamaMobileVDSpec",
+    "type": "modules",
+    "jsSrcsDir": "lib",
+    "android": {
+      "javaPackageName": "com.llamamobile.vd"
+    }
+  }
+}

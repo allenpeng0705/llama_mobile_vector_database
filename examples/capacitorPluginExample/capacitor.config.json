@@ -1,0 +1,5 @@
+{
+  "appId": "com.capacitorplugin.example",
+  "appName": "CapacitorPluginExample",
+  "webDir": "dist"
+}

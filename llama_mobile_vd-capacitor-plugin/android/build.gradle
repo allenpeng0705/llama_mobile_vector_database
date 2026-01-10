@@ -1,0 +1,66 @@
+// Top-level build file for the LlamaMobileVD Capacitor Plugin
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+    compileSdkVersion 34
+
+    defaultConfig {
+        minSdkVersion 24
+        targetSdkVersion 34
+        versionCode 1
+        versionName "0.0.1"
+        consumerProguardFiles 'consumer-rules.pro'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+
+    // Include the Java SDK
+    sourceSets {
+        main {
+            // Include the Android Java SDK
+            java {
+                srcDirs += ['../llama_mobile_vd-android-java-SDK/src/main/java']
+            }
+            // Include the JNI libraries
+            jniLibs {
+                srcDirs += ['../llama_mobile_vd-android-java-SDK/src/main/jniLibs']
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation project(':capacitor-android')
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.getcapacitor:core:8.0.0'
+
+    // Include the LlamaMobileVD Android Java SDK
+    implementation files('../llama_mobile_vd-android-java-SDK/build/outputs/aar/llama_mobile_vd-android-java-SDK-debug.aar')
+}
+
+// Copy the required JNI libraries
+android {
+    task copyJniLibs(type: Copy) {
+        from '../llama_mobile_vd-android-java-SDK/src/main/jniLibs'
+        into 'src/main/jniLibs'
+        include '**/*'
+    }
+
+    preBuild.dependsOn copyJniLibs
+}

@@ -1,0 +1,45 @@
+// Top-level build file for the LlamaMobileVD React Native SDK
+
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 34
+
+    defaultConfig {
+        minSdkVersion 24
+        targetSdkVersion 34
+        versionCode 1
+        versionName "0.0.1"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    // Include the Java SDK
+    sourceSets {
+        main {
+            // Include the Android Java SDK
+            java {
+                srcDirs += ['../../llama_mobile_vd-android-java-SDK/src/main/java']
+            }
+            // Include the JNI libraries
+            jniLibs {
+                srcDirs += ['../../llama_mobile_vd-android-java-SDK/src/main/jniLibs']
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.facebook.react:react-native:+'
+}

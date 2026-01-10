@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CapacitorPluginExample</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Status message -->
+      <div class="status-container">
+        <div id="loading-indicator" class="loading-indicator"></div>
+        <div id="status-message" class="status-text">Ready</div>
+      </div>
+      
+      <!-- Configuration section -->
+      <h2>Configuration</h2>
+      
+      <!-- Dimension slider -->
+      <div class="slider-container">
+        <div class="slider-label">Vector Dimension: <span id="dimension-value">128</span></div>
+        <input type="range" id="dimension-slider" min="10" max="256" step="1" value="128" class="slider">
+      </div>
+      
+      <!-- Distance metric -->
+      <div class="select-container">
+        <label for="metric-select" class="select-label">Distance Metric</label>
+        <select id="metric-select" class="select">
+          <option value="l2">L2</option>
+          <option value="cosine">COSINE</option>
+          <option value="dot">DOT</option>
+        </select>
+      </div>
+      
+      <!-- HNSW parameters -->
+      <h2>HNSW Parameters</h2>
+      
+      <!-- HNSW M slider -->
+      <div class="slider-container">
+        <div class="slider-label">M (Connections per node): <span id="hnsw-m-value">16</span></div>
+        <input type="range" id="hnsw-m-slider" min="5" max="50" step="1" value="16" class="slider">
+      </div>
+      
+      <!-- HNSW efConstruction slider -->
+      <div class="slider-container">
+        <div class="slider-label">efConstruction: <span id="hnsw-ef-construction-value">200</span></div>
+        <input type="range" id="hnsw-ef-construction-slider" min="50" max="500" step="1" value="200" class="slider">
+      </div>
+      
+      <!-- Search K slider -->
+      <div class="slider-container">
+        <div class="slider-label">Search k: <span id="search-k-value">5</span></div>
+        <input type="range" id="search-k-slider" min="1" max="20" step="1" value="5" class="slider">
+      </div>
+      
+      <!-- VectorStore section -->
+      <h2>VectorStore (Exact Search)</h2>
+      
+      <div class="button-row">
+        <button id="create-vector-store-button" class="button">Create VectorStore</button>
+        <button id="add-vectors-to-store-button" class="button">Add 100 Vectors</button>
+      </div>
+      
+      <div class="button-row">
+        <button id="search-vector-store-button" class="button">Search</button>
+        <button id="clear-vector-store-button" class="button">Clear</button>
+        <button id="release-vector-store-button" class="button">Release</button>
+      </div>
+      
+      <div class="info-container">
+        <div id="vector-store-info">VectorStore ID: None<br>Vector count: 0</div>
+      </div>
+      
+      <div id="vector-store-results" class="results-container">
+        <!-- Results will be populated here -->
+      </div>
+      
+      <!-- HNSWIndex section -->
+      <h2>HNSWIndex (Approximate Search)</h2>
+      
+      <div class="button-row">
+        <button id="create-hnsw-index-button" class="button">Create HNSWIndex</button>
+        <button id="add-vectors-to-hnsw-button" class="button">Add 100 Vectors</button>
+      </div>
+      
+      <div class="button-row">
+        <button id="search-hnsw-index-button" class="button">Search</button>
+        <button id="clear-hnsw-index-button" class="button">Clear</button>
+        <button id="release-hnsw-index-button" class="button">Release</button>
+      </div>
+      
+      <div class="info-container">
+        <div id="hnsw-index-info">HNSWIndex ID: None<br>Vector count: 0</div>
+      </div>
+      
+      <div id="hnsw-index-results" class="results-container">
+        <!-- Results will be populated here -->
+      </div>
+    </div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

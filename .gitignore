@@ -1,0 +1,5 @@
+/build-lib-shared/build
+/build-lib-shared
+/build-lib-static
+/build-lib
+/llama_mobile_vd-capacitor-plugin/node_modules
