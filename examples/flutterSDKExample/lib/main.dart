@@ -12,9 +12,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'LlamaMobileVD Flutter Example',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: const MyHomePage(title: 'LlamaMobileVD Flutter Example'),
     );
   }
@@ -31,23 +29,22 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   // Vector Store state
-  String _vectorStoreId = '';
-  int _vectorStoreCount = 0;
+  VectorStore? _vectorStore;
   List<SearchResult> _vectorStoreResults = [];
-  
+
   // HNSW Index state
-  String _hnswIndexId = '';
-  int _hnswIndexCount = 0;
+  HNSWIndex? _hnswIndex;
   List<SearchResult> _hnswIndexResults = [];
-  
+
   // UI state
   int _dimension = 128;
   DistanceMetric _selectedMetric = DistanceMetric.l2;
   int _hnswM = 16;
   int _hnswEfConstruction = 200;
   int _searchK = 5;
+  int _efSearch = 50;
   String _statusMessage = 'Ready';
-  
+
   // Create a vector with random values
   List<double> _createRandomVector(int dimension) {
     final List<double> vector = [];
@@ -56,24 +53,21 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     return vector;
   }
-  
+
   // Create Vector Store
   Future<void> _createVectorStore() async {
     try {
       setState(() {
         _statusMessage = 'Creating VectorStore...';
       });
-      
-      final result = await LlamaMobileVD.createVectorStore(
-        VectorStoreOptions(
-          dimension: _dimension,
-          metric: _selectedMetric,
-        ),
+
+      final vectorStore = await VectorStore.create(
+        dimension: _dimension,
+        metric: _selectedMetric,
       );
-      
+
       setState(() {
-        _vectorStoreId = result.id;
-        _vectorStoreCount = 0;
+        _vectorStore = vectorStore;
         _vectorStoreResults.clear();
         _statusMessage = 'VectorStore created successfully';
       });
@@ -83,26 +77,23 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
   }
-  
+
   // Create HNSW Index
   Future<void> _createHNSWIndex() async {
     try {
       setState(() {
         _statusMessage = 'Creating HNSWIndex...';
       });
-      
-      final result = await LlamaMobileVD.createHNSWIndex(
-        HNSWIndexOptions(
-          dimension: _dimension,
-          metric: _selectedMetric,
-          m: _hnswM,
-          efConstruction: _hnswEfConstruction,
-        ),
+
+      final hnswIndex = await HNSWIndex.create(
+        dimension: _dimension,
+        metric: _selectedMetric,
+        m: _hnswM,
+        efConstruction: _hnswEfConstruction,
       );
-      
+
       setState(() {
-        _hnswIndexId = result.id;
-        _hnswIndexCount = 0;
+        _hnswIndex = hnswIndex;
         _hnswIndexResults.clear();
         _statusMessage = 'HNSWIndex created successfully';
       });
@@ -112,38 +103,27 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
   }
-  
+
   // Add vectors to VectorStore
   Future<void> _addVectorsToStore() async {
-    if (_vectorStoreId.isEmpty) {
+    if (_vectorStore == null) {
       setState(() {
         _statusMessage = 'Please create a VectorStore first';
       });
       return;
     }
-    
+
     try {
       setState(() {
         _statusMessage = 'Adding 100 vectors to VectorStore...';
       });
-      
+
       for (int i = 0; i < 100; i++) {
         final vector = _createRandomVector(_dimension);
-        await LlamaMobileVD.addVectorToStore(
-          AddVectorParams(
-            id: _vectorStoreId,
-            vector: vector,
-            label: 'vector-$i',
-          ),
-        );
+        await _vectorStore!.addVector(vector, i + 1);
       }
-      
-      final countResult = await LlamaMobileVD.countVectorStore(
-        CountParams(id: _vectorStoreId),
-      );
-      
+
       setState(() {
-        _vectorStoreCount = countResult.count;
         _statusMessage = 'Added 100 vectors to VectorStore';
       });
     } catch (e) {
@@ -152,38 +132,27 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
   }
-  
+
   // Add vectors to HNSWIndex
   Future<void> _addVectorsToHNSW() async {
-    if (_hnswIndexId.isEmpty) {
+    if (_hnswIndex == null) {
       setState(() {
         _statusMessage = 'Please create a HNSWIndex first';
       });
       return;
     }
-    
+
     try {
       setState(() {
         _statusMessage = 'Adding 100 vectors to HNSWIndex...';
       });
-      
+
       for (int i = 0; i < 100; i++) {
         final vector = _createRandomVector(_dimension);
-        await LlamaMobileVD.addVectorToHNSW(
-          AddVectorParams(
-            id: _hnswIndexId,
-            vector: vector,
-            label: 'vector-$i',
-          ),
-        );
+        await _hnswIndex!.addVector(vector, i + 1);
       }
-      
-      final countResult = await LlamaMobileVD.countHNSWIndex(
-        CountParams(id: _hnswIndexId),
-      );
-      
+
       setState(() {
-        _hnswIndexCount = countResult.count;
         _statusMessage = 'Added 100 vectors to HNSWIndex';
       });
     } catch (e) {
@@ -192,37 +161,24 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
   }
-  
+
   // Search VectorStore
   Future<void> _searchVectorStore() async {
-    if (_vectorStoreId.isEmpty) {
+    if (_vectorStore == null) {
       setState(() {
         _statusMessage = 'Please create a VectorStore first';
       });
       return;
     }
-    
-    if (_vectorStoreCount == 0) {
-      setState(() {
-        _statusMessage = 'Please add vectors to the VectorStore first';
-      });
-      return;
-    }
-    
+
     try {
       setState(() {
         _statusMessage = 'Searching VectorStore...';
       });
-      
+
       final queryVector = _createRandomVector(_dimension);
-      final results = await LlamaMobileVD.searchVectorStore(
-        SearchParams(
-          id: _vectorStoreId,
-          queryVector: queryVector,
-          k: _searchK,
-        ),
-      );
-      
+      final results = await _vectorStore!.search(queryVector, _searchK);
+
       setState(() {
         _vectorStoreResults = results;
         _statusMessage = 'Search completed successfully';
@@ -233,37 +189,28 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
   }
-  
+
   // Search HNSWIndex
   Future<void> _searchHNSWIndex() async {
-    if (_hnswIndexId.isEmpty) {
+    if (_hnswIndex == null) {
       setState(() {
         _statusMessage = 'Please create a HNSWIndex first';
       });
       return;
     }
-    
-    if (_hnswIndexCount == 0) {
-      setState(() {
-        _statusMessage = 'Please add vectors to the HNSWIndex first';
-      });
-      return;
-    }
-    
+
     try {
       setState(() {
         _statusMessage = 'Searching HNSWIndex...';
       });
-      
+
       final queryVector = _createRandomVector(_dimension);
-      final results = await LlamaMobileVD.searchHNSWIndex(
-        SearchParams(
-          id: _hnswIndexId,
-          queryVector: queryVector,
-          k: _searchK,
-        ),
+      final results = await _hnswIndex!.search(
+        queryVector,
+        _searchK,
+        efSearch: _efSearch,
       );
-      
+
       setState(() {
         _hnswIndexResults = results;
         _statusMessage = 'Search completed successfully';
@@ -274,27 +221,24 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
   }
-  
+
   // Clear VectorStore
   Future<void> _clearVectorStore() async {
-    if (_vectorStoreId.isEmpty) {
+    if (_vectorStore == null) {
       setState(() {
         _statusMessage = 'Please create a VectorStore first';
       });
       return;
     }
-    
+
     try {
       setState(() {
         _statusMessage = 'Clearing VectorStore...';
       });
-      
-      await LlamaMobileVD.clearVectorStore(
-        ClearParams(id: _vectorStoreId),
-      );
-      
+
+      await _vectorStore!.clear();
+
       setState(() {
-        _vectorStoreCount = 0;
         _vectorStoreResults.clear();
         _statusMessage = 'VectorStore cleared successfully';
       });
@@ -304,27 +248,24 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
   }
-  
+
   // Clear HNSWIndex
   Future<void> _clearHNSWIndex() async {
-    if (_hnswIndexId.isEmpty) {
+    if (_hnswIndex == null) {
       setState(() {
         _statusMessage = 'Please create a HNSWIndex first';
       });
       return;
     }
-    
+
     try {
       setState(() {
         _statusMessage = 'Clearing HNSWIndex...';
       });
-      
-      await LlamaMobileVD.clearHNSWIndex(
-        ClearParams(id: _hnswIndexId),
-      );
-      
+
+      await _hnswIndex!.clear();
+
       setState(() {
-        _hnswIndexCount = 0;
         _hnswIndexResults.clear();
         _statusMessage = 'HNSWIndex cleared successfully';
       });
@@ -334,28 +275,25 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
   }
-  
+
   // Release VectorStore
   Future<void> _releaseVectorStore() async {
-    if (_vectorStoreId.isEmpty) {
+    if (_vectorStore == null) {
       setState(() {
         _statusMessage = 'Please create a VectorStore first';
       });
       return;
     }
-    
+
     try {
       setState(() {
         _statusMessage = 'Releasing VectorStore...';
       });
-      
-      await LlamaMobileVD.releaseVectorStore(
-        ReleaseParams(id: _vectorStoreId),
-      );
-      
+
+      await _vectorStore!.dispose();
+
       setState(() {
-        _vectorStoreId = '';
-        _vectorStoreCount = 0;
+        _vectorStore = null;
         _vectorStoreResults.clear();
         _statusMessage = 'VectorStore released successfully';
       });
@@ -365,28 +303,25 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
   }
-  
+
   // Release HNSWIndex
   Future<void> _releaseHNSWIndex() async {
-    if (_hnswIndexId.isEmpty) {
+    if (_hnswIndex == null) {
       setState(() {
         _statusMessage = 'Please create a HNSWIndex first';
       });
       return;
     }
-    
+
     try {
       setState(() {
         _statusMessage = 'Releasing HNSWIndex...';
       });
-      
-      await LlamaMobileVD.releaseHNSWIndex(
-        ReleaseParams(id: _hnswIndexId),
-      );
-      
+
+      await _hnswIndex!.dispose();
+
       setState(() {
-        _hnswIndexId = '';
-        _hnswIndexCount = 0;
+        _hnswIndex = null;
         _hnswIndexResults.clear();
         _statusMessage = 'HNSWIndex released successfully';
       });
@@ -396,13 +331,11 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
+      appBar: AppBar(title: Text(widget.title)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -411,7 +344,7 @@ class _MyHomePageState extends State<MyHomePage> {
             // Status message
             Container(
               padding: const EdgeInsets.all(12.0),
-              marginBottom: 16.0,
+              margin: const EdgeInsets.only(bottom: 16.0),
               decoration: BoxDecoration(
                 color: Colors.blue[50],
                 borderRadius: BorderRadius.circular(8.0),
@@ -421,14 +354,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 style: const TextStyle(fontSize: 16.0),
               ),
             ),
-            
+
             // Configuration section
             const Text(
               'Configuration',
               style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12.0),
-            
+
             // Dimension slider
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -447,7 +380,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
-            
+
             // Distance metric dropdown
             DropdownButtonFormField<DistanceMetric>(
               value: _selectedMetric,
@@ -464,14 +397,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 });
               },
             ),
-            
+
             // HNSW parameters
             const SizedBox(height: 16.0),
             const Text(
               'HNSW Parameters',
               style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
             ),
-            
+
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -489,7 +422,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
-            
+
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -507,7 +440,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
-            
+
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -525,16 +458,35 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
-            
+
+            // HNSW Search parameters
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('HNSW efSearch: $_efSearch'),
+                Slider(
+                  value: _efSearch.toDouble(),
+                  min: 10.0,
+                  max: 200.0,
+                  divisions: 19,
+                  onChanged: (value) {
+                    setState(() {
+                      _efSearch = value.toInt();
+                    });
+                  },
+                ),
+              ],
+            ),
+
             const SizedBox(height: 24.0),
-            
+
             // VectorStore section
             const Text(
               'VectorStore (Exact Search)',
               style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12.0),
-            
+
             Row(
               children: [
                 Expanded(
@@ -552,7 +504,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
-            
+
             Row(
               children: [
                 Expanded(
@@ -577,45 +529,55 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 8.0),
-            
-            Text('VectorStore ID: ${_vectorStoreId.isNotEmpty ? _vectorStoreId.substring(0, 10) + '...' : 'None'}'),
-            Text('Vector count: $_vectorStoreCount'),
-            
+
+            Text(
+              'VectorStore Status: ${_vectorStore != null ? 'Created' : 'None'}',
+            ),
+
             const SizedBox(height: 12.0),
-            
+
             // VectorStore results
-            if (_vectorStoreResults.isNotEmpty) {
-              const Text(
-                'Search Results:',
-                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+            if (_vectorStoreResults.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Search Results:',
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8.0),
+                  SizedBox(
+                    height: 200.0,
+                    child: ListView.builder(
+                      itemCount: _vectorStoreResults.length,
+                      itemBuilder: (context, index) {
+                        final result = _vectorStoreResults[index];
+                        return ListTile(
+                          title: Text('Vector ID: ${result.id}'),
+                          subtitle: Text(
+                            'Distance: ${result.distance.toStringAsFixed(6)}',
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8.0),
-              SizedBox(
-                height: 200.0,
-                child: ListView.builder(
-                  itemCount: _vectorStoreResults.length,
-                  itemBuilder: (context, index) {
-                    final result = _vectorStoreResults[index];
-                    return ListTile(
-                      title: Text('Vector ${result.index}'),
-                      subtitle: Text('Distance: ${result.distance.toStringAsFixed(6)}'),
-                    );
-                  },
-                ),
-              ),
-            },
-            
+
             const SizedBox(height: 24.0),
-            
+
             // HNSWIndex section
             const Text(
               'HNSWIndex (Approximate Search)',
               style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12.0),
-            
+
             Row(
               children: [
                 Expanded(
@@ -633,7 +595,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
-            
+
             Row(
               children: [
                 Expanded(
@@ -658,35 +620,45 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 8.0),
-            
-            Text('HNSWIndex ID: ${_hnswIndexId.isNotEmpty ? _hnswIndexId.substring(0, 10) + '...' : 'None'}'),
-            Text('Vector count: $_hnswIndexCount'),
-            
+
+            Text(
+              'HNSWIndex Status: ${_hnswIndex != null ? 'Created' : 'None'}',
+            ),
+
             const SizedBox(height: 12.0),
-            
+
             // HNSWIndex results
-            if (_hnswIndexResults.isNotEmpty) {
-              const Text(
-                'Search Results:',
-                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+            if (_hnswIndexResults.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Search Results:',
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8.0),
+                  SizedBox(
+                    height: 200.0,
+                    child: ListView.builder(
+                      itemCount: _hnswIndexResults.length,
+                      itemBuilder: (context, index) {
+                        final result = _hnswIndexResults[index];
+                        return ListTile(
+                          title: Text('Vector ID: ${result.id}'),
+                          subtitle: Text(
+                            'Distance: ${result.distance.toStringAsFixed(6)}',
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8.0),
-              SizedBox(
-                height: 200.0,
-                child: ListView.builder(
-                  itemCount: _hnswIndexResults.length,
-                  itemBuilder: (context, index) {
-                    final result = _hnswIndexResults[index];
-                    return ListTile(
-                      title: Text('Vector ${result.index}'),
-                      subtitle: Text('Distance: ${result.distance.toStringAsFixed(6)}'),
-                    );
-                  },
-                ),
-              ),
-            },
           ],
         ),
       ),

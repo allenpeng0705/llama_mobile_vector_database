@@ -781,6 +781,135 @@ TEST_CASE("HNSWIndex - corruption validation tests", "[hnsw][serialization]") {
 
 }
 
+TEST_CASE("HNSWIndex - multi-dimension test", "[hnsw][multi-dim]") {
+  // Test with various dimensions to ensure compatibility with common embedding sizes
+  std::vector<size_t> dimensions = {384, 768, 1024, 3072};
+  std::vector<quiverdb::HNSWDistanceMetric> metrics = {
+    quiverdb::HNSWDistanceMetric::L2,
+    quiverdb::HNSWDistanceMetric::COSINE,
+    quiverdb::HNSWDistanceMetric::DOT
+  };
+
+  for (size_t dim : dimensions) {
+    for (auto metric : metrics) {
+      DYNAMIC_SECTION("Dimension: " << dim << ", Metric: " << static_cast<int>(metric)) {
+        // Use appropriate capacity for different dimensions
+        size_t max_elements = 200; // Reasonable capacity for testing
+        quiverdb::HNSWIndex index(dim, metric, max_elements, 16, 100);
+
+        std::mt19937 gen(42);
+        std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
+
+        // Test basic operations with different dimensions
+        SECTION("Add vectors") {
+          // Add 50 vectors for each dimension
+          for (uint64_t i = 0; i < 50; ++i) {
+            std::vector<float> vec(dim);
+            for (size_t j = 0; j < dim; ++j) {
+              vec[j] = dis(gen);
+            }
+            index.add(i, vec.data());
+          }
+          REQUIRE(index.size() == 50);
+          REQUIRE(index.contains(25));
+        }
+
+        SECTION("Search functionality") {
+          // Add 100 vectors
+          std::vector<std::vector<float>> vectors;
+          vectors.reserve(100);
+          for (uint64_t i = 0; i < 100; ++i) {
+            std::vector<float> vec(dim);
+            for (size_t j = 0; j < dim; ++j) {
+              vec[j] = dis(gen);
+            }
+            vectors.push_back(std::move(vec));
+            index.add(i, vectors.back().data());
+          }
+
+          // Set appropriate ef_search for different dimensions
+          index.set_ef_search(50);
+
+          // Search with exact match
+          auto results = index.search(vectors[42].data(), 1);
+          REQUIRE(results.size() == 1);
+          // Should find the exact match or a very close vector
+          REQUIRE((results[0].id == 42 || results[0].distance < 1e-5));
+
+          // Search for k nearest neighbors
+          results = index.search(vectors[75].data(), 10);
+          REQUIRE(results.size() == 10);
+          
+          // Results should be sorted by distance
+          for (size_t i = 1; i < results.size(); ++i) {
+            REQUIRE(results[i-1].distance <= results[i].distance);
+          }
+        }
+
+        SECTION("ef_search impact on results") {
+          // Add 100 vectors
+          std::vector<std::vector<float>> vectors;
+          vectors.reserve(100);
+          for (uint64_t i = 0; i < 100; ++i) {
+            std::vector<float> vec(dim);
+            for (size_t j = 0; j < dim; ++j) {
+              vec[j] = dis(gen);
+            }
+            vectors.push_back(std::move(vec));
+            index.add(i, vectors.back().data());
+          }
+
+          // Test different ef_search values
+          std::vector<size_t> ef_values = {10, 50, 100};
+          
+          for (size_t ef : ef_values) {
+            index.set_ef_search(ef);
+            
+            auto results = index.search(vectors[33].data(), 5);
+            REQUIRE(results.size() == 5);
+            
+            // Results should be sorted
+            for (size_t i = 1; i < results.size(); ++i) {
+              REQUIRE(results[i-1].distance <= results[i].distance);
+            }
+          }
+        }
+
+        SECTION("Vector retrieval") {
+          std::vector<float> original(dim);
+          for (size_t j = 0; j < dim; ++j) {
+            original[j] = dis(gen);
+          }
+          index.add(42, original.data());
+
+          // Test get_vector
+          std::vector<float> retrieved = index.get_vector(42);
+          REQUIRE(retrieved.size() == dim);
+          for (size_t j = 0; j < dim; ++j) {
+            REQUIRE(retrieved[j] == Approx(original[j]).margin(1e-6f));
+          }
+        }
+
+        SECTION("Index properties") {
+          // Add some vectors
+          for (uint64_t i = 0; i < 20; ++i) {
+            std::vector<float> vec(dim);
+            for (size_t j = 0; j < dim; ++j) {
+              vec[j] = dis(gen);
+            }
+            index.add(i, vec.data());
+          }
+
+          // Verify index properties are maintained
+          REQUIRE(index.dimension() == dim);
+          REQUIRE(index.capacity() == max_elements);
+          REQUIRE(index.size() == 20);
+        }
+      }
+    }
+  }
+}
+
 TEST_CASE("HNSWIndex - contains edge cases", "[hnsw]") {
   constexpr size_t dim = 8;
   quiverdb::HNSWIndex index(dim, quiverdb::HNSWDistanceMetric::L2, 100);

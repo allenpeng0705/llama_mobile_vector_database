@@ -57,4 +57,83 @@ export class LlamaMobileVDWeb extends WebPlugin implements LlamaMobileVDPlugin {
   async releaseHNSWIndex(): Promise<void> {
     throw new Error(this.UNSUPPORTED_ERROR);
   }
+
+  // MARK: New VectorStore Methods
+  async removeVectorFromStore(): Promise<{ result: boolean }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async getVectorFromStore(): Promise<{ vector: number[] } | null> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async updateVectorInStore(): Promise<{ result: boolean }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async containsVectorInStore(): Promise<{ result: boolean }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async reserveVectorStore(): Promise<void> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async getVectorStoreDimension(): Promise<{ dimension: number }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async getVectorStoreMetric(): Promise<{ metric: string }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  // MARK: New HNSWIndex Methods
+  async setHNSWEfSearch(): Promise<void> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async getHNSWEfSearch(): Promise<{ efSearch: number }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async containsVectorInHNSW(): Promise<{ result: boolean }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async getVectorFromHNSW(): Promise<{ vector: number[] } | null> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async getHNSWDimension(): Promise<{ dimension: number }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async getHNSWCapacity(): Promise<{ capacity: number }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async saveHNSWIndex(): Promise<{ result: boolean }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async loadHNSWIndex(): Promise<{ id: string }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  // MARK: Version Methods
+  async getVersion(): Promise<{ version: string }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async getVersionMajor(): Promise<{ value: number }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async getVersionMinor(): Promise<{ value: number }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async getVersionPatch(): Promise<{ value: number }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
 }

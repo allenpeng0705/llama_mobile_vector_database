@@ -29,9 +29,9 @@ llama_mobile_vd is a collection of cross-platform vector database SDKs built on 
 
 llama_mobile_vd provides SDKs for all major mobile and web platforms:
 
-- **iOS SDK** (`llama_mobile_vd-ios-SDK`): Native Swift SDK for iOS applications
-- **Android SDK** (`llama_mobile_vd-android-SDK`): Native Kotlin SDK for Android applications
-- **Android Java SDK** (`llama_mobile_vd-android-java-SDK`): Native Java SDK for Android applications
+- **iOS SDK** (`llama_mobile_vd-ios-SDK`): Native Swift SDK for iOS applications (consolidated)
+- **Android SDK** (`llama_mobile_vd-android-SDK`): Native Kotlin SDK for Android applications (consolidated)
+- **Android Java SDK** (`llama_mobile_vd-android-java-SDK`): Native Java SDK for Android applications (separate)
 - **Flutter SDK** (`llama_mobile_vd-flutter-SDK`): Cross-platform Flutter/Dart SDK
 - **React Native SDK** (`llama_mobile_vd-react-native-SDK`): Cross-platform React Native SDK with TypeScript support
 - **Capacitor Plugin** (`llama_mobile_vd-capacitor-plugin`): Cross-platform Capacitor plugin for web/hybrid applications
@@ -85,7 +85,7 @@ Use the provided build scripts to build all SDKs:
 
 ```bash
 # Navigate to the scripts directory
-cd /Users/shileipeng/Documents/mygithub/llama_mobile/llama_mobile_vd/scripts
+cd scripts
 
 # Build all SDKs
 bash build-all.sh
@@ -95,113 +95,154 @@ bash build-all.sh
 
 #### iOS SDK
 ```bash
-cd /Users/shileipeng/Documents/mygithub/llama_mobile/llama_mobile_vd/scripts
+cd scripts
 bash build-ios.sh
 ```
 
-#### Android SDK (Kotlin)
+#### Android SDK (Kotlin/Java consolidated)
 ```bash
-cd /Users/shileipeng/Documents/mygithub/llama_mobile/llama_mobile_vd/scripts
+cd scripts
 bash build-android.sh
 ```
 
 #### Android Java SDK
 ```bash
-cd /Users/shileipeng/Documents/mygithub/llama_mobile/llama_mobile_vd/scripts
+cd scripts
 bash build-android-java.sh
 ```
 
 #### Flutter SDK
 ```bash
-cd /Users/shileipeng/Documents/mygithub/llama_mobile/llama_mobile_vd/scripts
+cd scripts
 bash build-flutter-SDK.sh
 ```
 
 #### React Native SDK
 ```bash
-cd /Users/shileipeng/Documents/mygithub/llama_mobile/llama_mobile_vd/scripts
+cd scripts
 bash build-react-native-SDK.sh
 ```
 
 #### Capacitor Plugin
 ```bash
-cd /Users/shileipeng/Documents/mygithub/llama_mobile/llama_mobile_vd/scripts
+cd scripts
 bash build-capacitor-plugin.sh
 ```
+
+## Running Tests
+
+### Wrapper API Tests
+
+The wrapper API tests verify the core functionality of both VectorStore and HNSWIndex across all supported dimension sizes and distance metrics. These tests are built automatically when compiling the wrapper library.
+
+```bash
+# Run wrapper tests directly from the build directory
+cd build-lib
+./Release/quiverdb_wrapper_test
+```
+
+### Core C++ Tests
+
+The core QuiverDB library includes comprehensive tests for VectorStore and HNSWIndex. To run these tests:
+
+```bash
+# Navigate to the QuiverDB directory
+cd lib/llama_cpp/quiverdb
+
+# Create and configure build directory
+mkdir -p build
+cd build
+cmake .. -DQUIVERDB_BUILD_TESTS=ON -DQUIVERDB_BUILD_BENCHMARKS=OFF -DQUIVERDB_BUILD_EXAMPLES=OFF -DQUIVERDB_BUILD_PYTHON=OFF
+
+# Build and run tests
+make
+ctest
+```
+
+### Multi-Dimension Tests
+
+The test suite includes specialized tests for common embedding sizes (384, 768, 1024, 3072) with all distance metrics (L2, COSINE, DOT). These tests verify that:
+
+- VectorStore handles different dimension sizes correctly
+- HNSWIndex works with various embedding dimensions
+- All distance metrics function properly across dimensions
+- Memory management is efficient for large vectors
 
 ## Usage Examples
 
 ### iOS SDK (Swift)
 
 ```swift
-import llama_mobile_vd
+import LlamaMobileVD
 
 // Create a vector store
-let options = VectorStoreOptions(dimension: 128, metric: .cosine)
-let result = LlamaMobileVD.createVectorStore(options: options)
-let storeId = result.id
+let store = try VectorStore(dimension: 128, metric: .cosine)
 
 // Add vectors
-let vector: [Float32] = Array(repeating: 0.0, count: 128)
-LlamaMobileVD.addVectorToStore(id: storeId, vector: vector, vectorId: "1")
+let vector: [Float] = Array(repeating: 0.0, count: 128)
+try store.addVector(vector, id: 1)
 
 // Search
-let query: [Float32] = Array(repeating: 0.0, count: 128)
-let searchResult = LlamaMobileVD.searchVectorStore(id: storeId, query: query, k: 5)
-print("Search results: \(searchResult)")
+let query: [Float] = Array(repeating: 0.0, count: 128)
+let searchResults = try store.search(query, k: 5)
+print("Search results: \(searchResults)")
 
-// Release
-LlamaMobileVD.releaseVectorStore(id: storeId)
+// Clear store
+try store.clear()
 ```
 
 ### Android SDK (Kotlin)
 
 ```kotlin
 import com.llamamobile.vd.LlamaMobileVD
-import com.llamamobile.vd.VectorStoreOptions
 import com.llamamobile.vd.DistanceMetric
 
 // Create a vector store
-val options = VectorStoreOptions(128, DistanceMetric.COSINE)
-val result = LlamaMobileVD.createVectorStore(options)
-val storeId = result.id
+val store = VectorStore(128, DistanceMetric.COSINE)
 
 // Add vectors
 val vector = FloatArray(128)
-LlamaMobileVD.addVectorToStore(storeId, vector, "1")
+store.addVector(vector, id = 1)
 
 // Search
 val query = FloatArray(128)
-val searchResult = LlamaMobileVD.searchVectorStore(storeId, query, 5)
-println("Search results: $searchResult")
+val searchResults = store.search(query, k = 5)
+println("Search results: ${searchResults.joinToString()}")
 
-// Release
-LlamaMobileVD.releaseVectorStore(storeId)
+// Clear store
+store.clear()
+
+// Close store when done
+store.close()
 ```
 
 ### Android Java SDK
 
 ```java
-import com.llamamobile.vd.LlamaMobileVD;
-import com.llamamobile.vd.VectorStoreOptions;
+import com.llamamobile.vd.VectorStore;
 import com.llamamobile.vd.DistanceMetric;
+import com.llamamobile.vd.SearchResult;
 
 // Create a vector store
-VectorStoreOptions options = new VectorStoreOptions(128, DistanceMetric.COSINE);
-CreateResult result = LlamaMobileVD.createVectorStore(options);
-String storeId = result.getId();
+VectorStore store = new VectorStore(128, DistanceMetric.COSINE);
 
 // Add vectors
 float[] vector = new float[128];
-LlamaMobileVD.addVectorToStore(storeId, vector, "1");
+store.addVector(vector, 1);
 
 // Search
 float[] query = new float[128];
-SearchResult searchResult = LlamaMobileVD.searchVectorStore(storeId, query, 5);
-System.out.println("Search results: " + searchResult);
+SearchResult[] searchResults = store.search(query, 5);
+System.out.println("Search results: ");
+for (SearchResult result : searchResults) {
+    System.out.println("  - ID: " + result.getId() + ", Distance: " + result.getDistance());
+}
 
-// Release
-LlamaMobileVD.releaseVectorStore(storeId);
+// Clear store
+store.clear();
+
+// Close store when done
+store.close();
 ```
 
 ### Flutter SDK
@@ -322,27 +363,27 @@ npx cap run android
 
 ## API Reference
 
-### VectorStore Methods
+### VectorStore Class
 
 | Method | Description | Parameters | Returns |
 |--------|-------------|------------|---------|
-| `createVectorStore` | Create a new vector store | `dimension: number`, `metric: DistanceMetric` | `{ id: string }` |
-| `addVectorToStore` | Add a vector to the store | `id: string`, `vector: number[]`, `vectorId: string` | `{ success: boolean }` |
-| `searchVectorStore` | Search for nearest neighbors | `id: string`, `query: number[]`, `k: number` | `{ results: { vectorId: string, distance: number }[] }` |
-| `countVectorsInStore` | Get count of vectors | `id: string` | `{ count: number }` |
-| `clearVectorStore` | Clear all vectors | `id: string` | `{ success: boolean }` |
-| `releaseVectorStore` | Release resources | `id: string` | `{ success: boolean }` |
+| `constructor` | Create a new vector store | `dimension: number`, `metric: DistanceMetric` | `VectorStore` instance |
+| `addVector` | Add a vector to the store | `vector: number[]`, `id: number` | `void` |
+| `search` | Search for nearest neighbors | `query: number[]`, `k: number` | `SearchResult[]` |
+| `getCount` | Get count of vectors | None | `number` |
+| `clear` | Clear all vectors | None | `void` |
+| `close` / `deinit` | Release resources | None | `void` |
 
-### HNSWIndex Methods
+### HNSWIndex Class
 
 | Method | Description | Parameters | Returns |
 |--------|-------------|------------|---------|
-| `createHNSWIndex` | Create a new HNSW index | `dimension: number`, `metric: DistanceMetric`, `m: number`, `efConstruction: number`, `efSearch: number` | `{ id: string }` |
-| `addVectorToIndex` | Add a vector to the index | `id: string`, `vector: number[]`, `vectorId: string` | `{ success: boolean }` |
-| `searchHNSWIndex` | Search for nearest neighbors | `id: string`, `query: number[]`, `k: number` | `{ results: { vectorId: string, distance: number }[] }` |
-| `countVectorsInIndex` | Get count of vectors | `id: string` | `{ count: number }` |
-| `clearHNSWIndex` | Clear all vectors | `id: string` | `{ success: boolean }` |
-| `releaseHNSWIndex` | Release resources | `id: string` | `{ success: boolean }` |
+| `constructor` | Create a new HNSW index | `dimension: number`, `metric: DistanceMetric`, `m: number` (optional), `efConstruction: number` (optional) | `HNSWIndex` instance |
+| `addVector` | Add a vector to the index | `vector: number[]`, `id: number` | `void` |
+| `search` | Search for nearest neighbors | `query: number[]`, `k: number`, `efSearch: number` (optional) | `SearchResult[]` |
+| `getCount` | Get count of vectors | None | `number` |
+| `clear` | Clear all vectors | None | `void` |
+| `close` / `deinit` | Release resources | None | `void` |
 
 ### Distance Metrics
 

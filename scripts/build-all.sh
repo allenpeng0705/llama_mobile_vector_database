@@ -21,7 +21,7 @@ bash build-android.sh
 
 # Build Android Java SDK
 echo "Building Android Java SDK..."
-bash build-android-SDK.sh
+bash build-android.sh
 
 # Build Flutter SDK
 echo "Building Flutter SDK..."

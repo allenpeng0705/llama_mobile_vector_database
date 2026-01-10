@@ -1,47 +1,80 @@
 # LlamaMobileVD Android Kotlin SDK
 
-A high-performance vector database SDK for Android applications, built on top of the LlamaMobileVD native library.
+A high-performance vector database SDK for Android applications, built on top of the LlamaMobileVD native library. This SDK provides embeddable vector database capabilities for Android apps, running natively with SIMD acceleration.
 
 ## Features
 
-- **Easy-to-use Kotlin API**: Simple and intuitive interface for vector storage and search
-- **High performance**: Built on a C++ core with JNI bindings for maximum speed
-- **Multiple distance metrics**: Support for L2, cosine, and dot product distances
-- **VectorStore**: Simple in-memory vector storage
+- **Native Kotlin API**: Clean, intuitive Kotlin interface for vector storage and search
+- **High performance**: Built on a C++ core with ARM NEON acceleration
+- **Multiple distance metrics**: Support for L2 (Euclidean), Cosine, and Dot Product distances
+- **VectorStore**: Exact nearest neighbor search with thread-safe operations
 - **HNSWIndex**: High-performance approximate nearest neighbor search using the Hierarchical Navigable Small World algorithm
-- **Self-contained**: Easy to copy and use in your Android projects
-- **AutoCloseable**: Resources are automatically managed with Kotlin's `use` function
+- **Auto-managed resources**: Implements `AutoCloseable` for proper resource management
+- **Multi-dimensional support**: Handles common embedding sizes (384, 768, 1024, 3072 dimensions)
 
 ## Requirements
 
-- Android API level 24+
-- Kotlin 1.8+
-- Android Studio 2022.1.1+
+- Android API Level 21+ (Android 5.0+)
+- Android Studio 4.0+
+- Kotlin 1.5+
+- Gradle 7.0+
 
 ## Installation
 
-### Android Studio
+### Gradle (Android Studio)
 
-1. Copy the `llama_mobile_vd-android-SDK` directory to your project
-2. In your project's `settings.gradle` file, add the following:
+1. In your project's `settings.gradle` file, add the repository:
 
-```groovy
-include ':llama_mobile_vd-android-SDK'
+```gradle
+repositories {
+    maven {
+        url = uri('/path/to/llama_mobile_vector_database/llama_mobile_vd-android-SDK')
+    }
+}
 ```
 
-3. In your app's `build.gradle` file, add the dependency:
+2. In your app's `build.gradle` file, add the dependency:
 
-```groovy
+```gradle
 dependencies {
     implementation project(':llama_mobile_vd-android-SDK')
+}
+```
+
+3. Make sure your app's `build.gradle` includes NDK support:
+
+```gradle
+android {
+    defaultConfig {
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+        }
+    }
+    
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+        }
+    }
 }
 ```
 
 ### Manual Installation
 
 1. Copy the `llama_mobile_vd-android-SDK` directory to your project
-2. Copy the native libraries from `src/main/jniLibs` to your app's `src/main/jniLibs` directory
-3. Copy the Kotlin source files from `src/main/kotlin` to your app's source directory
+2. Add the following to your settings.gradle:
+
+```gradle
+include ':llama_mobile_vd-android-SDK'
+```
+
+3. Add the dependency in your app's build.gradle:
+
+```gradle
+dependencies {
+    implementation project(':llama_mobile_vd-android-SDK')
+}
+```
 
 ## Usage
 
@@ -50,55 +83,91 @@ dependencies {
 ```kotlin
 import com.llamamobile.vd.*
 
-// Create a vector store with 128-dimensional vectors and L2 distance metric
-val vectorStore = VectorStore(128, DistanceMetric.L2)
+// Create a vector store with 512-dimensional vectors and cosine distance metric
+val vectorStore = VectorStore(512, DistanceMetric.COSINE)
 
-// Add vectors to the store
-val vector1 = FloatArray(128) { 0.0f }
-val vector2 = FloatArray(128) { 1.0f }
-
-vectorStore.addVector(vector1, 1)
-vectorStore.addVector(vector2, 2)
-
-// Search for nearest neighbors
-val queryVector = FloatArray(128) { 0.1f }
-val results = vectorStore.search(queryVector, 2)
-
-// Print results
-results.forEach { result ->
-    println("Vector ID: ${result.id}, Distance: ${result.distance}")
+try {
+    // Add vectors to the store
+    val vector1 = FloatArray(512) { 0.5f }
+    vectorStore.addVector(vector1, 1)
+    
+    val vector2 = FloatArray(512) { 0.8f }
+    vectorStore.addVector(vector2, 2)
+    
+    // Search for nearest neighbors
+    val queryVector = FloatArray(512) { 0.6f }
+    val results = vectorStore.search(queryVector, 2)
+    
+    // Process the results
+    for (result in results) {
+        println("Vector ID: ${result.id}, Distance: ${result.distance}")
+    }
+    
+    // Clear all vectors from the store
+    vectorStore.clear()
+    
+} finally {
+    // Close the store to free resources
+    vectorStore.close()
 }
-
-// Close the vector store when done
-vectorStore.close()
 ```
 
-### HNSWIndex Example with AutoCloseable
+### HNSWIndex Example
 
 ```kotlin
 import com.llamamobile.vd.*
 
 // Create an HNSW index with custom parameters
-HNSWIndex(128, DistanceMetric.COSINE, m = 32, efConstruction = 400).use { hnswIndex ->
+val hnswIndex = HNSWIndex(
+    dimension = 768,
+    metric = DistanceMetric.L2,
+    m = 16, // Number of connections per node
+    efConstruction = 200 // Size of dynamic list for construction
+)
+
+try {
     // Add vectors to the index
-    val vectors = Array(100) { id ->
-        FloatArray(128) { Float(id) / 100.0f }
+    for (i in 0 until 100) {
+        val vector = FloatArray(768) { (i / 100.0f) }
+        hnswIndex.addVector(vector, i + 1)
     }
-
-    vectors.forEachIndexed { index, vector ->
-        hnswIndex.addVector(vector, index + 1)
-    }
-
-    // Search for nearest neighbors
-    val queryVector = FloatArray(128) { 0.5f }
+    
+    // Search for nearest neighbors with custom efSearch
+    val queryVector = FloatArray(768) { 0.5f }
     val results = hnswIndex.search(queryVector, k = 5, efSearch = 100)
-
-    // Print results
+    
+    // Process the results
     results.forEach { result ->
         println("Vector ID: ${result.id}, Distance: ${result.distance}")
     }
+    
+    // Get the number of vectors in the index
+    val count = hnswIndex.getCount()
+    println("Total vectors in index: $count")
+    
+} finally {
+    // Close the index to free resources
+    hnswIndex.close()
 }
-// The index is automatically closed when exiting the use block
+```
+
+### Using with Kotlin's use() function
+
+Both VectorStore and HNSWIndex implement `AutoCloseable`, so you can use Kotlin's `use()` function for automatic resource management:
+
+```kotlin
+import com.llamamobile.vd.*
+
+VectorStore(512, DistanceMetric.COSINE).use { vectorStore ->
+    // Add vectors and perform searches
+    val vector = FloatArray(512) { 0.5f }
+    vectorStore.addVector(vector, 1)
+    
+    val queryVector = FloatArray(512) { 0.6f }
+    val results = vectorStore.search(queryVector, 1)
+    println("Nearest vector: ${results[0].id}")
+}
+// vectorStore is automatically closed here
 ```
 
 ## API Reference
@@ -107,58 +176,137 @@ HNSWIndex(128, DistanceMetric.COSINE, m = 32, efConstruction = 400).use { hnswIn
 
 Enum representing the distance metrics supported by LlamaMobileVD:
 
-- `L2`: Euclidean distance
-- `COSINE`: Cosine distance
-- `DOT`: Dot product distance
+```kotlin
+enum class DistanceMetric {
+    L2,      // Euclidean distance
+    COSINE,  // Cosine distance
+    DOT      // Dot product distance
+}
+```
 
 ### SearchResult
 
-Data class representing a result from a vector search:
+Data class representing a result from a vector search operation:
 
-- `id: Int`: The ID of the vector
-- `distance: Float`: The distance between the query vector and the result vector
+```kotlin
+data class SearchResult(
+    val id: Int,         // The ID of the vector
+    val distance: Float  // The distance between the query vector and the result vector
+)
+```
 
 ### VectorStore
 
-Class for storing and searching vectors, implementing `AutoCloseable`:
+Class for storing and searching vectors with exact nearest neighbor search. Implements `AutoCloseable` for resource management.
 
-- `constructor(dimension: Int, metric: DistanceMetric)`: Create a new vector store
-- `fun addVector(vector: FloatArray, id: Int)`: Add a vector to the store
-- `fun search(queryVector: FloatArray, k: Int): Array<SearchResult>`: Search for nearest neighbors
-- `fun getCount(): Int`: Get the number of vectors in the store
-- `fun clear()`: Clear all vectors from the store
-- `fun close()`: Close the vector store and free resources
+```kotlin
+class VectorStore(
+    dimension: Int,      // The dimension of vectors to be stored
+    metric: DistanceMetric  // The distance metric to use for search
+) : AutoCloseable {
+    
+    // Add a vector to the store
+    fun addVector(vector: FloatArray, id: Int)
+    
+    // Search for the k nearest neighbors of a query vector
+    fun search(queryVector: FloatArray, k: Int): Array<SearchResult>
+    
+    // Get the number of vectors in the store
+    fun getCount(): Int
+    
+    // Clear all vectors from the store
+    fun clear()
+    
+    // Close the store and free resources
+    override fun close()
+}
+```
 
 ### HNSWIndex
 
-Class for high-performance approximate nearest neighbor search, implementing `AutoCloseable`:
+Class for high-performance approximate nearest neighbor search using the HNSW algorithm. Implements `AutoCloseable` for resource management.
 
-- `constructor(dimension: Int, metric: DistanceMetric)`: Create a new HNSW index with default parameters (m=16, efConstruction=200)
-- `constructor(dimension: Int, metric: DistanceMetric, m: Int, efConstruction: Int)`: Create a new HNSW index with custom parameters
-- `fun addVector(vector: FloatArray, id: Int)`: Add a vector to the index
-- `fun search(queryVector: FloatArray, k: Int, efSearch: Int = 50): Array<SearchResult>`: Search for nearest neighbors
-- `fun getCount(): Int`: Get the number of vectors in the index
-- `fun clear()`: Clear all vectors from the index
-- `fun close()`: Close the index and free resources
-
-## Building the SDK
-
-The Android Kotlin SDK is built automatically when you run `build-android.sh` from the `llama_mobile_vd/scripts` directory. The SDK will be updated with the latest native libraries.
-
-You can also manually update the SDK by running:
-
-```bash
-cd /Users/shileipeng/Documents/mygithub/llama_mobile/llama_mobile_vd/scripts
-./build-android-SDK.sh
+```kotlin
+class HNSWIndex(
+    dimension: Int,          // The dimension of vectors to be stored
+    metric: DistanceMetric,  // The distance metric to use for search
+    m: Int = 16,             // Maximum number of connections per node
+    efConstruction: Int = 200  // Size of dynamic list for candidate selection during construction
+) : AutoCloseable {
+    
+    // Add a vector to the index
+    fun addVector(vector: FloatArray, id: Int)
+    
+    // Search for the k nearest neighbors of a query vector
+    fun search(
+        queryVector: FloatArray, 
+        k: Int,                   // Number of nearest neighbors to return
+        efSearch: Int = 50        // Size of dynamic list for candidate selection during search
+    ): Array<SearchResult>
+    
+    // Get the number of vectors in the index
+    fun getCount(): Int
+    
+    // Clear all vectors from the index
+    fun clear()
+    
+    // Close the index and free resources
+    override fun close()
+}
 ```
 
 ## Performance Tips
 
-- For large datasets, use `HNSWIndex` instead of `VectorStore` for faster search performance
-- Adjust the `m` and `efConstruction` parameters when creating an `HNSWIndex` for your specific use case:
-  - Higher `m` values create more connections per node, improving search quality but increasing memory usage
-  - Higher `efConstruction` values improve index quality but increase build time
-- Adjust `efSearch` parameter during search to balance between search speed and quality
+- For large datasets (10,000+ vectors), use `HNSWIndex` instead of `VectorStore` for faster search performance
+- Adjust `m` and `efConstruction` parameters when creating an `HNSWIndex`:
+  - Higher `m` values create more connections per node (better search quality, higher memory usage)
+  - Higher `efConstruction` values improve index quality (slower build time)
+- Adjust `efSearch` parameter during search to balance speed and quality
+- For common embedding sizes (384, 768, 1024, 3072), the SDK is optimized for performance
+- Use `use()` function to ensure proper resource cleanup
+
+## Building from Source
+
+To build the Android SDK from source:
+
+```bash
+cd /path/to/llama_mobile_vector_database
+./scripts/build-android.sh
+```
+
+This will build the native library and update the Kotlin SDK.
+
+## Running Tests
+
+The Android Kotlin SDK includes a comprehensive test suite that covers all API functionality:
+
+### Using Android Studio
+
+1. Open Android Studio and select `File > Open`
+2. Navigate to the `llama_mobile_vd-android-SDK` directory
+3. Select the directory
+4. In the project view, navigate to `src/test/kotlin/com/llamamobile/vd`
+5. Right-click on `LlamaMobileVDTests.kt` and select `Run 'LlamaMobileVDTests'`
+
+### Using Terminal (Gradle)
+
+To run the tests from the command line:
+
+```bash
+cd /path/to/llama_mobile_vector_database/llama_mobile_vd-android-SDK
+./gradlew test
+```
+
+### Test Coverage
+
+The test suite covers:
+- VectorStore creation, addition, search, and deletion operations
+- HNSWIndex creation, addition, search, and deletion operations
+- All distance metrics (L2, Cosine, Dot)
+- Various vector dimensions (384, 768, 1024, 3072)
+- Edge cases and error handling
+- AutoCloseable interface implementation
+- Large vector dimensions
 
 ## License
 

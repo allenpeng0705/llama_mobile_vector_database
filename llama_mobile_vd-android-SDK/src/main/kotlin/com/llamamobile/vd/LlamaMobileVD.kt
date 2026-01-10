@@ -104,6 +104,88 @@ class VectorStore(dimension: Int, metric: DistanceMetric) : AutoCloseable {
     }
 
     /**
+     * Remove a vector from the store by ID
+     *
+     * @param id The ID of the vector to remove
+     * @return true if the vector was removed, false otherwise
+     */
+    fun remove(id: Int): Boolean {
+        val removed = IntArray(1)
+        return remove(pointer, id, removed)
+    }
+
+    /**
+     * Get a vector from the store by ID
+     *
+     * @param id The ID of the vector to get
+     * @return The vector if found, null otherwise
+     */
+    fun get(id: Int): FloatArray? {
+        val dimension = dimension
+        val vector = FloatArray(dimension)
+        return if (get(pointer, id, vector)) vector else null
+    }
+
+    /**
+     * Update a vector in the store by ID
+     *
+     * @param id The ID of the vector to update
+     * @param vector The new vector data
+     * @return true if the vector was updated, false otherwise
+     * @throws IllegalArgumentException If the vector dimension doesn't match the store dimension
+     */
+    fun update(id: Int, vector: FloatArray): Boolean {
+        if (vector.size != dimension) {
+            throw IllegalArgumentException("Vector dimension must match store dimension")
+        }
+        return update(pointer, id, vector, vector.size)
+    }
+
+    /**
+     * Get the dimension of the vectors in the store
+     *
+     * @return The dimension of the vectors
+     */
+    val dimension: Int
+        get() = dimension(pointer)
+
+    /**
+     * Get the distance metric used by the store
+     *
+     * @return The distance metric
+     */
+    val metric: DistanceMetric
+        get() {
+            val metricValue = metric(pointer)
+            return when (metricValue) {
+                0 -> DistanceMetric.L2
+                1 -> DistanceMetric.COSINE
+                2 -> DistanceMetric.DOT
+                else -> DistanceMetric.L2
+            }
+        }
+
+    /**
+     * Check if the store contains a vector with the given ID
+     *
+     * @param id The ID to check
+     * @return true if the vector exists, false otherwise
+     */
+    fun contains(id: Int): Boolean {
+        val contains = IntArray(1)
+        return contains(pointer, id, contains)
+    }
+
+    /**
+     * Reserve space for the specified number of vectors
+     *
+     * @param capacity The number of vectors to reserve space for
+     */
+    fun reserve(capacity: Int) {
+        reserve(pointer, capacity)
+    }
+
+    /**
      * Close the vector store and free resources
      */
     override fun close() {
@@ -114,7 +196,14 @@ class VectorStore(dimension: Int, metric: DistanceMetric) : AutoCloseable {
     private external fun createVectorStore(dimension: Int, metric: Int): Long
     private external fun destroyVectorStore(store: Long)
     private external fun addVector(store: Long, vector: FloatArray, vectorSize: Int, id: Int): Boolean
+    private external fun remove(store: Long, id: Int, removed: IntArray): Boolean
+    private external fun get(store: Long, id: Int, vector: FloatArray): Boolean
+    private external fun update(store: Long, id: Int, vector: FloatArray, vectorSize: Int): Boolean
     private external fun search(store: Long, queryVector: FloatArray, vectorSize: Int, k: Int, resultCount: IntArray): Long
+    private external fun dimension(store: Long): Int
+    private external fun metric(store: Long): Int
+    private external fun contains(store: Long, id: Int, contains: IntArray): Boolean
+    private external fun reserve(store: Long, capacity: Int)
     private external fun freeSearchResults(results: Long)
     private external fun getResultId(results: Long, index: Int): Int
     private external fun getResultDistance(results: Long, index: Int): Float
@@ -127,6 +216,53 @@ class VectorStore(dimension: Int, metric: DistanceMetric) : AutoCloseable {
             System.loadLibrary("quiverdb_wrapper")
         }
     }
+}
+
+/**
+ * Get the version string of the LlamaMobileVD SDK
+ *
+ * @return The version string in the format "major.minor.patch"
+ */
+fun getLlamaMobileVDVersion(): String {
+    return getVersion()
+}
+
+/**
+ * Get the major version number of the LlamaMobileVD SDK
+ *
+ * @return The major version number
+ */
+fun getLlamaMobileVDVersionMajor(): Int {
+    return getVersionMajor()
+}
+
+/**
+ * Get the minor version number of the LlamaMobileVD SDK
+ *
+ * @return The minor version number
+ */
+fun getLlamaMobileVDVersionMinor(): Int {
+    return getVersionMinor()
+}
+
+/**
+ * Get the patch version number of the LlamaMobileVD SDK
+ *
+ * @return The patch version number
+ */
+fun getLlamaMobileVDVersionPatch(): Int {
+    return getVersionPatch()
+}
+
+// Version JNI methods
+private external fun getVersion(): String
+private external fun getVersionMajor(): Int
+private external fun getVersionMinor(): Int
+private external fun getVersionPatch(): Int
+
+// Load the native library for top-level functions
+init {
+    System.loadLibrary("quiverdb_wrapper")
 }
 
 /**
@@ -216,10 +352,102 @@ class HNSWIndex(
     }
 
     /**
+     * Set the efSearch parameter for search operations
+     *
+     * @param efSearch The new efSearch value
+     */
+    fun setEfSearch(efSearch: Int) {
+        setEfSearch(pointer, efSearch)
+    }
+
+    /**
+     * Get the current efSearch parameter
+     *
+     * @return The current efSearch value
+     */
+    fun getEfSearch(): Int {
+        return getEfSearch(pointer)
+    }
+
+    /**
+     * Get the dimension of the vectors in the index
+     *
+     * @return The dimension of the vectors
+     */
+    val dimension: Int
+        get() = dimension(pointer)
+
+    /**
+     * Get the maximum capacity of the index
+     *
+     * @return The maximum capacity
+     */
+    val capacity: Int
+        get() = capacity(pointer)
+
+    /**
+     * Check if the index contains a vector with the given ID
+     *
+     * @param id The ID to check
+     * @return true if the vector exists, false otherwise
+     */
+    fun contains(id: Int): Boolean {
+        val contains = IntArray(1)
+        return contains(pointer, id, contains)
+    }
+
+    /**
+     * Get a vector from the index by ID
+     *
+     * @param id The ID of the vector to get
+     * @return The vector if found, null otherwise
+     */
+    fun getVector(id: Int): FloatArray? {
+        val dimension = dimension
+        val vector = FloatArray(dimension)
+        return if (getVector(pointer, id, vector)) vector else null
+    }
+
+    /**
+     * Save the index to a file
+     *
+     * @param filename The path to the file where the index should be saved
+     * @return true if the index was saved successfully, false otherwise
+     */
+    fun save(filename: String): Boolean {
+        return save(pointer, filename)
+    }
+
+    /**
      * Close the index and free resources
      */
     override fun close() {
         destroyHNSWIndex(pointer)
+    }
+
+    companion object {
+        /**
+         * Load an HNSW index from a file
+         *
+         * @param filename The path to the file containing the saved index
+         * @return The loaded HNSW index
+         * @throws IllegalStateException If the index could not be loaded
+         */
+        fun load(filename: String): HNSWIndex {
+            val indexPointer = load(filename)
+            if (indexPointer == 0L) {
+                throw IllegalStateException("Failed to load HNSW index from file: $filename")
+            }
+            
+            // Create a new HNSWIndex instance with the loaded pointer
+            val index = HNSWIndex::class.java.getDeclaredConstructor(Long::class.java).newInstance(indexPointer)
+            return index
+        }
+        
+        // Private constructor for loading an existing index pointer
+        private constructor(pointer: Long) : this(0, DistanceMetric.L2) {
+            this.pointer = pointer
+        }
     }
 
     // JNI methods
@@ -227,6 +455,14 @@ class HNSWIndex(
     private external fun destroyHNSWIndex(index: Long)
     private external fun addVector(index: Long, vector: FloatArray, vectorSize: Int, id: Int): Boolean
     private external fun search(index: Long, queryVector: FloatArray, vectorSize: Int, k: Int, efSearch: Int, resultCount: IntArray): Long
+    private external fun setEfSearch(index: Long, efSearch: Int)
+    private external fun getEfSearch(index: Long): Int
+    private external fun dimension(index: Long): Int
+    private external fun capacity(index: Long): Int
+    private external fun contains(index: Long, id: Int, contains: IntArray): Boolean
+    private external fun getVector(index: Long, id: Int, vector: FloatArray): Boolean
+    private external fun save(index: Long, filename: String): Boolean
+    private external fun load(filename: String): Long
     private external fun freeSearchResults(results: Long)
     private external fun getResultId(results: Long, index: Int): Int
     private external fun getResultDistance(results: Long, index: Int): Float

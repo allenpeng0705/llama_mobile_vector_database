@@ -50,12 +50,34 @@ const vectorStoreOptions = {
 
 const { id: vectorStoreId } = await LlamaMobileVD.createVectorStore(vectorStoreOptions);
 
-// Add vectors to the store
+// Add vectors to the store with explicit vector IDs
 const vector1 = Array(128).fill(0.5);
-await LlamaMobileVD.addVectorToStore({ id: vectorStoreId, vector: vector1 });
+await LlamaMobileVD.addVectorToStore({ id: vectorStoreId, vector: vector1, vectorId: 1 });
 
 const vector2 = Array(128).fill(0.7);
-await LlamaMobileVD.addVectorToStore({ id: vectorStoreId, vector: vector2, label: 'vector-2' });
+await LlamaMobileVD.addVectorToStore({ id: vectorStoreId, vector: vector2, vectorId: 2 });
+
+// Update a vector
+const updatedVector = Array(128).fill(0.8);
+await LlamaMobileVD.updateVectorInStore({ id: vectorStoreId, vectorId: 2, vector: updatedVector });
+
+// Remove a vector
+await LlamaMobileVD.removeVectorFromStore({ id: vectorStoreId, vectorId: 1 });
+
+// Check if a vector exists
+const exists = await LlamaMobileVD.containsVectorInStore({ id: vectorStoreId, vectorId: 2 });
+console.log('Vector exists:', exists);
+
+// Get a specific vector
+const retrievedVector = await LlamaMobileVD.getVectorFromStore({ id: vectorStoreId, vectorId: 2 });
+
+// Reserve space for more vectors (improves performance)
+await LlamaMobileVD.reserveVectorStore({ id: vectorStoreId, capacity: 100 });
+
+// Get VectorStore information
+const { dimension } = await LlamaMobileVD.getVectorStoreDimension({ id: vectorStoreId });
+const { metric } = await LlamaMobileVD.getVectorStoreMetric({ id: vectorStoreId });
+console.log(`VectorStore dimension: ${dimension}, metric: ${metric}`);
 
 // Search for vectors
 const queryVector = Array(128).fill(0.6);
@@ -94,15 +116,48 @@ const hnswOptions = {
 
 const { id: hnswIndexId } = await LlamaMobileVD.createHNSWIndex(hnswOptions);
 
-// Add vectors to the index
+// Add vectors to the index with explicit vector IDs
 for (let i = 0; i < 100; i++) {
   const vector = Array(128).fill(Math.random());
-  await LlamaMobileVD.addVectorToHNSW({ id: hnswIndexId, vector: vector });
+  await LlamaMobileVD.addVectorToHNSW({ id: hnswIndexId, vector: vector, vectorId: i + 1 });
 }
 
-// Search the index
+// Set and get efSearch parameter
+await LlamaMobileVD.setHNSWEfSearch({ id: hnswIndexId, efSearch: 100 });
+const { efSearch } = await LlamaMobileVD.getHNSWEfSearch({ id: hnswIndexId });
+console.log('Current efSearch:', efSearch);
+
+// Check if a vector exists
+const exists = await LlamaMobileVD.containsVectorInHNSW({ id: hnswIndexId, vectorId: 50 });
+
+// Get a specific vector
+const vector = await LlamaMobileVD.getVectorFromHNSW({ id: hnswIndexId, vectorId: 50 });
+
+// Get HNSWIndex information
+const { dimension } = await LlamaMobileVD.getHNSWDimension({ id: hnswIndexId });
+const { capacity } = await LlamaMobileVD.getHNSWCapacity({ id: hnswIndexId });
+console.log(`HNSWIndex dimension: ${dimension}, capacity: ${capacity}`);
+
+// Search the index with custom efSearch
 const queryVector = Array(128).fill(0.5);
 const results = await LlamaMobileVD.searchHNSWIndex({
+  id: hnswIndexId,
+  queryVector: queryVector,
+  k: 10,
+  efSearch: 150 // Optional: override the default efSearch for this search
+});
+
+// Save the index to a file
+const savePath = '/path/to/hnsw/index';
+const saved = await LlamaMobileVD.saveHNSWIndex({ id: hnswIndexId, path: savePath });
+console.log('Index saved:', saved);
+
+// Load the index from a file
+const { id: loadedIndexId } = await LlamaMobileVD.loadHNSWIndex({ path: savePath });
+console.log('Loaded index ID:', loadedIndexId);
+
+// Search the loaded index
+const loadedResults = await LlamaMobileVD.searchHNSWIndex({
   id: hnswIndexId,
   queryVector: queryVector,
   k: 10
@@ -163,7 +218,17 @@ Parameters for adding a vector to a VectorStore or HNSWIndex.
 interface AddVectorParams {
   id: string;              // ID of the store or index
   vector: number[];        // The vector to add
-  label?: string;          // Optional label for the vector
+  vectorId: number;        // Unique ID for the vector
+}
+```
+
+### VersionParams
+
+Parameters for getting version information (all methods are parameter-less).
+
+```typescript
+interface VersionParams {
+  // No parameters
 }
 ```
 
@@ -192,41 +257,104 @@ interface SearchResult {
 
 ### Methods
 
+#### VectorStore Methods
+
 #### `createVectorStore(options: VectorStoreOptions): Promise<{ id: string }>`
 Create a new VectorStore.
-
-#### `createHNSWIndex(options: HNSWIndexOptions): Promise<{ id: string }>`
-Create a new HNSWIndex.
 
 #### `addVectorToStore(params: AddVectorParams): Promise<void>`
 Add a vector to a VectorStore.
 
-#### `addVectorToHNSW(params: AddVectorParams): Promise<void>`
-Add a vector to an HNSWIndex.
+#### `removeVectorFromStore(params: { id: string, vectorId: number }): Promise<boolean>`
+Remove a vector from a VectorStore by ID.
+
+#### `getVectorFromStore(params: { id: string, vectorId: number }): Promise<number[] | null>`
+Get a vector from a VectorStore by ID.
+
+#### `updateVectorInStore(params: { id: string, vectorId: number, vector: number[] }): Promise<boolean>`
+Update a vector in a VectorStore by ID.
+
+#### `containsVectorInStore(params: { id: string, vectorId: number }): Promise<boolean>`
+Check if a VectorStore contains a vector with the given ID.
+
+#### `reserveVectorStore(params: { id: string, capacity: number }): Promise<void>`
+Reserve space for vectors in a VectorStore.
+
+#### `getVectorStoreDimension(params: { id: string }): Promise<{ dimension: number }>`
+Get the dimension of vectors in a VectorStore.
+
+#### `getVectorStoreMetric(params: { id: string }): Promise<{ metric: string }>`
+Get the distance metric used by a VectorStore.
 
 #### `searchVectorStore(params: SearchParams): Promise<SearchResult[]>`
 Search for vectors in a VectorStore.
 
-#### `searchHNSWIndex(params: SearchParams): Promise<SearchResult[]>`
-Search for vectors in an HNSWIndex.
-
 #### `countVectorStore(params: { id: string }): Promise<{ count: number }>`
 Count the number of vectors in a VectorStore.
-
-#### `countHNSWIndex(params: { id: string }): Promise<{ count: number }>`
-Count the number of vectors in an HNSWIndex.
 
 #### `clearVectorStore(params: { id: string }): Promise<void>`
 Clear all vectors from a VectorStore.
 
-#### `clearHNSWIndex(params: { id: string }): Promise<void>`
-Clear all vectors from an HNSWIndex.
-
 #### `releaseVectorStore(params: { id: string }): Promise<void>`
 Release resources associated with a VectorStore.
 
+#### HNSWIndex Methods
+
+#### `createHNSWIndex(options: HNSWIndexOptions): Promise<{ id: string }>`
+Create a new HNSWIndex.
+
+#### `addVectorToHNSW(params: AddVectorParams): Promise<void>`
+Add a vector to an HNSWIndex.
+
+#### `searchHNSWIndex(params: SearchParams & { efSearch?: number }): Promise<SearchResult[]>`
+Search for vectors in an HNSWIndex.
+
+#### `setHNSWEfSearch(params: { id: string, efSearch: number }): Promise<void>`
+Set the efSearch parameter for an HNSWIndex.
+
+#### `getHNSWEfSearch(params: { id: string }): Promise<{ efSearch: number }>`
+Get the current efSearch parameter for an HNSWIndex.
+
+#### `containsVectorInHNSW(params: { id: string, vectorId: number }): Promise<boolean>`
+Check if an HNSWIndex contains a vector with the given ID.
+
+#### `getVectorFromHNSW(params: { id: string, vectorId: number }): Promise<number[] | null>`
+Get a vector from an HNSWIndex by ID.
+
+#### `getHNSWDimension(params: { id: string }): Promise<{ dimension: number }>`
+Get the dimension of vectors in an HNSWIndex.
+
+#### `getHNSWCapacity(params: { id: string }): Promise<{ capacity: number }>`
+Get the capacity of an HNSWIndex.
+
+#### `saveHNSWIndex(params: { id: string, path: string }): Promise<boolean>`
+Save an HNSWIndex to a file.
+
+#### `loadHNSWIndex(params: { path: string }): Promise<{ id: string }>`
+Load an HNSWIndex from a file.
+
+#### `countHNSWIndex(params: { id: string }): Promise<{ count: number }>`
+Count the number of vectors in an HNSWIndex.
+
+#### `clearHNSWIndex(params: { id: string }): Promise<void>`
+Clear all vectors from an HNSWIndex.
+
 #### `releaseHNSWIndex(params: { id: string }): Promise<void>`
 Release resources associated with an HNSWIndex.
+
+#### Version Methods
+
+#### `getVersion(): Promise<{ version: string }>`
+Get the version of the LlamaMobileVD SDK.
+
+#### `getVersionMajor(): Promise<{ major: number }>`
+Get the major version component.
+
+#### `getVersionMinor(): Promise<{ minor: number }>`
+Get the minor version component.
+
+#### `getVersionPatch(): Promise<{ patch: number }>`
+Get the patch version component.
 
 ## Build from Source
 
@@ -241,12 +369,29 @@ This script will copy the pre-built native libraries (iOS framework and Android 
 
 ## Testing
 
-The SDK includes tests for the JavaScript interface. You can run them with:
+The SDK includes comprehensive tests for the JavaScript interface that cover all API functionality:
+
+### Running Tests
 
 ```bash
 cd /path/to/llama_mobile_vd-react-native-SDK
 npm test
 ```
+
+### Test Coverage
+
+The test suite covers:
+- VectorStore creation, addition, search, and deletion operations
+- HNSWIndex creation, addition, search, and deletion operations
+- All distance metrics (L2, Cosine, Dot)
+- Mocked native module responses
+- Error handling scenarios
+- Edge cases with different vector IDs
+- Search result validation
+
+### Adding New Tests
+
+Tests are located in the `__tests__` directory. Each test file follows the pattern `index.test.js` and uses Jest as the testing framework.
 
 ## Troubleshooting
 

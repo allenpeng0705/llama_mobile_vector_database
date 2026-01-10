@@ -144,6 +144,92 @@ public class VectorStore implements AutoCloseable {
     }
 
     /**
+     * Remove a vector from the store by ID
+     *
+     * @param id The ID of the vector to remove
+     * @return true if the vector was removed, false otherwise
+     */
+    public boolean remove(int id) {
+        int[] removed = new int[1];
+        return remove(pointer, id, removed);
+    }
+
+    /**
+     * Get a vector from the store by ID
+     *
+     * @param id The ID of the vector to get
+     * @return The vector if found, null otherwise
+     */
+    public float[] get(int id) {
+        int dimension = getDimension();
+        float[] vector = new float[dimension];
+        return get(pointer, id, vector) ? vector : null;
+    }
+
+    /**
+     * Update a vector in the store by ID
+     *
+     * @param id The ID of the vector to update
+     * @param vector The new vector data
+     * @return true if the vector was updated, false otherwise
+     * @throws IllegalArgumentException If the vector dimension doesn't match the store dimension
+     */
+    public boolean update(int id, float[] vector) {
+        if (vector.length != getDimension()) {
+            throw new IllegalArgumentException("Vector dimension must match store dimension");
+        }
+        return update(pointer, id, vector, vector.length);
+    }
+
+    /**
+     * Get the dimension of the vectors in the store
+     *
+     * @return The dimension of the vectors
+     */
+    public int getDimension() {
+        return getDimension(pointer);
+    }
+
+    /**
+     * Get the distance metric used by the store
+     *
+     * @return The distance metric
+     */
+    public DistanceMetric getMetric() {
+        int metricValue = getMetric(pointer);
+        switch (metricValue) {
+            case 0:
+                return DistanceMetric.L2;
+            case 1:
+                return DistanceMetric.COSINE;
+            case 2:
+                return DistanceMetric.DOT;
+            default:
+                return DistanceMetric.L2;
+        }
+    }
+
+    /**
+     * Check if the store contains a vector with the given ID
+     *
+     * @param id The ID to check
+     * @return true if the vector exists, false otherwise
+     */
+    public boolean contains(int id) {
+        int[] contains = new int[1];
+        return contains(pointer, id, contains);
+    }
+
+    /**
+     * Reserve space for the specified number of vectors
+     *
+     * @param capacity The number of vectors to reserve space for
+     */
+    public void reserve(int capacity) {
+        reserve(pointer, capacity);
+    }
+
+    /**
      * Close the vector store and free resources
      */
     @Override
@@ -164,7 +250,14 @@ public class VectorStore implements AutoCloseable {
     private native long createVectorStore(int dimension, int metric);
     private native void destroyVectorStore(long store);
     private native boolean addVector(long store, float[] vector, int vectorSize, int id);
+    private native boolean remove(long store, int id, int[] removed);
+    private native boolean get(long store, int id, float[] vector);
+    private native boolean update(long store, int id, float[] vector, int vectorSize);
     private native long search(long store, float[] queryVector, int vectorSize, int k, int[] resultCount);
+    private native int getDimension(long store);
+    private native int getMetric(long store);
+    private native boolean contains(long store, int id, int[] contains);
+    private native void reserve(long store, int capacity);
     private native void freeSearchResults(long results);
     private native int getResultId(long results, int index);
     private native float getResultDistance(long results, int index);
@@ -278,6 +371,106 @@ public class HNSWIndex implements AutoCloseable {
     }
 
     /**
+     * Set the efSearch parameter for search operations
+     *
+     * @param efSearch The new efSearch value
+     */
+    public void setEfSearch(int efSearch) {
+        setEfSearch(pointer, efSearch);
+    }
+
+    /**
+     * Get the current efSearch parameter
+     *
+     * @return The current efSearch value
+     */
+    public int getEfSearch() {
+        return getEfSearch(pointer);
+    }
+
+    /**
+     * Get the dimension of the vectors in the index
+     *
+     * @return The dimension of the vectors
+     */
+    public int getDimension() {
+        return getDimension(pointer);
+    }
+
+    /**
+     * Get the maximum capacity of the index
+     *
+     * @return The maximum capacity
+     */
+    public int getCapacity() {
+        return getCapacity(pointer);
+    }
+
+    /**
+     * Check if the index contains a vector with the given ID
+     *
+     * @param id The ID to check
+     * @return true if the vector exists, false otherwise
+     */
+    public boolean contains(int id) {
+        int[] contains = new int[1];
+        return contains(pointer, id, contains);
+    }
+
+    /**
+     * Get a vector from the index by ID
+     *
+     * @param id The ID of the vector to get
+     * @return The vector if found, null otherwise
+     */
+    public float[] getVector(int id) {
+        int dimension = getDimension();
+        float[] vector = new float[dimension];
+        return getVector(pointer, id, vector) ? vector : null;
+    }
+
+    /**
+     * Save the index to a file
+     *
+     * @param filename The path to the file where the index should be saved
+     * @return true if the index was saved successfully, false otherwise
+     */
+    public boolean save(String filename) {
+        return save(pointer, filename);
+    }
+
+    /**
+     * Load an HNSW index from a file
+     *
+     * @param filename The path to the file containing the saved index
+     * @return The loaded HNSW index
+     * @throws IllegalStateException If the index could not be loaded
+     */
+    public static HNSWIndex load(String filename) {
+        long indexPointer = load(filename);
+        if (indexPointer == 0L) {
+            throw new IllegalStateException("Failed to load HNSW index from file: " + filename);
+        }
+        
+        // Create a new HNSWIndex instance with the loaded pointer
+        try {
+            // Use reflection to access the private constructor
+            java.lang.reflect.Constructor<HNSWIndex> constructor = HNSWIndex.class.getDeclaredConstructor(long.class);
+            constructor.setAccessible(true);
+            return constructor.newInstance(indexPointer);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create HNSWIndex instance from loaded pointer", e);
+        }
+    }
+
+    /**
+     * Private constructor for loading an existing index pointer
+     */
+    private HNSWIndex(long pointer) {
+        this.pointer = pointer;
+    }
+
+    /**
      * Close the index and free resources
      */
     @Override
@@ -299,6 +492,14 @@ public class HNSWIndex implements AutoCloseable {
     private native void destroyHNSWIndex(long index);
     private native boolean addVector(long index, float[] vector, int vectorSize, int id);
     private native long search(long index, float[] queryVector, int vectorSize, int k, int efSearch, int[] resultCount);
+    private native void setEfSearch(long index, int efSearch);
+    private native int getEfSearch(long index);
+    private native int getDimension(long index);
+    private native int getCapacity(long index);
+    private native boolean contains(long index, int id, int[] contains);
+    private native boolean getVector(long index, int id, float[] vector);
+    private native boolean save(long index, String filename);
+    private static native long load(String filename);
     private native void freeSearchResults(long results);
     private native int getResultId(long results, int index);
     private native float getResultDistance(long results, int index);

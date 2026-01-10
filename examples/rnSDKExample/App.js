@@ -14,12 +14,12 @@ import LlamaMobileVD, { DistanceMetric } from 'llama_mobile_vd-react-native-SDK'
 
 const App = () => {
   // Vector Store state
-  const [vectorStoreId, setVectorStoreId] = useState(null);
+  const [vectorStore, setVectorStore] = useState(null);
   const [vectorStoreCount, setVectorStoreCount] = useState(0);
   const [vectorStoreResults, setVectorStoreResults] = useState([]);
   
   // HNSW Index state
-  const [hnswIndexId, setHnswIndexId] = useState(null);
+  const [hnswIndex, setHnswIndex] = useState(null);
   const [hnswIndexCount, setHnswIndexCount] = useState(0);
   const [hnswIndexResults, setHnswIndexResults] = useState([]);
   
@@ -29,6 +29,7 @@ const App = () => {
   const [hnswM, setHnswM] = useState(16);
   const [hnswEfConstruction, setHnswEfConstruction] = useState(200);
   const [searchK, setSearchK] = useState(5);
+  const [efSearch, setEfSearch] = useState(50);
   
   // Status state
   const [statusMessage, setStatusMessage] = useState('Ready');
@@ -64,9 +65,9 @@ const App = () => {
         metric: selectedMetric,
       };
       
-      const result = await LlamaMobileVD.createVectorStore(options);
+      const vectorStoreInstance = await LlamaMobileVD.createVectorStore(options);
       
-      setVectorStoreId(result.id);
+      setVectorStore(vectorStoreInstance);
       setVectorStoreCount(0);
       setVectorStoreResults([]);
       setStatusMessage('VectorStore created successfully');
@@ -78,7 +79,7 @@ const App = () => {
   };
   
   const addVectorsToStore = async () => {
-    if (!vectorStoreId) {
+    if (!vectorStore) {
       setStatusMessage('Please create a VectorStore first');
       return;
     }
@@ -89,18 +90,12 @@ const App = () => {
       
       for (let i = 0; i < 100; i++) {
         const vector = createRandomVector(dimension);
-        const params = {
-          id: vectorStoreId,
-          vector,
-          label: `vector-${i}`,
-        };
-        await LlamaMobileVD.addVectorToStore(params);
+        await vectorStore.addVector({ vector, vectorId: i + 1 });
       }
       
-      const countParams = { id: vectorStoreId };
-      const countResult = await LlamaMobileVD.countVectorStore(countParams);
+      const count = await vectorStore.count();
       
-      setVectorStoreCount(countResult.count);
+      setVectorStoreCount(count);
       setStatusMessage('Added 100 vectors to VectorStore');
     } catch (error) {
       setStatusMessage(`Error adding vectors to VectorStore: ${error.message}`);
@@ -110,7 +105,7 @@ const App = () => {
   };
   
   const searchVectorStore = async () => {
-    if (!vectorStoreId) {
+    if (!vectorStore) {
       setStatusMessage('Please create a VectorStore first');
       return;
     }
@@ -125,13 +120,7 @@ const App = () => {
       setStatusMessage('Searching VectorStore...');
       
       const queryVector = createRandomVector(dimension);
-      const params = {
-        id: vectorStoreId,
-        queryVector,
-        k: searchK,
-      };
-      
-      const results = await LlamaMobileVD.searchVectorStore(params);
+      const results = await vectorStore.search({ queryVector, k: searchK });
       
       setVectorStoreResults(results);
       setStatusMessage('Search completed successfully');
@@ -143,7 +132,7 @@ const App = () => {
   };
   
   const clearVectorStore = async () => {
-    if (!vectorStoreId) {
+    if (!vectorStore) {
       setStatusMessage('Please create a VectorStore first');
       return;
     }
@@ -152,8 +141,7 @@ const App = () => {
       showLoading();
       setStatusMessage('Clearing VectorStore...');
       
-      const params = { id: vectorStoreId };
-      await LlamaMobileVD.clearVectorStore(params);
+      await vectorStore.clear();
       
       setVectorStoreCount(0);
       setVectorStoreResults([]);
@@ -166,7 +154,7 @@ const App = () => {
   };
   
   const releaseVectorStore = async () => {
-    if (!vectorStoreId) {
+    if (!vectorStore) {
       setStatusMessage('Please create a VectorStore first');
       return;
     }
@@ -175,10 +163,9 @@ const App = () => {
       showLoading();
       setStatusMessage('Releasing VectorStore...');
       
-      const params = { id: vectorStoreId };
-      await LlamaMobileVD.releaseVectorStore(params);
+      await vectorStore.release();
       
-      setVectorStoreId(null);
+      setVectorStore(null);
       setVectorStoreCount(0);
       setVectorStoreResults([]);
       setStatusMessage('VectorStore released successfully');
@@ -202,9 +189,9 @@ const App = () => {
         efConstruction: hnswEfConstruction,
       };
       
-      const result = await LlamaMobileVD.createHNSWIndex(options);
+      const hnswIndexInstance = await LlamaMobileVD.createHNSWIndex(options);
       
-      setHnswIndexId(result.id);
+      setHnswIndex(hnswIndexInstance);
       setHnswIndexCount(0);
       setHnswIndexResults([]);
       setStatusMessage('HNSWIndex created successfully');
@@ -216,7 +203,7 @@ const App = () => {
   };
   
   const addVectorsToHNSW = async () => {
-    if (!hnswIndexId) {
+    if (!hnswIndex) {
       setStatusMessage('Please create a HNSWIndex first');
       return;
     }
@@ -227,18 +214,12 @@ const App = () => {
       
       for (let i = 0; i < 100; i++) {
         const vector = createRandomVector(dimension);
-        const params = {
-          id: hnswIndexId,
-          vector,
-          label: `vector-${i}`,
-        };
-        await LlamaMobileVD.addVectorToHNSW(params);
+        await hnswIndex.addVector({ vector, vectorId: i + 1 });
       }
       
-      const countParams = { id: hnswIndexId };
-      const countResult = await LlamaMobileVD.countHNSWIndex(countParams);
+      const count = await hnswIndex.count();
       
-      setHnswIndexCount(countResult.count);
+      setHnswIndexCount(count);
       setStatusMessage('Added 100 vectors to HNSWIndex');
     } catch (error) {
       setStatusMessage(`Error adding vectors to HNSWIndex: ${error.message}`);
@@ -248,7 +229,7 @@ const App = () => {
   };
   
   const searchHNSWIndex = async () => {
-    if (!hnswIndexId) {
+    if (!hnswIndex) {
       setStatusMessage('Please create a HNSWIndex first');
       return;
     }
@@ -263,13 +244,7 @@ const App = () => {
       setStatusMessage('Searching HNSWIndex...');
       
       const queryVector = createRandomVector(dimension);
-      const params = {
-        id: hnswIndexId,
-        queryVector,
-        k: searchK,
-      };
-      
-      const results = await LlamaMobileVD.searchHNSWIndex(params);
+      const results = await hnswIndex.search({ queryVector, k: searchK, efSearch });
       
       setHnswIndexResults(results);
       setStatusMessage('Search completed successfully');
@@ -281,7 +256,7 @@ const App = () => {
   };
   
   const clearHNSWIndex = async () => {
-    if (!hnswIndexId) {
+    if (!hnswIndex) {
       setStatusMessage('Please create a HNSWIndex first');
       return;
     }
@@ -290,8 +265,7 @@ const App = () => {
       showLoading();
       setStatusMessage('Clearing HNSWIndex...');
       
-      const params = { id: hnswIndexId };
-      await LlamaMobileVD.clearHNSWIndex(params);
+      await hnswIndex.clear();
       
       setHnswIndexCount(0);
       setHnswIndexResults([]);
@@ -304,7 +278,7 @@ const App = () => {
   };
   
   const releaseHNSWIndex = async () => {
-    if (!hnswIndexId) {
+    if (!hnswIndex) {
       setStatusMessage('Please create a HNSWIndex first');
       return;
     }
@@ -313,10 +287,9 @@ const App = () => {
       showLoading();
       setStatusMessage('Releasing HNSWIndex...');
       
-      const params = { id: hnswIndexId };
-      await LlamaMobileVD.releaseHNSWIndex(params);
+      await hnswIndex.release();
       
-      setHnswIndexId(null);
+      setHnswIndex(null);
       setHnswIndexCount(0);
       setHnswIndexResults([]);
       setStatusMessage('HNSWIndex released successfully');
@@ -422,6 +395,19 @@ const App = () => {
           />
         </View>
         
+        {/* efSearch slider */}
+        <View style={styles.sliderContainer}>
+          <Text style={styles.sliderLabel}>HNSW efSearch: {efSearch}</Text>
+          <Slider
+            style={styles.slider}
+            minimumValue={10}
+            maximumValue={200}
+            step={1}
+            value={efSearch}
+            onValueChange={setEfSearch}
+          />
+        </View>
+        
         {/* VectorStore section */}
         <Text style={styles.sectionTitle}>VectorStore (Exact Search)</Text>
         
@@ -471,7 +457,7 @@ const App = () => {
         
         <View style={styles.infoContainer}>
           <Text style={styles.infoText}>
-            VectorStore ID: {vectorStoreId ? `${vectorStoreId.substring(0, 10)}...` : 'None'}
+            VectorStore Status: {vectorStore ? 'Created' : 'None'}
           </Text>
           <Text style={styles.infoText}>Vector count: {vectorStoreCount}</Text>
         </View>
@@ -537,7 +523,7 @@ const App = () => {
         
         <View style={styles.infoContainer}>
           <Text style={styles.infoText}>
-            HNSWIndex ID: {hnswIndexId ? `${hnswIndexId.substring(0, 10)}...` : 'None'}
+            HNSWIndex Status: {hnswIndex ? 'Created' : 'None'}
           </Text>
           <Text style={styles.infoText}>Vector count: {hnswIndexCount}</Text>
         </View>

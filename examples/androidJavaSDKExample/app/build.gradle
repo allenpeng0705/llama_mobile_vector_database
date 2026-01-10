@@ -31,13 +31,17 @@ android {
     }
     sourceSets {
         main {
-            jniLibs.srcDirs = ['../../llama_mobile_vd-android-java-SDK/app/src/main/jniLibs']
+            java {
+                srcDirs += ['../../llama_mobile_vd-android-SDK/src/main/java']
+            }
+            jniLibs {
+                srcDirs += ['../../llama_mobile_vd-android-SDK/jniLibs']
+            }
         }
     }
 }
 
 dependencies {
-    implementation fileTree(dir: '../../llama_mobile_vd-android-java-SDK/app/build/outputs/aar', include: ['*.aar'])
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'

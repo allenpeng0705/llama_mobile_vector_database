@@ -7,18 +7,20 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.llamamobile.llamamobile_vd_android_sdk.LlamaMobileVD
-import com.llamamobile.llamamobile_vd_android_sdk.models.*
+import com.llamamobile.vd.VectorStore
+import com.llamamobile.vd.HNSWIndex
+import com.llamamobile.vd.DistanceMetric
+import com.llamamobile.vd.SearchResult
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
     // Vector Store state
-    private var vectorStoreId: String? = null
+    private var vectorStore: VectorStore? = null
     private var vectorStoreCount: Int = 0
     private var vectorStoreResults: List<SearchResult> = emptyList()
     
     // HNSW Index state
-    private var hnswIndexId: String? = null
+    private var hnswIndex: HNSWIndex? = null
     private var hnswIndexCount: Int = 0
     private var hnswIndexResults: List<SearchResult> = emptyList()
     
@@ -28,6 +30,7 @@ class MainActivity : AppCompatActivity() {
     private var hnswM: Int = 16
     private var hnswEfConstruction: Int = 200
     private var searchK: Int = 5
+    private var efSearch: Int = 50
     
     // UI elements
     private lateinit var statusTextView: TextView
@@ -40,6 +43,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var hnswEfConstructionValue: TextView
     private lateinit var searchKSeekBar: SeekBar
     private lateinit var searchKValue: TextView
+    private lateinit var efSearchSeekBar: SeekBar
+    private lateinit var efSearchValue: TextView
     
     private lateinit var createVectorStoreButton: Button
     private lateinit var addVectorsToStoreButton: Button
@@ -86,6 +91,8 @@ class MainActivity : AppCompatActivity() {
         hnswEfConstructionValue = findViewById(R.id.hnsw_ef_construction_value)
         searchKSeekBar = findViewById(R.id.search_k_seek_bar)
         searchKValue = findViewById(R.id.search_k_value)
+        efSearchSeekBar = findViewById(R.id.ef_search_seek_bar)
+        efSearchValue = findViewById(R.id.ef_search_value)
         
         // VectorStore
         createVectorStoreButton = findViewById(R.id.create_vector_store_button)
@@ -113,6 +120,11 @@ class MainActivity : AppCompatActivity() {
         hnswMValue.text = hnswM.toString()
         hnswEfConstructionValue.text = hnswEfConstruction.toString()
         searchKValue.text = searchK.toString()
+        efSearchValue.text = efSearch.toString()
+        
+        // Initialize efSearch seekbar
+        efSearchSeekBar.max = 200
+        efSearchSeekBar.progress = efSearch
         
         // Setup RecyclerViews
         vectorStoreResultsRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -173,6 +185,17 @@ class MainActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
         
+        // efSearch seekbar listener
+        efSearchSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                efSearch = progress
+                efSearchValue.text = progress.toString()
+            }
+            
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+        
         // VectorStore listeners
         createVectorStoreButton.setOnClickListener {
             createVectorStore()
@@ -227,24 +250,26 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun updateVectorStoreInfo() {
-        val storeIdText = vectorStoreId?.take(10) + "..." ?: getString(R.string.none)
-        vectorStoreInfoTextView.text = "${getString(R.string.label_vector_store_id)}: $storeIdText\n${getString(R.string.label_vector_count)}: $vectorStoreCount"
+        val storeStatus = if (vectorStore != null) getString(R.string.status_created) else getString(R.string.none)
+        vectorStoreInfoTextView.text = "${getString(R.string.label_vector_store_status)}: $storeStatus\n${getString(R.string.label_vector_count)}: $vectorStoreCount"
     }
     
     private fun updateHNSWIndexInfo() {
-        val indexIdText = hnswIndexId?.take(10) + "..." ?: getString(R.string.none)
-        hnswIndexInfoTextView.text = "${getString(R.string.label_hnsw_index_id)}: $indexIdText\n${getString(R.string.label_vector_count)}: $hnswIndexCount"
+        val indexStatus = if (hnswIndex != null) getString(R.string.status_created) else getString(R.string.none)
+        hnswIndexInfoTextView.text = "${getString(R.string.label_hnsw_index_status)}: $indexStatus\n${getString(R.string.label_vector_count)}: $hnswIndexCount"
     }
     
     // VectorStore operations
     private fun createVectorStore() {
         updateStatus(getString(R.string.status_creating_vector_store))
         
-        Thread { {
+        Thread {
             try {
-                val options = VectorStoreOptions(dimension, selectedMetric)
-                val result = LlamaMobileVD.createVectorStore(options)
-                vectorStoreId = result.id
+                // First close any existing vector store
+                vectorStore?.close()
+                
+                val newVectorStore = VectorStore(dimension, selectedMetric)
+                vectorStore = newVectorStore
                 vectorStoreCount = 0
                 vectorStoreResults = emptyList()
                 
@@ -258,30 +283,28 @@ class MainActivity : AppCompatActivity() {
                     updateStatus("Error creating VectorStore: ${e.message}")
                 }
             }
-        } }.start()
+        }.start()
     }
     
     private fun addVectorsToStore() {
-        if (vectorStoreId == null) {
+        if (vectorStore == null) {
             updateStatus(getString(R.string.status_please_create_vector_store_first))
             return
         }
         
         updateStatus(getString(R.string.status_adding_vectors_to_store))
         
-        Thread { {
+        Thread {
             try {
                 for (i in 0 until 100) {
                     val vector = createRandomVector(dimension)
-                    val params = AddVectorParams(vectorStoreId!!, vector, "vector-$i")
-                    LlamaMobileVD.addVectorToStore(params)
+                    vectorStore!!.addVector(vector, i + 1)
                 }
                 
-                val countParams = CountParams(vectorStoreId!!)
-                val countResult = LlamaMobileVD.countVectorStore(countParams)
+                val count = vectorStore!!.getCount()
                 
                 handler.post {
-                    vectorStoreCount = countResult.count
+                    vectorStoreCount = count
                     updateVectorStoreInfo()
                     updateStatus(getString(R.string.status_added_vectors_to_store))
                 }
@@ -290,11 +313,11 @@ class MainActivity : AppCompatActivity() {
                     updateStatus("Error adding vectors to VectorStore: ${e.message}")
                 }
             }
-        } }.start()
+        }.start()
     }
     
     private fun searchVectorStore() {
-        if (vectorStoreId == null) {
+        if (vectorStore == null) {
             updateStatus(getString(R.string.status_please_create_vector_store_first))
             return
         }
@@ -306,15 +329,14 @@ class MainActivity : AppCompatActivity() {
         
         updateStatus(getString(R.string.status_searching_vector_store))
         
-        Thread { {
+        Thread {
             try {
                 val queryVector = createRandomVector(dimension)
-                val params = SearchParams(vectorStoreId!!, queryVector, searchK)
-                val results = LlamaMobileVD.searchVectorStore(params)
+                val results = vectorStore!!.search(queryVector, searchK)
                 
                 handler.post {
-                    vectorStoreResults = results
-                    vectorStoreResultsRecyclerView.adapter = SearchResultsAdapter(results)
+                    vectorStoreResults = results.toList()
+                    vectorStoreResultsRecyclerView.adapter = SearchResultsAdapter(results.toList())
                     vectorStoreResultsContainer.visibility = LinearLayout.VISIBLE
                     updateStatus(getString(R.string.status_search_completed))
                 }
@@ -323,21 +345,20 @@ class MainActivity : AppCompatActivity() {
                     updateStatus("Error searching VectorStore: ${e.message}")
                 }
             }
-        } }.start()
+        }.start()
     }
     
     private fun clearVectorStore() {
-        if (vectorStoreId == null) {
+        if (vectorStore == null) {
             updateStatus(getString(R.string.status_please_create_vector_store_first))
             return
         }
         
         updateStatus(getString(R.string.status_clearing_vector_store))
         
-        Thread { {
+        Thread {
             try {
-                val params = ClearParams(vectorStoreId!!)
-                LlamaMobileVD.clearVectorStore(params)
+                vectorStore!!.clear()
                 
                 handler.post {
                     vectorStoreCount = 0
@@ -351,24 +372,23 @@ class MainActivity : AppCompatActivity() {
                     updateStatus("Error clearing VectorStore: ${e.message}")
                 }
             }
-        } }.start()
+        }.start()
     }
     
     private fun releaseVectorStore() {
-        if (vectorStoreId == null) {
+        if (vectorStore == null) {
             updateStatus(getString(R.string.status_please_create_vector_store_first))
             return
         }
         
         updateStatus(getString(R.string.status_releasing_vector_store))
         
-        Thread { {
+        Thread {
             try {
-                val params = ReleaseParams(vectorStoreId!!)
-                LlamaMobileVD.releaseVectorStore(params)
+                vectorStore!!.close()
                 
                 handler.post {
-                    vectorStoreId = null
+                    vectorStore = null
                     vectorStoreCount = 0
                     vectorStoreResults = emptyList()
                     vectorStoreResultsContainer.visibility = LinearLayout.GONE
@@ -380,18 +400,20 @@ class MainActivity : AppCompatActivity() {
                     updateStatus("Error releasing VectorStore: ${e.message}")
                 }
             }
-        } }.start()
+        }.start()
     }
     
     // HNSWIndex operations
     private fun createHNSWIndex() {
         updateStatus(getString(R.string.status_creating_hnsw_index))
         
-        Thread { {
+        Thread {
             try {
-                val options = HNSWIndexOptions(dimension, selectedMetric, hnswM, hnswEfConstruction)
-                val result = LlamaMobileVD.createHNSWIndex(options)
-                hnswIndexId = result.id
+                // First close any existing HNSW index
+                hnswIndex?.close()
+                
+                val newHnswIndex = HNSWIndex(dimension, selectedMetric, hnswM, hnswEfConstruction)
+                hnswIndex = newHnswIndex
                 hnswIndexCount = 0
                 hnswIndexResults = emptyList()
                 
@@ -405,30 +427,28 @@ class MainActivity : AppCompatActivity() {
                     updateStatus("Error creating HNSWIndex: ${e.message}")
                 }
             }
-        } }.start()
+        }.start()
     }
     
     private fun addVectorsToHNSW() {
-        if (hnswIndexId == null) {
+        if (hnswIndex == null) {
             updateStatus(getString(R.string.status_please_create_hnsw_index_first))
             return
         }
         
         updateStatus(getString(R.string.status_adding_vectors_to_hnsw))
         
-        Thread { {
+        Thread {
             try {
                 for (i in 0 until 100) {
                     val vector = createRandomVector(dimension)
-                    val params = AddVectorParams(hnswIndexId!!, vector, "vector-$i")
-                    LlamaMobileVD.addVectorToHNSW(params)
+                    hnswIndex!!.addVector(vector, i + 1)
                 }
                 
-                val countParams = CountParams(hnswIndexId!!)
-                val countResult = LlamaMobileVD.countHNSWIndex(countParams)
+                val count = hnswIndex!!.getCount()
                 
                 handler.post {
-                    hnswIndexCount = countResult.count
+                    hnswIndexCount = count
                     updateHNSWIndexInfo()
                     updateStatus(getString(R.string.status_added_vectors_to_hnsw))
                 }
@@ -437,11 +457,11 @@ class MainActivity : AppCompatActivity() {
                     updateStatus("Error adding vectors to HNSWIndex: ${e.message}")
                 }
             }
-        } }.start()
+        }.start()
     }
     
     private fun searchHNSWIndex() {
-        if (hnswIndexId == null) {
+        if (hnswIndex == null) {
             updateStatus(getString(R.string.status_please_create_hnsw_index_first))
             return
         }
@@ -453,15 +473,14 @@ class MainActivity : AppCompatActivity() {
         
         updateStatus(getString(R.string.status_searching_hnsw_index))
         
-        Thread { {
+        Thread {
             try {
                 val queryVector = createRandomVector(dimension)
-                val params = SearchParams(hnswIndexId!!, queryVector, searchK)
-                val results = LlamaMobileVD.searchHNSWIndex(params)
+                val results = hnswIndex!!.search(queryVector, searchK, efSearch)
                 
                 handler.post {
-                    hnswIndexResults = results
-                    hnswIndexResultsRecyclerView.adapter = SearchResultsAdapter(results)
+                    hnswIndexResults = results.toList()
+                    hnswIndexResultsRecyclerView.adapter = SearchResultsAdapter(results.toList())
                     hnswIndexResultsContainer.visibility = LinearLayout.VISIBLE
                     updateStatus(getString(R.string.status_search_completed))
                 }
@@ -470,21 +489,20 @@ class MainActivity : AppCompatActivity() {
                     updateStatus("Error searching HNSWIndex: ${e.message}")
                 }
             }
-        } }.start()
+        }.start()
     }
     
     private fun clearHNSWIndex() {
-        if (hnswIndexId == null) {
+        if (hnswIndex == null) {
             updateStatus(getString(R.string.status_please_create_hnsw_index_first))
             return
         }
         
         updateStatus(getString(R.string.status_clearing_hnsw_index))
         
-        Thread { {
+        Thread {
             try {
-                val params = ClearParams(hnswIndexId!!)
-                LlamaMobileVD.clearHNSWIndex(params)
+                hnswIndex!!.clear()
                 
                 handler.post {
                     hnswIndexCount = 0
@@ -498,24 +516,23 @@ class MainActivity : AppCompatActivity() {
                     updateStatus("Error clearing HNSWIndex: ${e.message}")
                 }
             }
-        } }.start()
+        }.start()
     }
     
     private fun releaseHNSWIndex() {
-        if (hnswIndexId == null) {
+        if (hnswIndex == null) {
             updateStatus(getString(R.string.status_please_create_hnsw_index_first))
             return
         }
         
         updateStatus(getString(R.string.status_releasing_hnsw_index))
         
-        Thread { {
+        Thread {
             try {
-                val params = ReleaseParams(hnswIndexId!!)
-                LlamaMobileVD.releaseHNSWIndex(params)
+                hnswIndex!!.close()
                 
                 handler.post {
-                    hnswIndexId = null
+                    hnswIndex = null
                     hnswIndexCount = 0
                     hnswIndexResults = emptyList()
                     hnswIndexResultsContainer.visibility = LinearLayout.GONE
@@ -527,7 +544,7 @@ class MainActivity : AppCompatActivity() {
                     updateStatus("Error releasing HNSWIndex: ${e.message}")
                 }
             }
-        } }.start()
+        }.start()
     }
     
     // Search Results Adapter
@@ -546,7 +563,7 @@ class MainActivity : AppCompatActivity() {
         
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val result = results[position]
-            holder.vectorIndexTextView.text = "Vector ${result.index}"
+            holder.vectorIndexTextView.text = "Vector ID: ${result.id}"
             holder.distanceTextView.text = "Distance: ${result.distance.format(6)}"
             holder.distanceTextView.setTextColor(android.R.color.darker_gray)
         }

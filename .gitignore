@@ -3,3 +3,10 @@
 /build-lib-static
 /build-lib
 /llama_mobile_vd-capacitor-plugin/node_modules
+/examples/androidJavaSDKExample/.gradle
+/examples/androidSDKExample/.gradle
+/examples/flutterSDKExample/.dart_tool
+/examples/flutterSDKExample/build
+/llama_mobile_vd-react-native-SDK/node_modules
+/llama_mobile_vd-react-native-SDK/android/.gradle
+/llama_mobile_vd-flutter-SDK/build

@@ -17,16 +17,40 @@ for arg in "$@"; do
 done
 
 # Set the working directory to the project root
-SCRIPT_DIR=$(dirname "$0")
-PROJECT_ROOT="$SCRIPT_DIR/.."
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+PROJECT_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 WRAPPER_DIR="$PROJECT_ROOT/lib/wrapper"
-IOS_DIR="$PROJECT_ROOT/llama_mobile_vd-ios"
+IOS_DIR="$PROJECT_ROOT/llama_mobile_vd-ios-SDK"
 FRAMEWORK_NAME="LlamaMobileVD"
+
+# Check for required dependencies
+echo "=== Checking dependencies ==="
+
+# Check for Xcode
+echo -n "Checking for Xcode... "
+if ! command -v xcodebuild &> /dev/null; then
+    echo "✗"
+    echo "Error: Xcode not found or not accessible."
+    echo "Please install Xcode from the App Store and run 'xcode-select --install' to install command line tools."
+    exit 1
+fi
+echo "✓"
+
+# Check for CMake
+echo -n "Checking for CMake... "
+if ! command -v cmake &> /dev/null; then
+    echo "✗"
+    echo "Error: CMake not found."
+    echo "Please install CMake using Homebrew: 'brew install cmake'"
+    exit 1
+fi
+echo "✓"
+echo ""
 
 # Check if framework already exists
 echo -n "Checking if iOS framework already exists... "
 FRAMEWORK_DEST="$IOS_DIR/ios/Frameworks/$FRAMEWORK_NAME.framework"
-SDK_FRAMEWORKS_DIR="$PROJECT_ROOT/llama_mobile_vd-ios-SDK/Frameworks"
+SDK_FRAMEWORKS_DIR="$IOS_DIR/Sources/LlamaMobileVD/Frameworks"
 
 if [ -d "$FRAMEWORK_DEST" ] && [ -f "$FRAMEWORK_DEST/$FRAMEWORK_NAME" ] && [ -d "$SDK_FRAMEWORKS_DIR/$FRAMEWORK_NAME.framework" ] && [ "$FORCE_BUILD" = false ]; then
     echo "✓"
@@ -50,7 +74,7 @@ else
     mkdir -p $WRAPPER_BUILD_DIR
     
     # Get absolute path to the iOS toolchain file
-    IOS_TOOLCHAIN_FILE="$(cd "$PROJECT_ROOT" && pwd)/lib/llama_cpp/quiverdb/cmake/toolchains/ios.toolchain.cmake"
+    IOS_TOOLCHAIN_FILE="$PROJECT_ROOT/lib/llama_cpp/quiverdb/cmake/toolchains/ios.toolchain.cmake"
     
     # Configure CMake with iOS toolchain for frameworks
     cmake -B $WRAPPER_BUILD_DIR \
@@ -91,9 +115,6 @@ else
     FRAMEWORK_BUILD_DIR="$PROJECT_ROOT/build-ios-framework"
     mkdir -p $FRAMEWORK_BUILD_DIR
     
-    # Get absolute path to iOS directory
-    IOS_DIR_ABS="$(cd "$IOS_DIR" && pwd)"
-    
     # Configure CMake for iOS frameworks using absolute path
     cmake -B $FRAMEWORK_BUILD_DIR \
         -GXcode \
@@ -103,7 +124,7 @@ else
         -DCMAKE_INSTALL_PREFIX="$FRAMEWORK_BUILD_DIR/install" \
         -DCMAKE_XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH=NO \
         -DCMAKE_IOS_INSTALL_COMBINED=YES \
-        "$IOS_DIR_ABS"
+        "$IOS_DIR"
     
     if [ $? -ne 0 ]; then
         echo "Error: Framework CMake configuration failed"
@@ -122,11 +143,10 @@ fi
 
 if [ "$FRAMEWORK_ALREADY_EXISTS" = false ]; then
     
-    # Step 3: Update the llama_mobile_vd-ios directory
-     echo "=== Updating llama_mobile_vd-ios directory ==="
+    # Step 3: Update the llama_mobile_vd-ios-SDK directory
+     echo "=== Updating llama_mobile_vd-ios-SDK directory ==="
     
-    # Set up the framework directory structure
-    FRAMEWORK_DEST="$IOS_DIR/ios/Frameworks/$FRAMEWORK_NAME.framework"
+    # Create the framework directory if it doesn't exist
     mkdir -p "$IOS_DIR/ios/Frameworks"
     
     # Copy the built frameworks
@@ -150,40 +170,34 @@ if [ "$FRAMEWORK_ALREADY_EXISTS" = false ]; then
     
     echo "✓ Wrapper library copied to framework"
     
-    # Step 3.1: Update the iOS Swift SDK
-    echo "=== Updating iOS Swift SDK ==="
+    # Step 3.1: Update the iOS Swift SDK (consolidated within iOS directory)
+    echo "=== Updating iOS Swift SDK (consolidated) ==="
     
-    IOS_SDK_DIR="$PROJECT_ROOT/llama_mobile_vd-ios-SDK"
-    SDK_FRAMEWORKS_DIR="$IOS_SDK_DIR/Frameworks"
+    # Update the framework in the Swift package's Frameworks directory
+    SDK_FRAMEWORKS_DIR="$IOS_DIR/Sources/LlamaMobileVD/Frameworks"
     
-    # Check if iOS SDK directory exists
-    if [ -d "$IOS_SDK_DIR" ]; then
-        # Create Frameworks directory if it doesn't exist
-        mkdir -p "$SDK_FRAMEWORKS_DIR"
-        
-        # Remove existing framework if it exists
-        if [ -d "$SDK_FRAMEWORKS_DIR/$FRAMEWORK_NAME.framework" ]; then
-            rm -rf "$SDK_FRAMEWORKS_DIR/$FRAMEWORK_NAME.framework"
-        fi
-        
-        # Copy the built framework to the SDK
-        cp -R "$FRAMEWORK_BUILD_DIR/Release-iphoneos/$FRAMEWORK_NAME.framework" "$SDK_FRAMEWORKS_DIR/"
-        
-        if [ $? -ne 0 ]; then
-            echo "Error: Failed to update iOS Swift SDK"
-            exit 1
-        fi
-        
-        echo "✓ iOS Swift SDK updated at: $SDK_FRAMEWORKS_DIR/$FRAMEWORK_NAME.framework"
-    else
-        echo "Warning: iOS Swift SDK directory not found at: $IOS_SDK_DIR"
-        echo "Please create the SDK directory or run the build-ios-SDK.sh script to create it"
+    # Create Frameworks directory if it doesn't exist
+    mkdir -p "$SDK_FRAMEWORKS_DIR"
+    
+    # Remove existing framework if it exists
+    if [ -d "$SDK_FRAMEWORKS_DIR/$FRAMEWORK_NAME.framework" ]; then
+        rm -rf "$SDK_FRAMEWORKS_DIR/$FRAMEWORK_NAME.framework"
     fi
+    
+    # Copy the built framework to the Swift package's Frameworks directory
+    cp -R "$FRAMEWORK_BUILD_DIR/Release-iphoneos/$FRAMEWORK_NAME.framework" "$SDK_FRAMEWORKS_DIR/"
+    
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to update iOS Swift SDK"
+        exit 1
+    fi
+    
+    echo "✓ iOS Swift SDK updated at: $SDK_FRAMEWORKS_DIR/$FRAMEWORK_NAME.framework"
     
     # Step 4: Verify the directory structure
     echo ""
     echo "=== Final Directory Structure ==="
-    echo "llama_mobile_vd-ios/"
+    echo "llama_mobile_vd-ios-SDK/"
     echo "├── ios/"
     echo "│   └── Frameworks/"
     echo "│       └── $FRAMEWORK_NAME.framework/"
@@ -191,6 +205,13 @@ if [ "$FRAMEWORK_ALREADY_EXISTS" = false ]; then
     echo "│           ├── Resources/"
     echo "│           │   └── libquiverdb_wrapper.a"
     echo "│           └── Info.plist"
+    echo "├── Sources/"
+    echo "│   └── LlamaMobileVD/"
+    echo "│       ├── Frameworks/"
+    echo "│       │   └── $FRAMEWORK_NAME.framework/"
+    echo "│       ├── Bridging-Header.h"
+    echo "│       └── LlamaMobileVD.swift"
+    echo "└── Package.swift"
     echo ""
     
     # Step 5: Cleanup temporary build directories
@@ -217,6 +238,7 @@ echo ""
 echo "Summary:"
 echo "- Wrapper library: $WRAPPER_BUILD_DIR/Release-iphoneos/libquiverdb_wrapper.a (cleaned up)"
 echo "- iOS framework: $FRAMEWORK_DEST"
-echo "- llama_mobile_vd-ios directory is now ready to use!"
-echo "- iOS Swift SDK updated at: $SDK_FRAMEWORKS_DIR/$FRAMEWORK_NAME.framework"
+echo "- Consolidated iOS SDK directory ready to use: $IOS_DIR/"
+echo "- Swift package updated at: $IOS_DIR/Package.swift"
+echo "- Swift source files: $IOS_DIR/Sources/LlamaMobileVD/"
 echo "- All temporary build directories have been cleaned up!"

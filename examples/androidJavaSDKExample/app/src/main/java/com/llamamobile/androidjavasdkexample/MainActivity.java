@@ -8,8 +8,10 @@ import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.llamamobile.llamamobile_vd_android_java_sdk.LlamaMobileVD;
-import com.llamamobile.llamamobile_vd_android_java_sdk.models.*;
+import com.llamamobile.vd.VectorStore;
+import com.llamamobile.vd.HNSWIndex;
+import com.llamamobile.vd.DistanceMetric;
+import com.llamamobile.vd.SearchResult;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,12 +19,12 @@ import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
     // Vector Store state
-    private String vectorStoreId;
+    private VectorStore vectorStore;
     private int vectorStoreCount = 0;
     private List<SearchResult> vectorStoreResults = new ArrayList<>();
     
     // HNSW Index state
-    private String hnswIndexId;
+    private HNSWIndex hnswIndex;
     private int hnswIndexCount = 0;
     private List<SearchResult> hnswIndexResults = new ArrayList<>();
     
@@ -32,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     private int hnswM = 16;
     private int hnswEfConstruction = 200;
     private int searchK = 5;
+    private int efSearch = 50;
     
     // UI elements
     private TextView statusTextView;
@@ -44,6 +47,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView hnswEfConstructionValue;
     private SeekBar searchKSeekBar;
     private TextView searchKValue;
+    private SeekBar efSearchSeekBar;
+    private TextView efSearchValue;
     
     private Button createVectorStoreButton;
     private Button addVectorsToStoreButton;
@@ -91,6 +96,8 @@ public class MainActivity extends AppCompatActivity {
         hnswEfConstructionValue = findViewById(R.id.hnsw_ef_construction_value);
         searchKSeekBar = findViewById(R.id.search_k_seek_bar);
         searchKValue = findViewById(R.id.search_k_value);
+        efSearchSeekBar = findViewById(R.id.ef_search_seek_bar);
+        efSearchValue = findViewById(R.id.ef_search_value);
         
         // VectorStore
         createVectorStoreButton = findViewById(R.id.create_vector_store_button);
@@ -118,6 +125,9 @@ public class MainActivity extends AppCompatActivity {
         hnswMValue.setText(String.valueOf(hnswM));
         hnswEfConstructionValue.setText(String.valueOf(hnswEfConstruction));
         searchKValue.setText(String.valueOf(searchK));
+        efSearchValue.setText(String.valueOf(efSearch));
+        efSearchSeekBar.setMax(200);
+        efSearchSeekBar.setProgress(efSearch);
         
         // Setup RecyclerViews
         vectorStoreResultsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -194,6 +204,20 @@ public class MainActivity extends AppCompatActivity {
             public void onStopTrackingTouch(SeekBar seekBar) {}
         });
         
+        efSearchSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                efSearch = progress;
+                efSearchValue.setText(String.valueOf(progress));
+            }
+            
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+            
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        
         // VectorStore listeners
         createVectorStoreButton.setOnClickListener(v -> createVectorStore());
         
@@ -230,13 +254,13 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void updateVectorStoreInfo() {
-        String storeIdText = vectorStoreId != null ? vectorStoreId.substring(0, Math.min(10, vectorStoreId.length())) + "..." : getString(R.string.none);
-        vectorStoreInfoTextView.setText(getString(R.string.label_vector_store_id) + ": " + storeIdText + "\n" + getString(R.string.label_vector_count) + ": " + vectorStoreCount);
+        String storeStatus = vectorStore != null ? getString(R.string.status_created) : getString(R.string.none);
+        vectorStoreInfoTextView.setText(getString(R.string.label_vector_store_status) + ": " + storeStatus + "\n" + getString(R.string.label_vector_count) + ": " + vectorStoreCount);
     }
     
     private void updateHNSWIndexInfo() {
-        String indexIdText = hnswIndexId != null ? hnswIndexId.substring(0, Math.min(10, hnswIndexId.length())) + "..." : getString(R.string.none);
-        hnswIndexInfoTextView.setText(getString(R.string.label_hnsw_index_id) + ": " + indexIdText + "\n" + getString(R.string.label_vector_count) + ": " + hnswIndexCount);
+        String indexStatus = hnswIndex != null ? getString(R.string.status_created) : getString(R.string.none);
+        hnswIndexInfoTextView.setText(getString(R.string.label_hnsw_index_status) + ": " + indexStatus + "\n" + getString(R.string.label_vector_count) + ": " + hnswIndexCount);
     }
     
     // VectorStore operations
@@ -245,9 +269,13 @@ public class MainActivity extends AppCompatActivity {
         
         new Thread(() -> {
             try {
-                VectorStoreOptions options = new VectorStoreOptions(dimension, selectedMetric);
-                CreateResult result = LlamaMobileVD.createVectorStore(options);
-                vectorStoreId = result.getId();
+                // First close any existing vector store
+                if (vectorStore != null) {
+                    vectorStore.close();
+                }
+                
+                VectorStore newVectorStore = new VectorStore(dimension, selectedMetric);
+                vectorStore = newVectorStore;
                 vectorStoreCount = 0;
                 vectorStoreResults.clear();
                 
@@ -265,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void addVectorsToStore() {
-        if (vectorStoreId == null) {
+        if (vectorStore == null) {
             updateStatus(getString(R.string.status_please_create_vector_store_first));
             return;
         }
@@ -276,15 +304,13 @@ public class MainActivity extends AppCompatActivity {
             try {
                 for (int i = 0; i < 100; i++) {
                     float[] vector = createRandomVector(dimension);
-                    AddVectorParams params = new AddVectorParams(vectorStoreId, vector, "vector-" + i);
-                    LlamaMobileVD.addVectorToStore(params);
+                    vectorStore.addVector(vector, i + 1);
                 }
                 
-                CountParams countParams = new CountParams(vectorStoreId);
-                CountResult countResult = LlamaMobileVD.countVectorStore(countParams);
+                int count = vectorStore.getCount();
                 
                 handler.post(() -> {
-                    vectorStoreCount = countResult.getCount();
+                    vectorStoreCount = count;
                     updateVectorStoreInfo();
                     updateStatus(getString(R.string.status_added_vectors_to_store));
                 });
@@ -297,7 +323,7 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void searchVectorStore() {
-        if (vectorStoreId == null) {
+        if (vectorStore == null) {
             updateStatus(getString(R.string.status_please_create_vector_store_first));
             return;
         }
@@ -312,8 +338,11 @@ public class MainActivity extends AppCompatActivity {
         new Thread(() -> {
             try {
                 float[] queryVector = createRandomVector(dimension);
-                SearchParams params = new SearchParams(vectorStoreId, queryVector, searchK);
-                List<SearchResult> results = LlamaMobileVD.searchVectorStore(params);
+                SearchResult[] resultsArray = vectorStore.search(queryVector, searchK);
+                List<SearchResult> results = new ArrayList<>();
+                for (SearchResult result : resultsArray) {
+                    results.add(result);
+                }
                 
                 handler.post(() -> {
                     vectorStoreResults = results;
@@ -330,7 +359,7 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void clearVectorStore() {
-        if (vectorStoreId == null) {
+        if (vectorStore == null) {
             updateStatus(getString(R.string.status_please_create_vector_store_first));
             return;
         }
@@ -339,8 +368,7 @@ public class MainActivity extends AppCompatActivity {
         
         new Thread(() -> {
             try {
-                ClearParams params = new ClearParams(vectorStoreId);
-                LlamaMobileVD.clearVectorStore(params);
+                vectorStore.clear();
                 
                 handler.post(() -> {
                     vectorStoreCount = 0;
@@ -358,7 +386,7 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void releaseVectorStore() {
-        if (vectorStoreId == null) {
+        if (vectorStore == null) {
             updateStatus(getString(R.string.status_please_create_vector_store_first));
             return;
         }
@@ -367,11 +395,10 @@ public class MainActivity extends AppCompatActivity {
         
         new Thread(() -> {
             try {
-                ReleaseParams params = new ReleaseParams(vectorStoreId);
-                LlamaMobileVD.releaseVectorStore(params);
+                vectorStore.close();
                 
                 handler.post(() -> {
-                    vectorStoreId = null;
+                    vectorStore = null;
                     vectorStoreCount = 0;
                     vectorStoreResults.clear();
                     vectorStoreResultsContainer.setVisibility(View.GONE);
@@ -392,9 +419,13 @@ public class MainActivity extends AppCompatActivity {
         
         new Thread(() -> {
             try {
-                HNSWIndexOptions options = new HNSWIndexOptions(dimension, selectedMetric, hnswM, hnswEfConstruction);
-                CreateResult result = LlamaMobileVD.createHNSWIndex(options);
-                hnswIndexId = result.getId();
+                // First close any existing HNSW index
+                if (hnswIndex != null) {
+                    hnswIndex.close();
+                }
+                
+                HNSWIndex newHnswIndex = new HNSWIndex(dimension, selectedMetric, hnswM, hnswEfConstruction);
+                hnswIndex = newHnswIndex;
                 hnswIndexCount = 0;
                 hnswIndexResults.clear();
                 
@@ -412,7 +443,7 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void addVectorsToHNSW() {
-        if (hnswIndexId == null) {
+        if (hnswIndex == null) {
             updateStatus(getString(R.string.status_please_create_hnsw_index_first));
             return;
         }
@@ -423,15 +454,13 @@ public class MainActivity extends AppCompatActivity {
             try {
                 for (int i = 0; i < 100; i++) {
                     float[] vector = createRandomVector(dimension);
-                    AddVectorParams params = new AddVectorParams(hnswIndexId, vector, "vector-" + i);
-                    LlamaMobileVD.addVectorToHNSW(params);
+                    hnswIndex.addVector(vector, i + 1);
                 }
                 
-                CountParams countParams = new CountParams(hnswIndexId);
-                CountResult countResult = LlamaMobileVD.countHNSWIndex(countParams);
+                int count = hnswIndex.getCount();
                 
                 handler.post(() -> {
-                    hnswIndexCount = countResult.getCount();
+                    hnswIndexCount = count;
                     updateHNSWIndexInfo();
                     updateStatus(getString(R.string.status_added_vectors_to_hnsw));
                 });
@@ -444,7 +473,7 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void searchHNSWIndex() {
-        if (hnswIndexId == null) {
+        if (hnswIndex == null) {
             updateStatus(getString(R.string.status_please_create_hnsw_index_first));
             return;
         }
@@ -459,8 +488,11 @@ public class MainActivity extends AppCompatActivity {
         new Thread(() -> {
             try {
                 float[] queryVector = createRandomVector(dimension);
-                SearchParams params = new SearchParams(hnswIndexId, queryVector, searchK);
-                List<SearchResult> results = LlamaMobileVD.searchHNSWIndex(params);
+                SearchResult[] resultsArray = hnswIndex.search(queryVector, searchK, efSearch);
+                List<SearchResult> results = new ArrayList<>();
+                for (SearchResult result : resultsArray) {
+                    results.add(result);
+                }
                 
                 handler.post(() -> {
                     hnswIndexResults = results;
@@ -477,7 +509,7 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void clearHNSWIndex() {
-        if (hnswIndexId == null) {
+        if (hnswIndex == null) {
             updateStatus(getString(R.string.status_please_create_hnsw_index_first));
             return;
         }
@@ -486,8 +518,7 @@ public class MainActivity extends AppCompatActivity {
         
         new Thread(() -> {
             try {
-                ClearParams params = new ClearParams(hnswIndexId);
-                LlamaMobileVD.clearHNSWIndex(params);
+                hnswIndex.clear();
                 
                 handler.post(() -> {
                     hnswIndexCount = 0;
@@ -505,7 +536,7 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void releaseHNSWIndex() {
-        if (hnswIndexId == null) {
+        if (hnswIndex == null) {
             updateStatus(getString(R.string.status_please_create_hnsw_index_first));
             return;
         }
@@ -514,11 +545,10 @@ public class MainActivity extends AppCompatActivity {
         
         new Thread(() -> {
             try {
-                ReleaseParams params = new ReleaseParams(hnswIndexId);
-                LlamaMobileVD.releaseHNSWIndex(params);
+                hnswIndex.close();
                 
                 handler.post(() -> {
-                    hnswIndexId = null;
+                    hnswIndex = null;
                     hnswIndexCount = 0;
                     hnswIndexResults.clear();
                     hnswIndexResultsContainer.setVisibility(View.GONE);
@@ -561,7 +591,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
             SearchResult result = results.get(position);
-            holder.vectorIndexTextView.setText("Vector " + result.getIndex());
+            holder.vectorIndexTextView.setText("Vector ID: " + result.getId());
             holder.distanceTextView.setText("Distance: " + String.format("%.6f", result.getDistance()));
             holder.distanceTextView.setTextColor(getResources().getColor(android.R.color.darker_gray));
         }

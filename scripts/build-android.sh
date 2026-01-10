@@ -4,10 +4,15 @@
 
 # Parse command line arguments
 FORCE_BUILD=false
+NDK_VERSION="29.0.14206865"  # Default NDK version
 for arg in "$@"; do
     case "$arg" in
         --force)
             FORCE_BUILD=true
+            shift
+            ;;
+        --ndk-version=*)
+            NDK_VERSION="${arg#*=}"
             shift
             ;;
         *)
@@ -20,10 +25,9 @@ done
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 WRAPPER_DIR="$PROJECT_ROOT/lib/wrapper"
-ANDROID_DIR="$PROJECT_ROOT/llama_mobile_vd-android"
+ANDROID_DIR="$PROJECT_ROOT/llama_mobile_vd-android-SDK"
 
 # NDK and CMake configuration
-NDK_VERSION=29.0.14206865
 ANDROID_PLATFORM=android-24
 CMAKE_BUILD_TYPE=Release
 
@@ -211,8 +215,8 @@ fi
 if [ "$LIBRARIES_BUILT" = true ]; then
     echo ""
     
-    # Step 2: Update the llama_mobile_vd-android directory
-     echo "=== Updating llama_mobile_vd-android directory ==="
+    # Step 2: Update the llama_mobile_vd-android-SDK directory
+     echo "=== Updating llama_mobile_vd-android-SDK directory ==="
     
     # Create jniLibs directories for multiple architectures like the parent project
     JNI_LIBS_DEST="$ANDROID_DIR/jniLibs"
@@ -252,7 +256,6 @@ if [ "$LIBRARIES_BUILT" = true ]; then
     # Step 2.1: Update Android SDKs
      echo "=== Updating Android SDKs ==="
     
-    KOTLIN_SDK_DIR="$PROJECT_ROOT/llama_mobile_vd-android-SDK"
     JAVA_SDK_DIR="$PROJECT_ROOT/llama_mobile_vd-android-java-SDK"
     
     # Create a function to update an Android SDK
@@ -287,30 +290,38 @@ if [ "$LIBRARIES_BUILT" = true ]; then
             done
         else
             echo "Warning: $sdk_name directory not found at: $sdk_dir"
-            echo "Please create the SDK directory or run the build-android-SDK.sh script to create it"
+            echo "Please create the SDK directory manually or use the build-all.sh script to build all SDKs"
         fi
         
         return 0
     }
     
-    # Update Kotlin SDK
-    update_android_sdk "$KOTLIN_SDK_DIR" "Android Kotlin SDK"
-    
-    # Update Java SDK
+    # Update Java SDK (kept separate as requested)
     update_android_sdk "$JAVA_SDK_DIR" "Android Java SDK"
     
     echo ""
     
     # Step 3: Verify the directory structure
      echo "=== Final Directory Structure ==="
-     echo "llama_mobile_vd-android/"
+     echo "llama_mobile_vd-android-SDK/"
      echo "├── jniLibs/"
      for arch in "${ARCHITECTURES[@]}"; do
         echo "│   ├── $arch/"
         echo "│   │   └── libquiverdb_wrapper.a"
      done
-     echo "└── include/"
-     echo "    └── quiverdb_wrapper.h"
+     echo "├── include/"
+     echo "│   └── quiverdb_wrapper.h"
+     echo "└── src/"
+     echo "    └── main/"
+     echo "        ├── cpp/"
+     echo "        │   ├── CMakeLists.txt"
+     echo "        │   └── llama_mobile_vd_jni.cpp"
+     echo "        ├── java/"
+     echo "        │   └── com/llamamobile/vd/LlamaMobileVD.java"
+     echo "        └── kotlin/"
+     echo "            └── com/llamamobile/vd/"
+     echo "                ├── JNIInterface.kt"
+     echo "                └── LlamaMobileVD.kt"
     echo ""
     
     # Step 4: Cleanup temporary build directories
@@ -329,10 +340,10 @@ fi
 
 echo ""
 echo "Android build completed successfully!"
-echo "llama_mobile_vd-android directory is now ready to use!"
+echo "llama_mobile_vd-android-SDK directory is now ready to use!"
 echo "Architectures built: ${ARCHITECTURES[*]}"
 echo ""
-echo "- Android Kotlin SDK updated in: $KOTLIN_SDK_DIR/src/main/jniLibs/"
+echo "- Consolidated Android SDK (includes Java and Kotlin): $ANDROID_DIR/"
 echo "- Android Java SDK updated in: $JAVA_SDK_DIR/src/main/jniLibs/"
 echo "- All temporary build directories have been cleaned up!"
 echo ""

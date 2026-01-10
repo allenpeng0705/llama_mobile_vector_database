@@ -37,6 +37,13 @@ class LlamaMobileVDPlugin : FlutterPlugin, MethodCallHandler {
             "vectorStoreCount" -> handleVectorStoreCount(call, result)
             "vectorStoreClear" -> handleVectorStoreClear(call, result)
             "vectorStoreDestroy" -> handleVectorStoreDestroy(call, result)
+            "vectorStoreRemove" -> handleVectorStoreRemove(call, result)
+            "vectorStoreGet" -> handleVectorStoreGet(call, result)
+            "vectorStoreUpdate" -> handleVectorStoreUpdate(call, result)
+            "vectorStoreDimension" -> handleVectorStoreDimension(call, result)
+            "vectorStoreMetric" -> handleVectorStoreMetric(call, result)
+            "vectorStoreContains" -> handleVectorStoreContains(call, result)
+            "vectorStoreReserve" -> handleVectorStoreReserve(call, result)
             
         // HNSWIndex methods
             "hnswIndexCreate" -> handleHNSWIndexCreate(call, result)
@@ -45,6 +52,17 @@ class LlamaMobileVDPlugin : FlutterPlugin, MethodCallHandler {
             "hnswIndexCount" -> handleHNSWIndexCount(call, result)
             "hnswIndexClear" -> handleHNSWIndexClear(call, result)
             "hnswIndexDestroy" -> handleHNSWIndexDestroy(call, result)
+            "hnswIndexSetEfSearch" -> handleHNSWIndexSetEfSearch(call, result)
+            "hnswIndexGetEfSearch" -> handleHNSWIndexGetEfSearch(call, result)
+            "hnswIndexDimension" -> handleHNSWIndexDimension(call, result)
+            "hnswIndexCapacity" -> handleHNSWIndexCapacity(call, result)
+            "hnswIndexContains" -> handleHNSWIndexContains(call, result)
+            "hnswIndexGetVector" -> handleHNSWIndexGetVector(call, result)
+            "hnswIndexSave" -> handleHNSWIndexSave(call, result)
+            "hnswIndexLoad" -> handleHNSWIndexLoad(call, result)
+            
+            // Version information methods
+            "getVersion" -> handleGetVersion(call, result)
             
             else -> result.notImplemented()
         }
@@ -185,6 +203,133 @@ class LlamaMobileVDPlugin : FlutterPlugin, MethodCallHandler {
         }
     }
     
+    /**
+     * Handles vectorStoreRemove method call
+     */
+    private fun handleVectorStoreRemove(call: MethodCall, result: Result) {
+        try {
+            val storeId = call.argument<Int>("storeId") ?: throw IllegalArgumentException("Store ID is required")
+            val id = call.argument<Int>("id") ?: throw IllegalArgumentException("ID is required")
+            
+            val store = vectorStores[storeId] ?: throw IllegalArgumentException("Vector store not found")
+            
+            val removed = store.remove(id)
+            result.success(removed)
+        } catch (e: Exception) {
+            result.error("REMOVE_FAILED", "Failed to remove vector: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles vectorStoreGet method call
+     */
+    private fun handleVectorStoreGet(call: MethodCall, result: Result) {
+        try {
+            val storeId = call.argument<Int>("storeId") ?: throw IllegalArgumentException("Store ID is required")
+            val id = call.argument<Int>("id") ?: throw IllegalArgumentException("ID is required")
+            
+            val store = vectorStores[storeId] ?: throw IllegalArgumentException("Vector store not found")
+            
+            val vector = store.get(id)
+            result.success(vector?.toList())
+        } catch (e: Exception) {
+            result.error("GET_FAILED", "Failed to get vector: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles vectorStoreUpdate method call
+     */
+    private fun handleVectorStoreUpdate(call: MethodCall, result: Result) {
+        try {
+            val storeId = call.argument<Int>("storeId") ?: throw IllegalArgumentException("Store ID is required")
+            val vectorData = call.argument<List<Double>>("vector") ?: throw IllegalArgumentException("Vector is required")
+            val id = call.argument<Int>("id") ?: throw IllegalArgumentException("ID is required")
+            
+            val store = vectorStores[storeId] ?: throw IllegalArgumentException("Vector store not found")
+            
+            // Convert List<Double> to FloatArray
+            val vector = vectorData.map { it.toFloat() }.toFloatArray()
+            
+            store.update(id, vector)
+            result.success(true)
+        } catch (e: Exception) {
+            result.error("UPDATE_FAILED", "Failed to update vector: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles vectorStoreDimension method call
+     */
+    private fun handleVectorStoreDimension(call: MethodCall, result: Result) {
+        try {
+            val storeId = call.argument<Int>("storeId") ?: throw IllegalArgumentException("Store ID is required")
+            
+            val store = vectorStores[storeId] ?: throw IllegalArgumentException("Vector store not found")
+            
+            val dimension = store.dimension
+            result.success(dimension)
+        } catch (e: Exception) {
+            result.error("DIMENSION_FAILED", "Failed to get dimension: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles vectorStoreMetric method call
+     */
+    private fun handleVectorStoreMetric(call: MethodCall, result: Result) {
+        try {
+            val storeId = call.argument<Int>("storeId") ?: throw IllegalArgumentException("Store ID is required")
+            
+            val store = vectorStores[storeId] ?: throw IllegalArgumentException("Vector store not found")
+            
+            val metric = store.metric
+            // Convert metric to integer value matching the Dart enum
+            val metricValue = when (metric) {
+                DistanceMetric.L2 -> 0
+                DistanceMetric.COSINE -> 1
+                DistanceMetric.DOT -> 2
+            }
+            result.success(metricValue)
+        } catch (e: Exception) {
+            result.error("METRIC_FAILED", "Failed to get metric: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles vectorStoreContains method call
+     */
+    private fun handleVectorStoreContains(call: MethodCall, result: Result) {
+        try {
+            val storeId = call.argument<Int>("storeId") ?: throw IllegalArgumentException("Store ID is required")
+            val id = call.argument<Int>("id") ?: throw IllegalArgumentException("ID is required")
+            
+            val store = vectorStores[storeId] ?: throw IllegalArgumentException("Vector store not found")
+            
+            val contains = store.contains(id)
+            result.success(contains)
+        } catch (e: Exception) {
+            result.error("CONTAINS_FAILED", "Failed to check if vector exists: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles vectorStoreReserve method call
+     */
+    private fun handleVectorStoreReserve(call: MethodCall, result: Result) {
+        try {
+            val storeId = call.argument<Int>("storeId") ?: throw IllegalArgumentException("Store ID is required")
+            val capacity = call.argument<Int>("capacity") ?: throw IllegalArgumentException("Capacity is required")
+            
+            val store = vectorStores[storeId] ?: throw IllegalArgumentException("Vector store not found")
+            
+            store.reserve(capacity)
+            result.success(null)
+        } catch (e: Exception) {
+            result.error("RESERVE_FAILED", "Failed to reserve capacity: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
     // MARK: - HNSWIndex Methods
     
     /**
@@ -309,6 +454,151 @@ class LlamaMobileVDPlugin : FlutterPlugin, MethodCallHandler {
             result.success(null)
         } catch (e: Exception) {
             result.error("DESTROY_FAILED", "Failed to destroy HNSW index: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles hnswIndexSetEfSearch method call
+     */
+    private fun handleHNSWIndexSetEfSearch(call: MethodCall, result: Result) {
+        try {
+            val indexId = call.argument<Int>("indexId") ?: throw IllegalArgumentException("Index ID is required")
+            val efSearch = call.argument<Int>("efSearch") ?: throw IllegalArgumentException("efSearch is required")
+            
+            val index = hnswIndexes[indexId] ?: throw IllegalArgumentException("HNSW index not found")
+            
+            index.setEfSearch(efSearch)
+            result.success(null)
+        } catch (e: Exception) {
+            result.error("SET_EF_SEARCH_FAILED", "Failed to set efSearch: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles hnswIndexGetEfSearch method call
+     */
+    private fun handleHNSWIndexGetEfSearch(call: MethodCall, result: Result) {
+        try {
+            val indexId = call.argument<Int>("indexId") ?: throw IllegalArgumentException("Index ID is required")
+            
+            val index = hnswIndexes[indexId] ?: throw IllegalArgumentException("HNSW index not found")
+            
+            val efSearch = index.getEfSearch()
+            result.success(efSearch)
+        } catch (e: Exception) {
+            result.error("GET_EF_SEARCH_FAILED", "Failed to get efSearch: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles hnswIndexDimension method call
+     */
+    private fun handleHNSWIndexDimension(call: MethodCall, result: Result) {
+        try {
+            val indexId = call.argument<Int>("indexId") ?: throw IllegalArgumentException("Index ID is required")
+            
+            val index = hnswIndexes[indexId] ?: throw IllegalArgumentException("HNSW index not found")
+            
+            val dimension = index.dimension
+            result.success(dimension)
+        } catch (e: Exception) {
+            result.error("DIMENSION_FAILED", "Failed to get dimension: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles hnswIndexCapacity method call
+     */
+    private fun handleHNSWIndexCapacity(call: MethodCall, result: Result) {
+        try {
+            val indexId = call.argument<Int>("indexId") ?: throw IllegalArgumentException("Index ID is required")
+            
+            val index = hnswIndexes[indexId] ?: throw IllegalArgumentException("HNSW index not found")
+            
+            val capacity = index.capacity
+            result.success(capacity)
+        } catch (e: Exception) {
+            result.error("CAPACITY_FAILED", "Failed to get capacity: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles hnswIndexContains method call
+     */
+    private fun handleHNSWIndexContains(call: MethodCall, result: Result) {
+        try {
+            val indexId = call.argument<Int>("indexId") ?: throw IllegalArgumentException("Index ID is required")
+            val id = call.argument<Int>("id") ?: throw IllegalArgumentException("ID is required")
+            
+            val index = hnswIndexes[indexId] ?: throw IllegalArgumentException("HNSW index not found")
+            
+            val contains = index.contains(id)
+            result.success(contains)
+        } catch (e: Exception) {
+            result.error("CONTAINS_FAILED", "Failed to check if vector exists: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles hnswIndexGetVector method call
+     */
+    private fun handleHNSWIndexGetVector(call: MethodCall, result: Result) {
+        try {
+            val indexId = call.argument<Int>("indexId") ?: throw IllegalArgumentException("Index ID is required")
+            val id = call.argument<Int>("id") ?: throw IllegalArgumentException("ID is required")
+            
+            val index = hnswIndexes[indexId] ?: throw IllegalArgumentException("HNSW index not found")
+            
+            val vector = index.getVector(id)
+            result.success(vector?.toList())
+        } catch (e: Exception) {
+            result.error("GET_VECTOR_FAILED", "Failed to get vector: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles hnswIndexSave method call
+     */
+    private fun handleHNSWIndexSave(call: MethodCall, result: Result) {
+        try {
+            val indexId = call.argument<Int>("indexId") ?: throw IllegalArgumentException("Index ID is required")
+            val path = call.argument<String>("path") ?: throw IllegalArgumentException("Path is required")
+            
+            val index = hnswIndexes[indexId] ?: throw IllegalArgumentException("HNSW index not found")
+            
+            index.save(path)
+            result.success(null)
+        } catch (e: Exception) {
+            result.error("SAVE_FAILED", "Failed to save HNSW index: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles hnswIndexLoad method call
+     */
+    private fun handleHNSWIndexLoad(call: MethodCall, result: Result) {
+        try {
+            val path = call.argument<String>("path") ?: throw IllegalArgumentException("Path is required")
+            
+            val index = HNSWIndex.load(path)
+            val indexId = hnswIndexIdCounter++
+            hnswIndexes[indexId] = index
+            
+            result.success(indexId)
+        } catch (e: Exception) {
+            result.error("LOAD_FAILED", "Failed to load HNSW index: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles getVersion method call
+     */
+    private fun handleGetVersion(call: MethodCall, result: Result) {
+        try {
+            val version = LlamaMobileVD.getVersion()
+            result.success(version)
+        } catch (e: Exception) {
+            result.error("VERSION_FAILED", "Failed to get version: ${e.message}", e.stackTraceToString())
         }
     }
 }

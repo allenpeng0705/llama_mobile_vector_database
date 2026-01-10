@@ -385,6 +385,126 @@ TEST_CASE("VectorStore - stress test", "[vector_store][stress]") {
   }
 }
 
+TEST_CASE("VectorStore - multi-dimension test", "[vector_store][multi-dim]") {
+  // Test with various dimensions to ensure compatibility with common embedding sizes
+  std::vector<size_t> dimensions = {384, 768, 1024, 3072};
+  std::vector<quiverdb::DistanceMetric> metrics = {
+    quiverdb::DistanceMetric::L2,
+    quiverdb::DistanceMetric::COSINE,
+    quiverdb::DistanceMetric::DOT
+  };
+
+  for (size_t dim : dimensions) {
+    for (auto metric : metrics) {
+      DYNAMIC_SECTION("Dimension: " << dim << ", Metric: " << static_cast<int>(metric)) {
+        quiverdb::VectorStore store(dim, metric);
+
+        std::mt19937 gen(42);
+        std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
+
+        // Test basic operations with different dimensions
+        SECTION("Add vectors") {
+          // Add 10 vectors for each dimension
+          for (uint64_t i = 0; i < 10; ++i) {
+            std::vector<float> vec(dim);
+            for (size_t j = 0; j < dim; ++j) {
+              vec[j] = dis(gen);
+            }
+            store.add(i, vec.data());
+          }
+          REQUIRE(store.size() == 10);
+        }
+
+        SECTION("Search functionality") {
+          // Add 50 vectors
+          std::vector<std::vector<float>> vectors;
+          vectors.reserve(50);
+          for (uint64_t i = 0; i < 50; ++i) {
+            std::vector<float> vec(dim);
+            for (size_t j = 0; j < dim; ++j) {
+              vec[j] = dis(gen);
+            }
+            vectors.push_back(std::move(vec));
+            store.add(i, vectors.back().data());
+          }
+
+          // Search with exact match
+          auto results = store.search(vectors[25].data(), 1);
+          REQUIRE(results.size() == 1);
+          REQUIRE(results[0].id == 25);
+
+          // Search for k nearest neighbors
+          results = store.search(vectors[10].data(), 5);
+          REQUIRE(results.size() == 5);
+          
+          // Results should be sorted
+          for (size_t i = 1; i < results.size(); ++i) {
+            REQUIRE(results[i-1].distance <= results[i].distance);
+          }
+        }
+
+        SECTION("Vector retrieval") {
+          std::vector<float> original(dim);
+          for (size_t j = 0; j < dim; ++j) {
+            original[j] = dis(gen);
+          }
+          store.add(42, original.data());
+
+          // Test get()
+          const float* retrieved = store.get(42);
+          REQUIRE(retrieved != nullptr);
+          for (size_t j = 0; j < dim; ++j) {
+            REQUIRE(retrieved[j] == original[j]);
+          }
+
+          // Test get_copy()
+          std::vector<float> copy = store.get_copy(42);
+          REQUIRE(copy.size() == dim);
+          for (size_t j = 0; j < dim; ++j) {
+            REQUIRE(copy[j] == original[j]);
+          }
+        }
+
+        SECTION("Vector update") {
+          std::vector<float> original(dim);
+          for (size_t j = 0; j < dim; ++j) {
+            original[j] = dis(gen);
+          }
+          store.add(1, original.data());
+
+          std::vector<float> updated(dim);
+          for (size_t j = 0; j < dim; ++j) {
+            updated[j] = dis(gen);
+          }
+          REQUIRE(store.update(1, updated.data()) == true);
+
+          // Verify the update
+          const float* retrieved = store.get(1);
+          REQUIRE(retrieved != nullptr);
+          for (size_t j = 0; j < dim; ++j) {
+            REQUIRE(retrieved[j] == updated[j]);
+          }
+        }
+
+        SECTION("Memory efficiency") {
+          // Test reserve functionality with large dimensions
+          REQUIRE_NOTHROW(store.reserve(100));
+          
+          // Add vectors after reserve
+          std::vector<float> vec(dim);
+          for (size_t j = 0; j < dim; ++j) {
+            vec[j] = dis(gen);
+          }
+          for (uint64_t i = 0; i < 10; ++i) {
+            store.add(i, vec.data());
+          }
+          REQUIRE(store.size() == 10);
+        }
+      }
+    }
+  }
+}
+
 TEST_CASE("VectorStore - concurrent access", "[vector_store][thread]") {
   constexpr size_t dim = 64;
   quiverdb::VectorStore store(dim, quiverdb::DistanceMetric::L2);

@@ -57,7 +57,7 @@ const LlamaMobileVDAPI = {
    * @param {Object} params - Parameters for adding the vector
    * @param {string} params.id - The ID of the VectorStore
    * @param {number[]} params.vector - The vector to add
-   * @param {string} [params.label] - The label for the vector (optional)
+   * @param {number} params.vectorId - The ID to associate with the vector
    * @returns {Promise<void>} Promise that resolves when the vector is added
    */
   addVectorToStore(params) {
@@ -69,11 +69,87 @@ const LlamaMobileVDAPI = {
    * @param {Object} params - Parameters for adding the vector
    * @param {string} params.id - The ID of the HNSWIndex
    * @param {number[]} params.vector - The vector to add
-   * @param {string} [params.label] - The label for the vector (optional)
+   * @param {number} params.vectorId - The ID to associate with the vector
    * @returns {Promise<void>} Promise that resolves when the vector is added
    */
   addVectorToHNSW(params) {
     return LlamaMobileVD.addVectorToHNSW(params);
+  },
+
+  /**
+   * Remove a vector from a VectorStore by ID
+   * @param {Object} params - Parameters for removing the vector
+   * @param {string} params.id - The ID of the VectorStore
+   * @param {number} params.vectorId - The ID of the vector to remove
+   * @returns {Promise<boolean>} Promise with true if the vector was removed, false otherwise
+   */
+  removeVectorFromStore(params) {
+    return LlamaMobileVD.removeVectorFromStore(params);
+  },
+
+  /**
+   * Get a vector from a VectorStore by ID
+   * @param {Object} params - Parameters for getting the vector
+   * @param {string} params.id - The ID of the VectorStore
+   * @param {number} params.vectorId - The ID of the vector to get
+   * @returns {Promise<number[]>} Promise with the vector if found, null otherwise
+   */
+  getVectorFromStore(params) {
+    return LlamaMobileVD.getVectorFromStore(params);
+  },
+
+  /**
+   * Update a vector in a VectorStore by ID
+   * @param {Object} params - Parameters for updating the vector
+   * @param {string} params.id - The ID of the VectorStore
+   * @param {number} params.vectorId - The ID of the vector to update
+   * @param {number[]} params.vector - The new vector data
+   * @returns {Promise<boolean>} Promise with true if the vector was updated, false otherwise
+   */
+  updateVectorInStore(params) {
+    return LlamaMobileVD.updateVectorInStore(params);
+  },
+
+  /**
+   * Check if a VectorStore contains a vector with the given ID
+   * @param {Object} params - Parameters for checking the vector
+   * @param {string} params.id - The ID of the VectorStore
+   * @param {number} params.vectorId - The ID of the vector to check
+   * @returns {Promise<boolean>} Promise with true if the vector exists, false otherwise
+   */
+  containsVectorInStore(params) {
+    return LlamaMobileVD.containsVectorInStore(params);
+  },
+
+  /**
+   * Reserve space for vectors in a VectorStore
+   * @param {Object} params - Parameters for reserving space
+   * @param {string} params.id - The ID of the VectorStore
+   * @param {number} params.capacity - The number of vectors to reserve space for
+   * @returns {Promise<void>} Promise that resolves when the space is reserved
+   */
+  reserveVectorStore(params) {
+    return LlamaMobileVD.reserveVectorStore(params);
+  },
+
+  /**
+   * Get the dimension of vectors in a VectorStore
+   * @param {Object} params - Parameters for getting the dimension
+   * @param {string} params.id - The ID of the VectorStore
+   * @returns {Promise<Object>} Promise with the dimension of the vectors
+   */
+  getVectorStoreDimension(params) {
+    return LlamaMobileVD.getVectorStoreDimension(params);
+  },
+
+  /**
+   * Get the distance metric used by a VectorStore
+   * @param {Object} params - Parameters for getting the metric
+   * @param {string} params.id - The ID of the VectorStore
+   * @returns {Promise<Object>} Promise with the distance metric
+   */
+  getVectorStoreMetric(params) {
+    return LlamaMobileVD.getVectorStoreMetric(params);
   },
 
   /**
@@ -89,11 +165,96 @@ const LlamaMobileVDAPI = {
   },
 
   /**
+   * Set the efSearch parameter for an HNSWIndex
+   * @param {Object} params - Parameters for setting efSearch
+   * @param {string} params.id - The ID of the HNSWIndex
+   * @param {number} params.efSearch - The new efSearch value
+   * @returns {Promise<void>} Promise that resolves when efSearch is set
+   */
+  setHNSWEfSearch(params) {
+    return LlamaMobileVD.setHNSWEfSearch(params);
+  },
+
+  /**
+   * Get the current efSearch parameter for an HNSWIndex
+   * @param {Object} params - Parameters for getting efSearch
+   * @param {string} params.id - The ID of the HNSWIndex
+   * @returns {Promise<Object>} Promise with the current efSearch value
+   */
+  getHNSWEfSearch(params) {
+    return LlamaMobileVD.getHNSWEfSearch(params);
+  },
+
+  /**
+   * Check if an HNSWIndex contains a vector with the given ID
+   * @param {Object} params - Parameters for checking the vector
+   * @param {string} params.id - The ID of the HNSWIndex
+   * @param {number} params.vectorId - The ID of the vector to check
+   * @returns {Promise<boolean>} Promise with true if the vector exists, false otherwise
+   */
+  containsVectorInHNSW(params) {
+    return LlamaMobileVD.containsVectorInHNSW(params);
+  },
+
+  /**
+   * Get a vector from an HNSWIndex by ID
+   * @param {Object} params - Parameters for getting the vector
+   * @param {string} params.id - The ID of the HNSWIndex
+   * @param {number} params.vectorId - The ID of the vector to get
+   * @returns {Promise<number[]>} Promise with the vector if found, null otherwise
+   */
+  getVectorFromHNSW(params) {
+    return LlamaMobileVD.getVectorFromHNSW(params);
+  },
+
+  /**
+   * Get the dimension of vectors in an HNSWIndex
+   * @param {Object} params - Parameters for getting the dimension
+   * @param {string} params.id - The ID of the HNSWIndex
+   * @returns {Promise<Object>} Promise with the dimension of the vectors
+   */
+  getHNSWDimension(params) {
+    return LlamaMobileVD.getHNSWDimension(params);
+  },
+
+  /**
+   * Get the capacity of an HNSWIndex
+   * @param {Object} params - Parameters for getting the capacity
+   * @param {string} params.id - The ID of the HNSWIndex
+   * @returns {Promise<Object>} Promise with the capacity of the index
+   */
+  getHNSWCapacity(params) {
+    return LlamaMobileVD.getHNSWCapacity(params);
+  },
+
+  /**
+   * Save an HNSWIndex to a file
+   * @param {Object} params - Parameters for saving the index
+   * @param {string} params.id - The ID of the HNSWIndex
+   * @param {string} params.path - The path where the index should be saved
+   * @returns {Promise<boolean>} Promise with true if the index was saved successfully, false otherwise
+   */
+  saveHNSWIndex(params) {
+    return LlamaMobileVD.saveHNSWIndex(params);
+  },
+
+  /**
+   * Load an HNSWIndex from a file
+   * @param {Object} params - Parameters for loading the index
+   * @param {string} params.path - The path to the file containing the saved index
+   * @returns {Promise<Object>} Promise with the ID of the loaded HNSWIndex
+   */
+  loadHNSWIndex(params) {
+    return LlamaMobileVD.loadHNSWIndex(params);
+  },
+
+  /**
    * Search for vectors in an HNSWIndex
    * @param {Object} params - Parameters for searching the HNSWIndex
    * @param {string} params.id - The ID of the HNSWIndex
    * @param {number[]} params.queryVector - The query vector
    * @param {number} params.k - The number of nearest neighbors to return
+   * @param {number} [params.efSearch] - The efSearch value to use for this search
    * @returns {Promise<Object[]>} Promise with the search results
    */
   searchHNSWIndex(params) {
@@ -158,6 +319,38 @@ const LlamaMobileVDAPI = {
    */
   releaseHNSWIndex(params) {
     return LlamaMobileVD.releaseHNSWIndex(params);
+  },
+
+  /**
+   * Get the version of the LlamaMobileVD SDK
+   * @returns {Promise<Object>} Promise with the version information
+   */
+  getVersion() {
+    return LlamaMobileVD.getVersion();
+  },
+
+  /**
+   * Get the major version component
+   * @returns {Promise<Object>} Promise with the major version component
+   */
+  getVersionMajor() {
+    return LlamaMobileVD.getVersionMajor();
+  },
+
+  /**
+   * Get the minor version component
+   * @returns {Promise<Object>} Promise with the minor version component
+   */
+  getVersionMinor() {
+    return LlamaMobileVD.getVersionMinor();
+  },
+
+  /**
+   * Get the patch version component
+   * @returns {Promise<Object>} Promise with the patch version component
+   */
+  getVersionPatch() {
+    return LlamaMobileVD.getVersionPatch();
   }
 };
 

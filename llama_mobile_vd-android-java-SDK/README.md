@@ -168,6 +168,39 @@ cd /Users/shileipeng/Documents/mygithub/llama_mobile/llama_mobile_vd/scripts
 ./build-android-SDK.sh
 ```
 
+## Running Tests
+
+The Android Java SDK includes a comprehensive test suite that covers all API functionality:
+
+### Using Android Studio
+
+1. Open Android Studio and select `File > Open`
+2. Navigate to the `llama_mobile_vd-android-java-SDK` directory
+3. Select the directory
+4. In the project view, navigate to `src/test/java/com/llamamobile/vd`
+5. Right-click on `LlamaMobileVDTests.java` and select `Run 'LlamaMobileVDTests'`
+
+### Using Terminal (Gradle)
+
+To run the tests from the command line:
+
+```bash
+cd /path/to/llama_mobile_vector_database/llama_mobile_vd-android-java-SDK
+./gradlew test
+```
+
+### Test Coverage
+
+The test suite covers:
+- VectorStore creation, addition, search, and deletion operations
+- HNSWIndex creation, addition, search, and deletion operations
+- All distance metrics (L2, Cosine, Dot)
+- Various vector dimensions (384, 768, 1024, 3072)
+- Edge cases and error handling
+- Try-with-resources interface implementation
+- Large vector dimensions
+- Search results ordering
+
 ## Performance Tips
 
 - For large datasets, use `HNSWIndex` instead of `VectorStore` for faster search performance

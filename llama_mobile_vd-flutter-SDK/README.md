@@ -57,6 +57,9 @@ final vectorStore = await VectorStore.create(
   metric: DistanceMetric.l2,
 );
 
+// Reserve space for vectors (optional but improves performance)
+await vectorStore.reserve(100);
+
 // Add vectors to the store
 final vector1 = List<double>.generate(128, (i) => i.toDouble());
 final vector2 = List<double>.generate(128, (i) => (i * 2).toDouble());
@@ -68,14 +71,39 @@ await vectorStore.addVector(vector2, id: 2);
 final count = await vectorStore.count;
 print('Number of vectors: $count');
 
+// Check if a vector exists
+final exists = await vectorStore.contains(1);
+print('Vector 1 exists: $exists');
+
+// Get a vector by ID
+final retrievedVector = await vectorStore.get(1);
+print('Retrieved vector length: ${retrievedVector?.length}');
+
+// Update a vector
+final updatedVector = List<double>.generate(128, (i) => (i * 3).toDouble());
+await vectorStore.update(1, updatedVector);
+
+// Check the updated vector
+final checkUpdatedVector = await vectorStore.get(1);
+print('Updated vector first element: ${checkUpdatedVector?.first}');
+
 // Search for nearest neighbors
 final queryVector = List<double>.generate(128, (i) => i.toDouble());
-final results = await vectorStore.search(queryVector, k: 1);
+final results = await vectorStore.search(queryVector, k: 2);
 
 // Print the search results
 for (final result in results) {
   print('Vector ID: ${result.id}, Distance: ${result.distance}');
 }
+
+// Remove a vector
+final removed = await vectorStore.remove(2);
+print('Vector 2 removed: $removed');
+
+// Get vector store information
+final dimension = await vectorStore.dimension();
+final metric = await vectorStore.metric();
+print('Vector store dimension: $dimension, metric: $metric');
 
 // Clear all vectors
 await vectorStore.clear();
@@ -97,6 +125,9 @@ final index = await HNSWIndex.create(
   efConstruction: 200, // Size of the dynamic list for construction
 );
 
+// Set efSearch parameter
+await index.setEfSearch(100);
+
 // Add vectors to the index
 final vector1 = List<double>.generate(128, (i) => i.toDouble());
 final vector2 = List<double>.generate(128, (i) => (i * 2).toDouble());
@@ -108,12 +139,26 @@ await index.addVector(vector2, id: 2);
 final count = await index.count;
 print('Number of vectors: $count');
 
-// Search for nearest neighbors with efSearch parameter
+// Get index information
+final dimension = await index.dimension();
+final capacity = await index.capacity();
+final efSearch = await index.getEfSearch();
+print('Index dimension: $dimension, capacity: $capacity, efSearch: $efSearch');
+
+// Check if a vector exists
+final exists = await index.contains(1);
+print('Vector 1 exists: $exists');
+
+// Get a vector by ID
+final retrievedVector = await index.getVector(1);
+print('Retrieved vector length: ${retrievedVector?.length}');
+
+// Search for nearest neighbors
 final queryVector = List<double>.generate(128, (i) => i.toDouble());
 final results = await index.search(
   queryVector, 
-  k: 1, 
-  efSearch: 50, // Size of the dynamic list for search (higher = more accurate but slower)
+  k: 2, 
+  efSearch: efSearch, // Use the configured efSearch parameter
 );
 
 // Print the search results
@@ -121,11 +166,38 @@ for (final result in results) {
   print('Vector ID: ${result.id}, Distance: ${result.distance}');
 }
 
-// Clear all vectors
-await index.clear();
+// Save the index to a file (platform-specific path handling needed)
+final savePath = '/path/to/index.hnsw'; // Replace with actual path
+final saved = await index.save(savePath);
+print('Index saved: $saved');
 
-// Destroy the index when no longer needed
+// Destroy the original index
 await index.dispose();
+
+// Load the index from file
+final loadedIndex = await HNSWIndex.load(savePath);
+
+// Verify the loaded index
+final loadedCount = await loadedIndex.count;
+print('Loaded index vector count: $loadedCount');
+
+// Search in the loaded index
+final loadedResults = await loadedIndex.search(
+  queryVector, 
+  k: 2, 
+  efSearch: 50,
+);
+
+// Print the search results from loaded index
+for (final result in loadedResults) {
+  print('Loaded index - Vector ID: ${result.id}, Distance: ${result.distance}');
+}
+
+// Clear all vectors
+await loadedIndex.clear();
+
+// Destroy the loaded index when no longer needed
+await loadedIndex.dispose();
 ```
 
 ## API Reference
@@ -161,6 +233,13 @@ A vector store for efficiently storing and searching vectors.
 - `Future<int> get count`: Gets the number of vectors in the store
 - `Future<void> clear()`: Clears all vectors from the store
 - `Future<void> dispose()`: Destroys the vector store and frees resources
+- `Future<bool> remove(int id)`: Removes a vector by ID (returns true if successful)
+- `Future<List<double>?> get(int id)`: Gets a vector by ID (returns null if not found)
+- `Future<bool> update(int id, List<double> vector)`: Updates an existing vector (returns true if successful)
+- `Future<int> dimension()`: Gets the dimension of vectors in the store
+- `Future<DistanceMetric> metric()`: Gets the distance metric used by the store
+- `Future<bool> contains(int id)`: Checks if a vector exists by ID
+- `Future<void> reserve(int capacity)`: Reserves space for a specified number of vectors
 
 ### HNSWIndex
 
@@ -174,6 +253,14 @@ A high-performance approximate nearest neighbor search index using the HNSW algo
 - `Future<int> get count`: Gets the number of vectors in the index
 - `Future<void> clear()`: Clears all vectors from the index
 - `Future<void> dispose()`: Destroys the index and frees resources
+- `Future<void> setEfSearch(int efSearch)`: Sets the efSearch parameter for search operations
+- `Future<int> getEfSearch()`: Gets the current efSearch parameter
+- `Future<int> dimension()`: Gets the dimension of vectors in the index
+- `Future<int> capacity()`: Gets the capacity of the index
+- `Future<bool> contains(int id)`: Checks if a vector exists by ID
+- `Future<List<double>?> getVector(int id)`: Gets a vector by ID (returns null if not found)
+- `Future<bool> save(String path)`: Saves the index to a file (returns true if successful)
+- `static Future<HNSWIndex> load(String path)`: Loads an index from a file
 
 #### Parameters
 
@@ -182,6 +269,29 @@ A high-performance approximate nearest neighbor search index using the HNSW algo
 - `m`: The maximum number of connections per node (default: 16)
 - `efConstruction`: The size of the dynamic list for candidate selection during construction (default: 200)
 - `efSearch`: The size of the dynamic list for candidate selection during search (default: 50)
+
+### Version Information
+
+The LlamaMobileVD SDK provides methods to get version information:
+
+- `Future<String> getLlamaMobileVDVersion()`: Gets the full version string (e.g., "1.0.0")
+- `Future<int> getLlamaMobileVDVersionMajor()`: Gets the major version number
+- `Future<int> getLlamaMobileVDVersionMinor()`: Gets the minor version number
+- `Future<int> getLlamaMobileVDVersionPatch()`: Gets the patch version number
+
+#### Example
+
+```dart
+// Get the full version string
+final version = await getLlamaMobileVDVersion();
+print('Version: $version');
+
+// Get individual version components
+final major = await getLlamaMobileVDVersionMajor();
+final minor = await getLlamaMobileVDVersionMinor();
+final patch = await getLlamaMobileVDVersionPatch();
+print('Version components: $major.$minor.$patch');
+```
 
 ## Performance Tips
 
@@ -220,6 +330,37 @@ try {
 
 - Requires Android API level 24 (Android 7.0) or later
 - Supports arm64-v8a and x86_64 architectures
+
+## Running Tests
+
+The Flutter SDK includes a comprehensive test suite that covers all API functionality:
+
+### Using VS Code
+
+1. Open VS Code and select `File > Open Folder`
+2. Navigate to the `llama_mobile_vd-flutter-SDK` directory
+3. Install the Flutter extension if not already installed
+4. Open the test file at `test/llama_mobile_vd_test.dart`
+5. Click the "Run" button above the test functions or select `Run > Start Debugging`
+
+### Using Terminal
+
+To run the tests from the command line:
+
+```bash
+cd /path/to/llama_mobile_vector_database/llama_mobile_vd-flutter-SDK
+flutter test
+```
+
+### Test Coverage
+
+The test suite covers:
+- VectorStore creation, addition, search, and deletion operations
+- HNSWIndex creation, addition, search, and deletion operations
+- All distance metrics (L2, Cosine, Dot)
+- Various vector dimensions (including large 3072-dimensional vectors)
+- Mocked platform channel communication
+- Error handling scenarios
 
 ## License
 

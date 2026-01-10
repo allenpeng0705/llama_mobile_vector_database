@@ -3,12 +3,12 @@ import LlamaMobileVD
 
 class MainViewController: UIViewController {
     // Vector Store state
-    private var vectorStoreId: String?
+    private var vectorStore: VectorStore?
     private var vectorStoreCount: Int = 0
     private var vectorStoreResults: [SearchResult] = []
     
     // HNSW Index state
-    private var hnswIndexId: String?
+    private var hnswIndex: HNSWIndex?
     private var hnswIndexCount: Int = 0
     private var hnswIndexResults: [SearchResult] = []
     
@@ -18,6 +18,7 @@ class MainViewController: UIViewController {
     private var hnswM: Int = 16
     private var hnswEfConstruction: Int = 200
     private var searchK: Int = 5
+    private var efSearch: Int = 50
     
     // UI elements
     private let statusLabel = UILabel()
@@ -30,6 +31,8 @@ class MainViewController: UIViewController {
     private let hnswEfConstructionLabel = UILabel()
     private let searchKSlider = UISlider()
     private let searchKLabel = UILabel()
+    private let efSearchSlider = UISlider()
+    private let efSearchLabel = UILabel()
     
     private let createVectorStoreButton = UIButton(type: .system)
     private let addVectorsToStoreButton = UIButton(type: .system)
@@ -250,6 +253,34 @@ class MainViewController: UIViewController {
             searchKSlider.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
             searchKSlider.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
             searchKSlider.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding)
+        ])
+        
+        currentY += 40
+        
+        // efSearch slider
+        efSearchLabel.text = "HNSW efSearch: \(efSearch)"
+        efSearchLabel.font = UIFont.systemFont(ofSize: 14)
+        efSearchLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        contentView.addSubview(efSearchLabel)
+        NSLayoutConstraint.activate([
+            efSearchLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
+            efSearchLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding)
+        ])
+        
+        currentY += 20
+        
+        efSearchSlider.minimumValue = 10
+        efSearchSlider.maximumValue = 200
+        efSearchSlider.value = Float(efSearch)
+        efSearchSlider.addTarget(self, action: #selector(efSearchSliderChanged(_:)), for: .valueChanged)
+        efSearchSlider.translatesAutoresizingMaskIntoConstraints = false
+        
+        contentView.addSubview(efSearchSlider)
+        NSLayoutConstraint.activate([
+            efSearchSlider.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
+            efSearchSlider.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
+            efSearchSlider.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding)
         ])
         
         currentY += sectionSpacing
@@ -497,13 +528,13 @@ class MainViewController: UIViewController {
     }
     
     private func updateVectorStoreInfo() {
-        let storeIdText = vectorStoreId != nil ? "\(vectorStoreId!.prefix(10))..." : "None"
-        vectorStoreInfoLabel.text = "VectorStore ID: \(storeIdText)\nVector count: \(vectorStoreCount)"
+        let storeStatusText = vectorStore != nil ? "Created" : "None"
+        vectorStoreInfoLabel.text = "VectorStore Status: \(storeStatusText)\nVector count: \(vectorStoreCount)"
     }
     
     private func updateHNSWIndexInfo() {
-        let indexIdText = hnswIndexId != nil ? "\(hnswIndexId!.prefix(10))..." : "None"
-        hnswIndexInfoLabel.text = "HNSWIndex ID: \(indexIdText)\nVector count: \(hnswIndexCount)"
+        let indexStatusText = hnswIndex != nil ? "Created" : "None"
+        hnswIndexInfoLabel.text = "HNSWIndex Status: \(indexStatusText)\nVector count: \(hnswIndexCount)"
     }
     
     // MARK: - Action Methods
@@ -540,6 +571,11 @@ class MainViewController: UIViewController {
         searchKLabel.text = "Search k: \(searchK)"
     }
     
+    @objc private func efSearchSliderChanged(_ slider: UISlider) {
+        efSearch = Int(slider.value)
+        efSearchLabel.text = "HNSW efSearch: \(efSearch)"
+    }
+    
     // VectorStore operations
     @objc private func createVectorStoreButtonTapped() {
         updateStatus(message: "Creating VectorStore...")
@@ -547,8 +583,8 @@ class MainViewController: UIViewController {
         let options = VectorStoreOptions(dimension: dimension, metric: selectedMetric)
         
         do {
-            let result = try LlamaMobileVD.createVectorStore(options: options)
-            vectorStoreId = result.id
+            let vectorStoreInstance = try VectorStore(options: options)
+            vectorStore = vectorStoreInstance
             vectorStoreCount = 0
             vectorStoreResults.removeAll()
             vectorStoreResultsTableView.reloadData()
@@ -561,7 +597,7 @@ class MainViewController: UIViewController {
     }
     
     @objc private func addVectorsToStoreButtonTapped() {
-        guard let vectorStoreId = vectorStoreId else {
+        guard let vectorStore = vectorStore else {
             updateStatus(message: "Please create a VectorStore first")
             return
         }
@@ -572,15 +608,13 @@ class MainViewController: UIViewController {
             do {
                 for i in 0..<100 {
                     let vector = self.createRandomVector(dimension: self.dimension)
-                    let params = AddVectorParams(id: vectorStoreId, vector: vector, label: "vector-\(i)")
-                    try LlamaMobileVD.addVectorToStore(params: params)
+                    try vectorStore.addVector(vector: vector, vectorId: i + 1)
                 }
                 
-                let countParams = CountParams(id: vectorStoreId)
-                let countResult = try LlamaMobileVD.countVectorStore(params: countParams)
+                let count = try vectorStore.count()
                 
                 DispatchQueue.main.async {
-                    self.vectorStoreCount = countResult.count
+                    self.vectorStoreCount = count
                     self.updateVectorStoreInfo()
                     self.updateStatus(message: "Added 100 vectors to VectorStore")
                 }
@@ -593,7 +627,7 @@ class MainViewController: UIViewController {
     }
     
     @objc private func searchVectorStoreButtonTapped() {
-        guard let vectorStoreId = vectorStoreId else {
+        guard let vectorStore = vectorStore else {
             updateStatus(message: "Please create a VectorStore first")
             return
         }
@@ -608,8 +642,7 @@ class MainViewController: UIViewController {
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 let queryVector = self.createRandomVector(dimension: self.dimension)
-                let params = SearchParams(id: vectorStoreId, queryVector: queryVector, k: self.searchK)
-                let results = try LlamaMobileVD.searchVectorStore(params: params)
+                let results = try vectorStore.search(queryVector: queryVector, k: self.searchK)
                 
                 DispatchQueue.main.async {
                     self.vectorStoreResults = results
@@ -626,7 +659,7 @@ class MainViewController: UIViewController {
     }
     
     @objc private func clearVectorStoreButtonTapped() {
-        guard let vectorStoreId = vectorStoreId else {
+        guard let vectorStore = vectorStore else {
             updateStatus(message: "Please create a VectorStore first")
             return
         }
@@ -634,8 +667,7 @@ class MainViewController: UIViewController {
         updateStatus(message: "Clearing VectorStore...")
         
         do {
-            let params = ClearParams(id: vectorStoreId)
-            try LlamaMobileVD.clearVectorStore(params: params)
+            try vectorStore.clear()
             
             vectorStoreCount = 0
             vectorStoreResults.removeAll()
@@ -649,7 +681,7 @@ class MainViewController: UIViewController {
     }
     
     @objc private func releaseVectorStoreButtonTapped() {
-        guard let vectorStoreId = vectorStoreId else {
+        guard let vectorStore = vectorStore else {
             updateStatus(message: "Please create a VectorStore first")
             return
         }
@@ -657,10 +689,9 @@ class MainViewController: UIViewController {
         updateStatus(message: "Releasing VectorStore...")
         
         do {
-            let params = ReleaseParams(id: vectorStoreId)
-            try LlamaMobileVD.releaseVectorStore(params: params)
+            try vectorStore.release()
             
-            self.vectorStoreId = nil
+            self.vectorStore = nil
             vectorStoreCount = 0
             vectorStoreResults.removeAll()
             vectorStoreResultsTableView.reloadData()
@@ -684,8 +715,8 @@ class MainViewController: UIViewController {
         )
         
         do {
-            let result = try LlamaMobileVD.createHNSWIndex(options: options)
-            hnswIndexId = result.id
+            let hnswIndexInstance = try HNSWIndex(options: options)
+            hnswIndex = hnswIndexInstance
             hnswIndexCount = 0
             hnswIndexResults.removeAll()
             hnswIndexResultsTableView.reloadData()
@@ -698,7 +729,7 @@ class MainViewController: UIViewController {
     }
     
     @objc private func addVectorsToHNSWButtonTapped() {
-        guard let hnswIndexId = hnswIndexId else {
+        guard let hnswIndex = hnswIndex else {
             updateStatus(message: "Please create a HNSWIndex first")
             return
         }
@@ -709,15 +740,13 @@ class MainViewController: UIViewController {
             do {
                 for i in 0..<100 {
                     let vector = self.createRandomVector(dimension: self.dimension)
-                    let params = AddVectorParams(id: hnswIndexId, vector: vector, label: "vector-\(i)")
-                    try LlamaMobileVD.addVectorToHNSW(params: params)
+                    try hnswIndex.addVector(vector: vector, vectorId: i + 1)
                 }
                 
-                let countParams = CountParams(id: hnswIndexId)
-                let countResult = try LlamaMobileVD.countHNSWIndex(params: countParams)
+                let count = try hnswIndex.count()
                 
                 DispatchQueue.main.async {
-                    self.hnswIndexCount = countResult.count
+                    self.hnswIndexCount = count
                     self.updateHNSWIndexInfo()
                     self.updateStatus(message: "Added 100 vectors to HNSWIndex")
                 }
@@ -730,7 +759,7 @@ class MainViewController: UIViewController {
     }
     
     @objc private func searchHNSWIndexButtonTapped() {
-        guard let hnswIndexId = hnswIndexId else {
+        guard let hnswIndex = hnswIndex else {
             updateStatus(message: "Please create a HNSWIndex first")
             return
         }
@@ -745,8 +774,7 @@ class MainViewController: UIViewController {
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 let queryVector = self.createRandomVector(dimension: self.dimension)
-                let params = SearchParams(id: hnswIndexId, queryVector: queryVector, k: self.searchK)
-                let results = try LlamaMobileVD.searchHNSWIndex(params: params)
+                let results = try hnswIndex.search(queryVector: queryVector, k: self.searchK, efSearch: self.efSearch)
                 
                 DispatchQueue.main.async {
                     self.hnswIndexResults = results
@@ -763,7 +791,7 @@ class MainViewController: UIViewController {
     }
     
     @objc private func clearHNSWIndexButtonTapped() {
-        guard let hnswIndexId = hnswIndexId else {
+        guard let hnswIndex = hnswIndex else {
             updateStatus(message: "Please create a HNSWIndex first")
             return
         }
@@ -771,8 +799,7 @@ class MainViewController: UIViewController {
         updateStatus(message: "Clearing HNSWIndex...")
         
         do {
-            let params = ClearParams(id: hnswIndexId)
-            try LlamaMobileVD.clearHNSWIndex(params: params)
+            try hnswIndex.clear()
             
             hnswIndexCount = 0
             hnswIndexResults.removeAll()
@@ -786,7 +813,7 @@ class MainViewController: UIViewController {
     }
     
     @objc private func releaseHNSWIndexButtonTapped() {
-        guard let hnswIndexId = hnswIndexId else {
+        guard let hnswIndex = hnswIndex else {
             updateStatus(message: "Please create a HNSWIndex first")
             return
         }
@@ -794,10 +821,9 @@ class MainViewController: UIViewController {
         updateStatus(message: "Releasing HNSWIndex...")
         
         do {
-            let params = ReleaseParams(id: hnswIndexId)
-            try LlamaMobileVD.releaseHNSWIndex(params: params)
+            try hnswIndex.release()
             
-            self.hnswIndexId = nil
+            self.hnswIndex = nil
             hnswIndexCount = 0
             hnswIndexResults.removeAll()
             hnswIndexResultsTableView.reloadData()

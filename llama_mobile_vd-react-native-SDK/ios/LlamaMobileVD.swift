@@ -151,7 +151,8 @@ class LlamaMobileVD: NSObject, RCTBridgeModule {
   ) {
     do {
       guard let id = params["id"] as? String,
-            let vectorArray = params["vector"] as? [NSNumber] else {
+            let vectorArray = params["vector"] as? [NSNumber],
+            let vectorId = params["vectorId"] as? Int else {
         throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
       }
 
@@ -159,8 +160,8 @@ class LlamaMobileVD: NSObject, RCTBridgeModule {
         throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "VectorStore not found for id: \(id)"])
       }
 
-      let vector = vectorArray.map { $0.doubleValue }
-      try store.addVector(vector)
+      let vector = vectorArray.map { Float($0.doubleValue) }
+      try store.addVector(vector, id: vectorId)
 
       resolve(nil)
     } catch {
@@ -185,7 +186,8 @@ class LlamaMobileVD: NSObject, RCTBridgeModule {
   ) {
     do {
       guard let id = params["id"] as? String,
-            let vectorArray = params["vector"] as? [NSNumber] else {
+            let vectorArray = params["vector"] as? [NSNumber],
+            let vectorId = params["vectorId"] as? Int else {
         throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
       }
 
@@ -193,8 +195,8 @@ class LlamaMobileVD: NSObject, RCTBridgeModule {
         throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "HNSWIndex not found for id: \(id)"])
       }
 
-      let vector = vectorArray.map { $0.doubleValue }
-      try index.addVector(vector)
+      let vector = vectorArray.map { Float($0.doubleValue) }
+      try index.addVector(vector, id: vectorId)
 
       resolve(nil)
     } catch {
@@ -467,6 +469,589 @@ class LlamaMobileVD: NSObject, RCTBridgeModule {
       }
 
       resolve(nil)
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  // MARK: - VectorStore Additional Methods
+
+  /**
+   * Remove a vector from a VectorStore by ID
+   * @param params Parameters for removing the vector
+   * @param resolve Completion handler for successful removal
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    removeVectorFromStore: 
+    resolver: 
+    rejecter:)
+  func removeVectorFromStore(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String,
+            let vectorId = params["vectorId"] as? Int else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
+      }
+
+      guard let store = vectorStores[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "VectorStore not found for id: \(id)"])
+      }
+
+      let removed = try store.remove(id: vectorId)
+      resolve(removed)
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Get a vector from a VectorStore by ID
+   * @param params Parameters for getting the vector
+   * @param resolve Completion handler for successful retrieval
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    getVectorFromStore: 
+    resolver: 
+    rejecter:)
+  func getVectorFromStore(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String,
+            let vectorId = params["vectorId"] as? Int else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
+      }
+
+      guard let store = vectorStores[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "VectorStore not found for id: \(id)"])
+      }
+
+      if let vector = try store.get(id: vectorId) {
+        resolve(vector.map { NSNumber(value: $0) })
+      } else {
+        resolve(nil)
+      }
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Update a vector in a VectorStore by ID
+   * @param params Parameters for updating the vector
+   * @param resolve Completion handler for successful update
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    updateVectorInStore: 
+    resolver: 
+    rejecter:)
+  func updateVectorInStore(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String,
+            let vectorId = params["vectorId"] as? Int,
+            let vectorArray = params["vector"] as? [NSNumber] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
+      }
+
+      guard let store = vectorStores[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "VectorStore not found for id: \(id)"])
+      }
+
+      let vector = vectorArray.map { Float($0.doubleValue) }
+      let updated = try store.update(id: vectorId, vector: vector)
+      resolve(updated)
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Check if a VectorStore contains a vector with the given ID
+   * @param params Parameters for checking the vector
+   * @param resolve Completion handler for successful check
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    containsVectorInStore: 
+    resolver: 
+    rejecter:)
+  func containsVectorInStore(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String,
+            let vectorId = params["vectorId"] as? Int else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
+      }
+
+      guard let store = vectorStores[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "VectorStore not found for id: \(id)"])
+      }
+
+      let contains = try store.contains(id: vectorId)
+      resolve(contains)
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Reserve space for vectors in a VectorStore
+   * @param params Parameters for reserving space
+   * @param resolve Completion handler for successful reservation
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    reserveVectorStore: 
+    resolver: 
+    rejecter:)
+  func reserveVectorStore(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String,
+            let capacity = params["capacity"] as? Int else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
+      }
+
+      guard let store = vectorStores[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "VectorStore not found for id: \(id)"])
+      }
+
+      try store.reserve(capacity: capacity)
+      resolve(nil)
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Get the dimension of vectors in a VectorStore
+   * @param params Parameters for getting the dimension
+   * @param resolve Completion handler for successful retrieval
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    getVectorStoreDimension: 
+    resolver: 
+    rejecter:)
+  func getVectorStoreDimension(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameter: id"])
+      }
+
+      guard let store = vectorStores[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "VectorStore not found for id: \(id)"])
+      }
+
+      let dimension = store.dimension
+      resolve(["dimension": dimension])
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Get the distance metric used by a VectorStore
+   * @param params Parameters for getting the metric
+   * @param resolve Completion handler for successful retrieval
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    getVectorStoreMetric: 
+    resolver: 
+    rejecter:)
+  func getVectorStoreMetric(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameter: id"])
+      }
+
+      guard let store = vectorStores[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "VectorStore not found for id: \(id)"])
+      }
+
+      let metric = store.metric
+      let metricStr: String
+      switch metric {
+      case .l2:
+        metricStr = "L2"
+      case .cosine:
+        metricStr = "COSINE"
+      case .dot:
+        metricStr = "DOT"
+      }
+      resolve(["metric": metricStr])
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  // MARK: - HNSWIndex Additional Methods
+
+  /**
+   * Set the efSearch parameter for an HNSWIndex
+   * @param params Parameters for setting efSearch
+   * @param resolve Completion handler for successful setting
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    setHNSWEfSearch: 
+    resolver: 
+    rejecter:)
+  func setHNSWEfSearch(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String,
+            let efSearch = params["efSearch"] as? Int else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
+      }
+
+      guard let index = hnswIndexes[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "HNSWIndex not found for id: \(id)"])
+      }
+
+      try index.setEfSearch(efSearch)
+      resolve(nil)
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Get the current efSearch parameter for an HNSWIndex
+   * @param params Parameters for getting efSearch
+   * @param resolve Completion handler for successful retrieval
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    getHNSWEfSearch: 
+    resolver: 
+    rejecter:)
+  func getHNSWEfSearch(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameter: id"])
+      }
+
+      guard let index = hnswIndexes[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "HNSWIndex not found for id: \(id)"])
+      }
+
+      let efSearch = try index.getEfSearch()
+      resolve(["efSearch": efSearch])
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Check if an HNSWIndex contains a vector with the given ID
+   * @param params Parameters for checking the vector
+   * @param resolve Completion handler for successful check
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    containsVectorInHNSW: 
+    resolver: 
+    rejecter:)
+  func containsVectorInHNSW(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String,
+            let vectorId = params["vectorId"] as? Int else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
+      }
+
+      guard let index = hnswIndexes[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "HNSWIndex not found for id: \(id)"])
+      }
+
+      let contains = try index.contains(id: vectorId)
+      resolve(contains)
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Get a vector from an HNSWIndex by ID
+   * @param params Parameters for getting the vector
+   * @param resolve Completion handler for successful retrieval
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    getVectorFromHNSW: 
+    resolver: 
+    rejecter:)
+  func getVectorFromHNSW(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String,
+            let vectorId = params["vectorId"] as? Int else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
+      }
+
+      guard let index = hnswIndexes[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "HNSWIndex not found for id: \(id)"])
+      }
+
+      if let vector = try index.getVector(id: vectorId) {
+        resolve(vector.map { NSNumber(value: $0) })
+      } else {
+        resolve(nil)
+      }
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Get the dimension of vectors in an HNSWIndex
+   * @param params Parameters for getting the dimension
+   * @param resolve Completion handler for successful retrieval
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    getHNSWDimension: 
+    resolver: 
+    rejecter:)
+  func getHNSWDimension(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameter: id"])
+      }
+
+      guard let index = hnswIndexes[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "HNSWIndex not found for id: \(id)"])
+      }
+
+      let dimension = index.dimension
+      resolve(["dimension": dimension])
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Get the capacity of an HNSWIndex
+   * @param params Parameters for getting the capacity
+   * @param resolve Completion handler for successful retrieval
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    getHNSWCapacity: 
+    resolver: 
+    rejecter:)
+  func getHNSWCapacity(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameter: id"])
+      }
+
+      guard let index = hnswIndexes[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "HNSWIndex not found for id: \(id)"])
+      }
+
+      let capacity = index.capacity
+      resolve(["capacity": capacity])
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Save an HNSWIndex to a file
+   * @param params Parameters for saving the index
+   * @param resolve Completion handler for successful saving
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    saveHNSWIndex: 
+    resolver: 
+    rejecter:)
+  func saveHNSWIndex(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String,
+            let path = params["path"] as? String else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
+      }
+
+      guard let index = hnswIndexes[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "HNSWIndex not found for id: \(id)"])
+      }
+
+      let saved = try index.save(filename: path)
+      resolve(saved)
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Load an HNSWIndex from a file
+   * @param params Parameters for loading the index
+   * @param resolve Completion handler for successful loading
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    loadHNSWIndex: 
+    resolver: 
+    rejecter:)
+  func loadHNSWIndex(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let path = params["path"] as? String else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameter: path"])
+      }
+
+      let index = try HNSWIndex.load(filename: path)
+      let id = generateUniqueId()
+      hnswIndexes[id] = index
+      resolve(["id": id])
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  // MARK: - Version Methods
+
+  /**
+   * Get the version of the LlamaMobileVD SDK
+   * @param resolve Completion handler for successful retrieval
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    getVersion: 
+    resolver: 
+    rejecter:)
+  func getVersion(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      let version = LlamaMobileVDVersion.getVersion()
+      resolve(["version": version])
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Get the major version component
+   * @param resolve Completion handler for successful retrieval
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    getVersionMajor: 
+    resolver: 
+    rejecter:)
+  func getVersionMajor(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      let major = LlamaMobileVDVersion.getVersionMajor()
+      resolve(["major": major])
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Get the minor version component
+   * @param resolve Completion handler for successful retrieval
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    getVersionMinor: 
+    resolver: 
+    rejecter:)
+  func getVersionMinor(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      let minor = LlamaMobileVDVersion.getVersionMinor()
+      resolve(["minor": minor])
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Get the patch version component
+   * @param resolve Completion handler for successful retrieval
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    getVersionPatch: 
+    resolver: 
+    rejecter:)
+  func getVersionPatch(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      let patch = LlamaMobileVDVersion.getVersionPatch()
+      resolve(["patch": patch])
     } catch {
       reject("ERROR", error.localizedDescription, error)
     }
