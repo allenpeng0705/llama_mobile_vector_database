@@ -51,6 +51,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var searchVectorStoreButton: Button
     private lateinit var clearVectorStoreButton: Button
     private lateinit var releaseVectorStoreButton: Button
+    private lateinit var getVectorFromStoreButton: Button
+    private lateinit var updateVectorInStoreButton: Button
+    private lateinit var removeVectorFromStoreButton: Button
+    private lateinit var containsVectorInStoreButton: Button
+    private lateinit var reserveVectorStoreButton: Button
+    private lateinit var getVectorStoreDimensionButton: Button
+    private lateinit var getVectorStoreMetricButton: Button
     private lateinit var vectorStoreInfoTextView: TextView
     private lateinit var vectorStoreResultsContainer: LinearLayout
     private lateinit var vectorStoreResultsRecyclerView: RecyclerView
@@ -60,6 +67,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var searchHNSWIndexButton: Button
     private lateinit var clearHNSWIndexButton: Button
     private lateinit var releaseHNSWIndexButton: Button
+    private lateinit var setHNSWEfSearchButton: Button
+    private lateinit var getHNSWEfSearchButton: Button
+    private lateinit var containsVectorInHNSWButton: Button
+    private lateinit var getVectorFromHNSWButton: Button
+    private lateinit var getHNSWDimensionButton: Button
+    private lateinit var getHNSWCapacityButton: Button
     private lateinit var hnswIndexInfoTextView: TextView
     private lateinit var hnswIndexResultsContainer: LinearLayout
     private lateinit var hnswIndexResultsRecyclerView: RecyclerView
@@ -100,6 +113,13 @@ class MainActivity : AppCompatActivity() {
         searchVectorStoreButton = findViewById(R.id.search_vector_store_button)
         clearVectorStoreButton = findViewById(R.id.clear_vector_store_button)
         releaseVectorStoreButton = findViewById(R.id.release_vector_store_button)
+        getVectorFromStoreButton = findViewById(R.id.get_vector_from_store_button)
+        updateVectorInStoreButton = findViewById(R.id.update_vector_in_store_button)
+        removeVectorFromStoreButton = findViewById(R.id.remove_vector_from_store_button)
+        containsVectorInStoreButton = findViewById(R.id.contains_vector_in_store_button)
+        reserveVectorStoreButton = findViewById(R.id.reserve_vector_store_button)
+        getVectorStoreDimensionButton = findViewById(R.id.get_vector_store_dimension_button)
+        getVectorStoreMetricButton = findViewById(R.id.get_vector_store_metric_button)
         vectorStoreInfoTextView = findViewById(R.id.vector_store_info_text_view)
         vectorStoreResultsContainer = findViewById(R.id.vector_store_results_container)
         vectorStoreResultsRecyclerView = findViewById(R.id.vector_store_results_recycler_view)
@@ -110,6 +130,12 @@ class MainActivity : AppCompatActivity() {
         searchHNSWIndexButton = findViewById(R.id.search_hnsw_index_button)
         clearHNSWIndexButton = findViewById(R.id.clear_hnsw_index_button)
         releaseHNSWIndexButton = findViewById(R.id.release_hnsw_index_button)
+        setHNSWEfSearchButton = findViewById(R.id.set_hnsw_ef_search_button)
+        getHNSWEfSearchButton = findViewById(R.id.get_hnsw_ef_search_button)
+        containsVectorInHNSWButton = findViewById(R.id.contains_vector_in_hnsw_button)
+        getVectorFromHNSWButton = findViewById(R.id.get_vector_from_hnsw_button)
+        getHNSWDimensionButton = findViewById(R.id.get_hnsw_dimension_button)
+        getHNSWCapacityButton = findViewById(R.id.get_hnsw_capacity_button)
         hnswIndexInfoTextView = findViewById(R.id.hnsw_index_info_text_view)
         hnswIndexResultsContainer = findViewById(R.id.hnsw_index_results_container)
         hnswIndexResultsRecyclerView = findViewById(R.id.hnsw_index_results_recycler_view)
@@ -217,6 +243,34 @@ class MainActivity : AppCompatActivity() {
             releaseVectorStore()
         }
         
+        getVectorFromStoreButton.setOnClickListener {
+            getVectorFromStore()
+        }
+        
+        updateVectorInStoreButton.setOnClickListener {
+            updateVectorInStore()
+        }
+        
+        removeVectorFromStoreButton.setOnClickListener {
+            removeVectorFromStore()
+        }
+        
+        containsVectorInStoreButton.setOnClickListener {
+            containsVectorInStore()
+        }
+        
+        reserveVectorStoreButton.setOnClickListener {
+            reserveVectorStore()
+        }
+        
+        getVectorStoreDimensionButton.setOnClickListener {
+            getVectorStoreDimension()
+        }
+        
+        getVectorStoreMetricButton.setOnClickListener {
+            getVectorStoreMetric()
+        }
+        
         // HNSWIndex listeners
         createHNSWIndexButton.setOnClickListener {
             createHNSWIndex()
@@ -236,6 +290,30 @@ class MainActivity : AppCompatActivity() {
         
         releaseHNSWIndexButton.setOnClickListener {
             releaseHNSWIndex()
+        }
+        
+        setHNSWEfSearchButton.setOnClickListener {
+            setHNSWEfSearch()
+        }
+        
+        getHNSWEfSearchButton.setOnClickListener {
+            getHNSWEfSearch()
+        }
+        
+        containsVectorInHNSWButton.setOnClickListener {
+            containsVectorInHNSW()
+        }
+        
+        getVectorFromHNSWButton.setOnClickListener {
+            getVectorFromHNSW()
+        }
+        
+        getHNSWDimensionButton.setOnClickListener {
+            getHNSWDimension()
+        }
+        
+        getHNSWCapacityButton.setOnClickListener {
+            getHNSWCapacity()
         }
     }
     
@@ -403,6 +481,177 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
     
+    private fun getVectorFromStore() {
+        if (vectorStore == null) {
+            updateStatus(getString(R.string.status_please_create_vector_store_first))
+            return
+        }
+        
+        updateStatus("Getting vector from VectorStore...")
+        
+        Thread {
+            try {
+                val vectorId = 1 // Get the first vector
+                val vector = vectorStore!!.get(vectorId)
+                
+                handler.post {
+                    updateStatus("Successfully retrieved vector with ID $vectorId, first value: ${vector?.get(0) ?: "null"}")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error getting vector from VectorStore: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun updateVectorInStore() {
+        if (vectorStore == null) {
+            updateStatus(getString(R.string.status_please_create_vector_store_first))
+            return
+        }
+        
+        updateStatus("Updating vector in VectorStore...")
+        
+        Thread {
+            try {
+                val vectorId = 1 // Update the first vector
+                val updatedVector = createRandomVector(dimension)
+                val success = vectorStore!!.update(vectorId, updatedVector)
+                
+                handler.post {
+                    updateStatus(if (success) "Successfully updated vector with ID $vectorId" else "Failed to update vector")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error updating vector in VectorStore: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun removeVectorFromStore() {
+        if (vectorStore == null) {
+            updateStatus(getString(R.string.status_please_create_vector_store_first))
+            return
+        }
+        
+        updateStatus("Removing vector from VectorStore...")
+        
+        Thread {
+            try {
+                val vectorId = 1 // Remove the first vector
+                val success = vectorStore!!.remove(vectorId)
+                if (success) {
+                    vectorStoreCount = vectorStore!!.getCount()
+                }
+                
+                handler.post {
+                    updateVectorStoreInfo()
+                    updateStatus(if (success) "Successfully removed vector with ID $vectorId" else "Failed to remove vector")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error removing vector from VectorStore: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun containsVectorInStore() {
+        if (vectorStore == null) {
+            updateStatus(getString(R.string.status_please_create_vector_store_first))
+            return
+        }
+        
+        updateStatus("Checking if vector exists in VectorStore...")
+        
+        Thread {
+            try {
+                val vectorId = 1
+                val contains = vectorStore!!.contains(vectorId)
+                
+                handler.post {
+                    updateStatus("Vector with ID $vectorId ${if (contains) "exists" else "does not exist"} in VectorStore")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error checking vector existence: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun reserveVectorStore() {
+        if (vectorStore == null) {
+            updateStatus(getString(R.string.status_please_create_vector_store_first))
+            return
+        }
+        
+        updateStatus("Reserving space in VectorStore...")
+        
+        Thread {
+            try {
+                val reserveSize = 200
+                vectorStore!!.reserve(reserveSize)
+                
+                handler.post {
+                    updateStatus("Successfully reserved space for $reserveSize vectors in VectorStore")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error reserving space in VectorStore: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun getVectorStoreDimension() {
+        if (vectorStore == null) {
+            updateStatus(getString(R.string.status_please_create_vector_store_first))
+            return
+        }
+        
+        updateStatus("Getting VectorStore dimension...")
+        
+        Thread {
+            try {
+                val storeDimension = vectorStore!!.getDimension()
+                
+                handler.post {
+                    updateStatus("VectorStore dimension: $storeDimension")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error getting VectorStore dimension: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun getVectorStoreMetric() {
+        if (vectorStore == null) {
+            updateStatus(getString(R.string.status_please_create_vector_store_first))
+            return
+        }
+        
+        updateStatus("Getting VectorStore distance metric...")
+        
+        Thread {
+            try {
+                val metric = vectorStore!!.getMetric()
+                
+                handler.post {
+                    updateStatus("VectorStore distance metric: ${metric.name}")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error getting VectorStore metric: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
     // HNSWIndex operations
     private fun createHNSWIndex() {
         updateStatus(getString(R.string.status_creating_hnsw_index))
@@ -542,6 +791,188 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 handler.post {
                     updateStatus("Error releasing HNSWIndex: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun setHNSWEfSearch() {
+        if (hnswIndex == null) {
+            updateStatus(getString(R.string.status_please_create_hnsw_index_first))
+            return
+        }
+        
+        updateStatus("Setting HNSW efSearch...")
+        
+        Thread {
+            try {
+                hnswIndex!!.setEfSearch(efSearch)
+                
+                handler.post {
+                    updateStatus("Successfully set HNSW efSearch to $efSearch")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error setting HNSW efSearch: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun getHNSWEfSearch() {
+        if (hnswIndex == null) {
+            updateStatus(getString(R.string.status_please_create_hnsw_index_first))
+            return
+        }
+        
+        updateStatus("Getting HNSW efSearch...")
+        
+        Thread {
+            try {
+                val currentEfSearch = hnswIndex!!.getEfSearch()
+                
+                handler.post {
+                    updateStatus("HNSW efSearch: $currentEfSearch")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error getting HNSW efSearch: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun containsVectorInHNSW() {
+        if (hnswIndex == null) {
+            updateStatus(getString(R.string.status_please_create_hnsw_index_first))
+            return
+        }
+        
+        updateStatus("Checking if vector exists in HNSW...")
+        
+        Thread {
+            try {
+                val vectorId = 1
+                val contains = hnswIndex!!.contains(vectorId)
+                
+                handler.post {
+                    updateStatus("Vector with ID $vectorId ${if (contains) "exists" else "does not exist"} in HNSW")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error checking vector existence in HNSW: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun getVectorFromHNSW() {
+        if (hnswIndex == null) {
+            updateStatus(getString(R.string.status_please_create_hnsw_index_first))
+            return
+        }
+        
+        updateStatus("Getting vector from HNSW...")
+        
+        Thread {
+            try {
+                val vectorId = 1
+                val vector = hnswIndex!!.getVector(vectorId)
+                
+                handler.post {
+                    updateStatus("Successfully retrieved vector with ID $vectorId from HNSW, first value: ${vector?.get(0) ?: "null"}")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error getting vector from HNSW: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun getHNSWDimension() {
+        if (hnswIndex == null) {
+            updateStatus(getString(R.string.status_please_create_hnsw_index_first))
+            return
+        }
+        
+        updateStatus("Getting HNSW dimension...")
+        
+        Thread {
+            try {
+                val dimension = hnswIndex!!.getDimension()
+                
+                handler.post {
+                    updateStatus("HNSW dimension: $dimension")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error getting HNSW dimension: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun getHNSWCapacity() {
+        if (hnswIndex == null) {
+            updateStatus(getString(R.string.status_please_create_hnsw_index_first))
+            return
+        }
+        
+        updateStatus("Getting HNSW capacity...")
+        
+        Thread {
+            try {
+                val capacity = hnswIndex!!.getCapacity()
+                
+                handler.post {
+                    updateStatus("HNSW capacity: $capacity")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error getting HNSW capacity: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    // Version operations
+    private fun getVersion() {
+        updateStatus("Getting SDK version...")
+        
+        Thread {
+            try {
+                val version = getLlamaMobileVDVersion()
+                
+                handler.post {
+                    versionInfoTextView.text = "Version: $version"
+                    updateStatus("Successfully retrieved SDK version")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error getting version: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun getVersionDetailed() {
+        updateStatus("Getting detailed SDK version...")
+        
+        Thread {
+            try {
+                val version = getLlamaMobileVDVersion()
+                val major = getLlamaMobileVDVersionMajor()
+                val minor = getLlamaMobileVDVersionMinor()
+                val patch = getLlamaMobileVDVersionPatch()
+                
+                handler.post {
+                    versionInfoTextView.text = "Version: $version\nMajor: $major, Minor: $minor, Patch: $patch"
+                    updateStatus("Successfully retrieved detailed SDK version")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error getting detailed version: ${e.message}")
                 }
             }
         }.start()

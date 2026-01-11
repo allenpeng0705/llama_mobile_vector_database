@@ -55,6 +55,13 @@ public class MainActivity extends AppCompatActivity {
     private Button searchVectorStoreButton;
     private Button clearVectorStoreButton;
     private Button releaseVectorStoreButton;
+    private Button getVectorFromStoreButton;
+    private Button updateVectorInStoreButton;
+    private Button removeVectorFromStoreButton;
+    private Button containsVectorInStoreButton;
+    private Button reserveVectorStoreButton;
+    private Button getVectorStoreDimensionButton;
+    private Button getVectorStoreMetricButton;
     private TextView vectorStoreInfoTextView;
     private LinearLayout vectorStoreResultsContainer;
     private RecyclerView vectorStoreResultsRecyclerView;
@@ -64,6 +71,12 @@ public class MainActivity extends AppCompatActivity {
     private Button searchHNSWIndexButton;
     private Button clearHNSWIndexButton;
     private Button releaseHNSWIndexButton;
+    private Button setHNSWEfSearchButton;
+    private Button getHNSWEfSearchButton;
+    private Button containsVectorInHNSWButton;
+    private Button getVectorFromHNSWButton;
+    private Button getHNSWDimensionButton;
+    private Button getHNSWCapacityButton;
     private TextView hnswIndexInfoTextView;
     private LinearLayout hnswIndexResultsContainer;
     private RecyclerView hnswIndexResultsRecyclerView;
@@ -105,6 +118,13 @@ public class MainActivity extends AppCompatActivity {
         searchVectorStoreButton = findViewById(R.id.search_vector_store_button);
         clearVectorStoreButton = findViewById(R.id.clear_vector_store_button);
         releaseVectorStoreButton = findViewById(R.id.release_vector_store_button);
+        getVectorFromStoreButton = findViewById(R.id.get_vector_from_store_button);
+        updateVectorInStoreButton = findViewById(R.id.update_vector_in_store_button);
+        removeVectorFromStoreButton = findViewById(R.id.remove_vector_from_store_button);
+        containsVectorInStoreButton = findViewById(R.id.contains_vector_in_store_button);
+        reserveVectorStoreButton = findViewById(R.id.reserve_vector_store_button);
+        getVectorStoreDimensionButton = findViewById(R.id.get_vector_store_dimension_button);
+        getVectorStoreMetricButton = findViewById(R.id.get_vector_store_metric_button);
         vectorStoreInfoTextView = findViewById(R.id.vector_store_info_text_view);
         vectorStoreResultsContainer = findViewById(R.id.vector_store_results_container);
         vectorStoreResultsRecyclerView = findViewById(R.id.vector_store_results_recycler_view);
@@ -115,6 +135,12 @@ public class MainActivity extends AppCompatActivity {
         searchHNSWIndexButton = findViewById(R.id.search_hnsw_index_button);
         clearHNSWIndexButton = findViewById(R.id.clear_hnsw_index_button);
         releaseHNSWIndexButton = findViewById(R.id.release_hnsw_index_button);
+        setHNSWEfSearchButton = findViewById(R.id.set_hnsw_ef_search_button);
+        getHNSWEfSearchButton = findViewById(R.id.get_hnsw_ef_search_button);
+        containsVectorInHNSWButton = findViewById(R.id.contains_vector_in_hnsw_button);
+        getVectorFromHNSWButton = findViewById(R.id.get_vector_from_hnsw_button);
+        getHNSWDimensionButton = findViewById(R.id.get_hnsw_dimension_button);
+        getHNSWCapacityButton = findViewById(R.id.get_hnsw_capacity_button);
         hnswIndexInfoTextView = findViewById(R.id.hnsw_index_info_text_view);
         hnswIndexResultsContainer = findViewById(R.id.hnsw_index_results_container);
         hnswIndexResultsRecyclerView = findViewById(R.id.hnsw_index_results_recycler_view);
@@ -229,6 +255,20 @@ public class MainActivity extends AppCompatActivity {
         
         releaseVectorStoreButton.setOnClickListener(v -> releaseVectorStore());
         
+        getVectorFromStoreButton.setOnClickListener(v -> getVectorFromStore());
+        
+        updateVectorInStoreButton.setOnClickListener(v -> updateVectorInStore());
+        
+        removeVectorFromStoreButton.setOnClickListener(v -> removeVectorFromStore());
+        
+        containsVectorInStoreButton.setOnClickListener(v -> containsVectorInStore());
+        
+        reserveVectorStoreButton.setOnClickListener(v -> reserveVectorStore());
+        
+        getVectorStoreDimensionButton.setOnClickListener(v -> getVectorStoreDimension());
+        
+        getVectorStoreMetricButton.setOnClickListener(v -> getVectorStoreMetric());
+        
         // HNSWIndex listeners
         createHNSWIndexButton.setOnClickListener(v -> createHNSWIndex());
         
@@ -239,6 +279,18 @@ public class MainActivity extends AppCompatActivity {
         clearHNSWIndexButton.setOnClickListener(v -> clearHNSWIndex());
         
         releaseHNSWIndexButton.setOnClickListener(v -> releaseHNSWIndex());
+        
+        setHNSWEfSearchButton.setOnClickListener(v -> setHNSWEfSearch());
+        
+        getHNSWEfSearchButton.setOnClickListener(v -> getHNSWEfSearch());
+        
+        containsVectorInHNSWButton.setOnClickListener(v -> containsVectorInHNSW());
+        
+        getVectorFromHNSWButton.setOnClickListener(v -> getVectorFromHNSW());
+        
+        getHNSWDimensionButton.setOnClickListener(v -> getHNSWDimension());
+        
+        getHNSWCapacityButton.setOnClickListener(v -> getHNSWCapacity());
     }
     
     private void updateStatus(String message) {
@@ -413,6 +465,175 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
     
+    private void getVectorFromStore() {
+        if (vectorStore == null) {
+            updateStatus(getString(R.string.status_please_create_vector_store_first));
+            return;
+        }
+        
+        updateStatus("Getting vector from VectorStore...");
+        
+        new Thread(() -> {
+            try {
+                int vectorId = 1; // Get the first vector
+                float[] vector = vectorStore.getVector(vectorId);
+                
+                handler.post(() -> {
+                    updateStatus("Successfully retrieved vector with ID " + vectorId + ", first value: " + vector[0]);
+                });
+            } catch (Exception e) {
+                handler.post(() -> {
+                    updateStatus("Error getting vector from VectorStore: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
+    private void updateVectorInStore() {
+        if (vectorStore == null) {
+            updateStatus(getString(R.string.status_please_create_vector_store_first));
+            return;
+        }
+        
+        updateStatus("Updating vector in VectorStore...");
+        
+        new Thread(() -> {
+            try {
+                int vectorId = 1; // Update the first vector
+                float[] updatedVector = createRandomVector(dimension);
+                vectorStore.updateVector(updatedVector, vectorId);
+                
+                handler.post(() -> {
+                    updateStatus("Successfully updated vector with ID " + vectorId);
+                });
+            } catch (Exception e) {
+                handler.post(() -> {
+                    updateStatus("Error updating vector in VectorStore: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
+    private void removeVectorFromStore() {
+        if (vectorStore == null) {
+            updateStatus(getString(R.string.status_please_create_vector_store_first));
+            return;
+        }
+        
+        updateStatus("Removing vector from VectorStore...");
+        
+        new Thread(() -> {
+            try {
+                int vectorId = 1; // Remove the first vector
+                vectorStore.removeVector(vectorId);
+                vectorStoreCount = vectorStore.getCount();
+                
+                handler.post(() -> {
+                    updateVectorStoreInfo();
+                    updateStatus("Successfully removed vector with ID " + vectorId);
+                });
+            } catch (Exception e) {
+                handler.post(() -> {
+                    updateStatus("Error removing vector from VectorStore: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
+    private void containsVectorInStore() {
+        if (vectorStore == null) {
+            updateStatus(getString(R.string.status_please_create_vector_store_first));
+            return;
+        }
+        
+        updateStatus("Checking if vector exists in VectorStore...");
+        
+        new Thread(() -> {
+            try {
+                int vectorId = 1;
+                boolean contains = vectorStore.containsVector(vectorId);
+                
+                handler.post(() -> {
+                    updateStatus("Vector with ID " + vectorId + " " + (contains ? "exists" : "does not exist") + " in VectorStore");
+                });
+            } catch (Exception e) {
+                handler.post(() -> {
+                    updateStatus("Error checking vector existence: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
+    private void reserveVectorStore() {
+        if (vectorStore == null) {
+            updateStatus(getString(R.string.status_please_create_vector_store_first));
+            return;
+        }
+        
+        updateStatus("Reserving space in VectorStore...");
+        
+        new Thread(() -> {
+            try {
+                int reserveSize = 200;
+                vectorStore.reserve(reserveSize);
+                
+                handler.post(() -> {
+                    updateStatus("Successfully reserved space for " + reserveSize + " vectors in VectorStore");
+                });
+            } catch (Exception e) {
+                handler.post(() -> {
+                    updateStatus("Error reserving space in VectorStore: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
+    private void getVectorStoreDimension() {
+        if (vectorStore == null) {
+            updateStatus(getString(R.string.status_please_create_vector_store_first));
+            return;
+        }
+        
+        updateStatus("Getting VectorStore dimension...");
+        
+        new Thread(() -> {
+            try {
+                int storeDimension = vectorStore.getDimension();
+                
+                handler.post(() -> {
+                    updateStatus("VectorStore dimension: " + storeDimension);
+                });
+            } catch (Exception e) {
+                handler.post(() -> {
+                    updateStatus("Error getting VectorStore dimension: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
+    private void getVectorStoreMetric() {
+        if (vectorStore == null) {
+            updateStatus(getString(R.string.status_please_create_vector_store_first));
+            return;
+        }
+        
+        updateStatus("Getting VectorStore distance metric...");
+        
+        new Thread(() -> {
+            try {
+                DistanceMetric metric = vectorStore.getMetric();
+                
+                handler.post(() -> {
+                    updateStatus("VectorStore distance metric: " + metric.name());
+                });
+            } catch (Exception e) {
+                handler.post(() -> {
+                    updateStatus("Error getting VectorStore metric: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
     // HNSWIndex operations
     private void createHNSWIndex() {
         updateStatus(getString(R.string.status_creating_hnsw_index));
@@ -558,6 +779,166 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 handler.post(() -> {
                     updateStatus("Error releasing HNSWIndex: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
+    private void setHNSWEfSearch() {
+        if (hnswIndex == null) {
+            updateStatus(getString(R.string.status_please_create_hnsw_index_first));
+            return;
+        }
+        
+        updateStatus("Setting HNSW efSearch...");
+        
+        new Thread(() -> {
+            try {
+                hnswIndex.setEfSearch(efSearch);
+                
+                handler.post(() -> {
+                    updateStatus("Successfully set HNSW efSearch to " + efSearch);
+                });
+            } catch (Exception e) {
+                handler.post(() -> {
+                    updateStatus("Error setting HNSW efSearch: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
+    private void getHNSWEfSearch() {
+        if (hnswIndex == null) {
+            updateStatus(getString(R.string.status_please_create_hnsw_index_first));
+            return;
+        }
+        
+        updateStatus("Getting HNSW efSearch...");
+        
+        new Thread(() -> {
+            try {
+                int currentEfSearch = hnswIndex.getEfSearch();
+                
+                handler.post(() -> {
+                    updateStatus("HNSW efSearch: " + currentEfSearch);
+                });
+            } catch (Exception e) {
+                handler.post(() -> {
+                    updateStatus("Error getting HNSW efSearch: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
+    private void containsVectorInHNSW() {
+        if (hnswIndex == null) {
+            updateStatus(getString(R.string.status_please_create_hnsw_index_first));
+            return;
+        }
+        
+        updateStatus("Checking if vector exists in HNSW...");
+        
+        new Thread(() -> {
+            try {
+                int vectorId = 1;
+                boolean contains = hnswIndex.containsVector(vectorId);
+                
+                handler.post(() -> {
+                    updateStatus("Vector with ID " + vectorId + " " + (contains ? "exists" : "does not exist") + " in HNSW");
+                });
+            } catch (Exception e) {
+                handler.post(() -> {
+                    updateStatus("Error checking vector existence in HNSW: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
+    private void getVectorFromHNSW() {
+        if (hnswIndex == null) {
+            updateStatus(getString(R.string.status_please_create_hnsw_index_first));
+            return;
+        }
+        
+        updateStatus("Getting vector from HNSW...");
+        
+        new Thread(() -> {
+            try {
+                int vectorId = 1;
+                float[] vector = hnswIndex.getVector(vectorId);
+                
+                handler.post(() -> {
+                    updateStatus("Successfully retrieved vector with ID " + vectorId + " from HNSW, first value: " + vector[0]);
+                });
+            } catch (Exception e) {
+                handler.post(() -> {
+                    updateStatus("Error getting vector from HNSW: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
+    private void getHNSWDimension() {
+        if (hnswIndex == null) {
+            updateStatus(getString(R.string.status_please_create_hnsw_index_first));
+            return;
+        }
+        
+        updateStatus("Getting HNSW dimension...");
+        
+        new Thread(() -> {
+            try {
+                int dimension = hnswIndex.getDimension();
+                
+                handler.post(() -> {
+                    updateStatus("HNSW dimension: " + dimension);
+                });
+            } catch (Exception e) {
+                handler.post(() -> {
+                    updateStatus("Error getting HNSW dimension: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
+    private void getHNSWCapacity() {
+        if (hnswIndex == null) {
+            updateStatus(getString(R.string.status_please_create_hnsw_index_first));
+            return;
+        }
+        
+        updateStatus("Getting HNSW capacity...");
+        
+        new Thread(() -> {
+            try {
+                int capacity = hnswIndex.getCapacity();
+                
+                handler.post(() -> {
+                    updateStatus("HNSW capacity: " + capacity);
+                });
+            } catch (Exception e) {
+                handler.post(() -> {
+                    updateStatus("Error getting HNSW capacity: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
+    // Version operations
+    private void getVersion() {
+        updateStatus("Getting SDK version...");
+        
+        new Thread(() -> {
+            try {
+                String version = LlamaMobileVD.getVersion();
+                
+                handler.post(() -> {
+                    versionInfoTextView.setText("Version: " + version);
+                    updateStatus("Successfully retrieved SDK version");
+                });
+            } catch (Exception e) {
+                handler.post(() -> {
+                    updateStatus("Error getting version: " + e.getMessage());
                 });
             }
         }).start();

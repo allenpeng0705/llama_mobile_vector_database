@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "react": "18.2.0",
-    "react-native": "0.72.0"
+    "react-native": "0.72.0",
+    "llama-mobile-vd": "file:../../llama_mobile_vd-react-native-SDK"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

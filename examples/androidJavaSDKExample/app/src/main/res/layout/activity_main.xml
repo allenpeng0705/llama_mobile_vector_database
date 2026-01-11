@@ -315,6 +315,108 @@
                 android:layout_marginStart="4dp" />
         </LinearLayout>
 
+        <!-- VectorStore Advanced Operations Row 1 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <Button
+                android:id="@+id/get_vector_from_store_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Get Vector"
+                android:background="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/update_vector_in_store_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Update Vector"
+                android:background="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/remove_vector_from_store_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Remove Vector"
+                android:background="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false"
+                android:layout_marginStart="4dp" />
+        </LinearLayout>
+
+        <!-- VectorStore Advanced Operations Row 2 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <Button
+                android:id="@+id/contains_vector_in_store_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Contains Vector"
+                android:background="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/reserve_vector_store_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Reserve"
+                android:background="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/get_vector_store_dimension_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Get Dimension"
+                android:background="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false"
+                android:layout_marginStart="4dp" />
+        </LinearLayout>
+
+        <!-- VectorStore Advanced Operations Row 3 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <Button
+                android:id="@+id/get_vector_store_metric_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Get Metric"
+                android:background="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false" />
+        </LinearLayout>
+
         <!-- VectorStore Info -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -440,6 +542,90 @@
                 android:layout_marginStart="4dp" />
         </LinearLayout>
 
+        <!-- HNSWIndex Advanced Operations Row 1 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <Button
+                android:id="@+id/set_hnsw_ef_search_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Set efSearch"
+                android:background="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/get_hnsw_ef_search_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Get efSearch"
+                android:background="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/contains_vector_in_hnsw_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Contains Vector"
+                android:background="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false"
+                android:layout_marginStart="4dp" />
+        </LinearLayout>
+
+        <!-- HNSWIndex Advanced Operations Row 2 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <Button
+                android:id="@+id/get_vector_from_hnsw_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Get Vector"
+                android:background="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/get_hnsw_dimension_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Get Dimension"
+                android:background="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/get_hnsw_capacity_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Get Capacity"
+                android:background="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false"
+                android:layout_marginStart="4dp" />
+        </LinearLayout>
+
         <!-- HNSWIndex Info -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -481,6 +667,53 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@color/white" />
+        </LinearLayout>
+
+        <!-- Version Section -->
+        <TextView
+            android:id="@+id/version_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Version Information"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <Button
+                android:id="@+id/get_version_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Get Version"
+                android:background="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false"
+                android:layout_marginEnd="4dp" />
+        </LinearLayout>
+
+        <!-- Version Info -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="24dp"
+            android:background="@color/blue_50"
+            android:padding="12dp"
+            android:elevation="2dp">
+
+            <TextView
+                android:id="@+id/version_info_text_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Version: Not retrieved yet"
+                android:textSize="14sp"
+                android:textColor="@android:color/black" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>
