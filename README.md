@@ -73,11 +73,34 @@ Built on QuiverDB's high-performance foundation, all SDKs provide consistent API
 ### Prerequisites
 
 - CMake 3.20+ for building the core library
-- Xcode for iOS builds
-- Android Studio for Android builds
-- Flutter SDK for Flutter builds
-- React Native CLI for React Native builds
-- Capacitor CLI for Capacitor plugin builds
+- Xcode (13.0+) for iOS builds (macOS only)
+- Android Studio (2022.3+) for Android builds
+- Flutter SDK (3.0+) for Flutter builds
+- React Native CLI (0.70+) for React Native builds
+- Capacitor CLI (4.0+) for Capacitor plugin builds
+
+### Required Environment Variables
+
+Some builds require specific environment variables to be set:
+
+#### Android Builds
+- `ANDROID_HOME`: Path to Android SDK installation
+- `ANDROID_NDK_ROOT`: Path to Android NDK installation (preferably r25c or later)
+- `JAVA_HOME`: Path to Java JDK installation (Java 11 recommended)
+
+#### iOS Builds (macOS only)
+- `XCODE_DEVELOPER_DIR`: Path to Xcode developer directory (optional, auto-detected)
+
+### Optional Environment Variables
+
+These variables can be set to customize the build process:
+
+- `CMAKE_PATH`: Path to CMake executable
+- `MAKE_PATH`: Path to make executable
+- `NINJA_PATH`: Path to Ninja executable
+- `FLUTTER_PATH`: Path to Flutter SDK
+- `REACT_NATIVE_PATH`: Path to React Native CLI
+- `CAPACITOR_PATH`: Path to Capacitor CLI
 
 ### Building All SDKs
 

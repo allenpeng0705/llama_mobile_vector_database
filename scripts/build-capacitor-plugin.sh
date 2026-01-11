@@ -3,9 +3,59 @@
 # Build script for LlamaMobileVD Capacitor Plugin
 # This script copies pre-built iOS framework and Android libraries to the Capacitor plugin directory
 
-# Set the working directory to the project root
+# ==========================
+# CENTRAL CONFIGURATION
+# Read settings from centralized config.env file if it exists
+# ==========================
+
+# Paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/config.env"
+
+# Check if config file exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "❌ Config file not found: $CONFIG_FILE"
+    echo "Please run the scripts from the project root directory"
+    exit 1
+fi
+
+# Function to read value from config file
+get_config_value() {
+    local section="$1"
+    local key="$2"
+    local default="$3"
+    
+    if [ -f "$CONFIG_FILE" ]; then
+        local value=$(grep -A 20 "\[$section\]" "$CONFIG_FILE" | grep "^$key=" | cut -d'=' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        if [ -n "$value" ]; then
+            echo "$value"
+            return
+        fi
+    fi
+    
+    echo "$default"
+}
+
+# Function to update value in config file
+update_config_value() {
+    local section="$1"
+    local key="$2"
+    local value="$3"
+    
+    if [ -f "$CONFIG_FILE" ]; then
+        # Update the config file
+        sed -i '' "/\[$section\]/,/^\[/ s/^\($key\s*=\s*\).*/\1$value/" "$CONFIG_FILE"
+    fi
+}
+
+# Read configuration from config.env
+BUILD_TYPE="$(get_config_value core BUILD_TYPE "Release")"
+VERBOSE="$(get_config_value core VERBOSE "false")"
+CAP_PLATFORMS="$(get_config_value capacitor CAP_PLATFORMS "android ios")"
+
+# Update config file with defaults
+update_config_value capacitor CAP_PLATFORMS "$CAP_PLATFORMS"
 
 # Define directories
 CAPACITOR_PLUGIN_DIR="$PROJECT_ROOT/llama_mobile_vd-capacitor-plugin"

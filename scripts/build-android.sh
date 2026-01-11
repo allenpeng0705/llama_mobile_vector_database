@@ -1,22 +1,192 @@
-#!/bin/bash -e
+#!/bin/bash
 
 # Android build script for QuiverDB wrapper and Llama Mobile VD library
+# Enhanced for cross-platform compatibility and user configurability
+
+set -e
+
+# ==========================
+# CENTRAL CONFIGURATION
+# Read settings from centralized config.env file if it exists
+# ==========================
+
+# Paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/config.env"
+
+# Function to read value from config file
+get_config_value() {
+    local section="$1"
+    local key="$2"
+    local default="$3"
+    
+    if [ -f "$CONFIG_FILE" ]; then
+        local value=$(grep -A 20 "\[$section\]" "$CONFIG_FILE" | grep "^$key=" | cut -d'=' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        if [ -n "$value" ]; then
+            echo "$value"
+            return
+        fi
+    fi
+    
+    echo "$default"
+}
+
+# Function to update value in config file
+update_config_value() {
+    local section="$1"
+    local key="$2"
+    local value="$3"
+    
+    if [ -f "$CONFIG_FILE" ]; then
+        # Update the config file
+        sed -i '' "/\[$section\]/,/^\[/ s/^\($key\s*=\s*\).*/\1$value/" "$CONFIG_FILE"
+    fi
+}
+
+# Check if config file exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "❌ Config file not found: $CONFIG_FILE"
+    echo "Please run the scripts from the project root directory"
+    exit 1
+fi
+
+# ==========================
+# CONFIGURATION VARIABLES
+# All build settings are centralized here for easy access
+# ==========================
+
+# --------------------------
+# REQUIRED ENVIRONMENT VARIABLES
+# These variables must be set, either by the user or auto-detected
+# --------------------------
+# ANDROID_HOME: Path to Android SDK installation
+# Example: export ANDROID_HOME="$HOME/Android/Sdk"
+
+# JAVA_HOME: Path to Java JDK installation (Java 11 recommended)
+# Example: export JAVA_HOME="/Library/Java/JavaVirtualMachines/adoptopenjdk-11.jdk/Contents/Home"
+
+# --------------------------
+# OPTIONAL ENVIRONMENT VARIABLES
+# These variables have reasonable defaults but can be overridden
+# --------------------------
+# ANDROID_NDK_PATH: Path to Android NDK installation (auto-detected if not set)
+# Example: export ANDROID_NDK_PATH="$ANDROID_HOME/ndk/29.0.14206865"
+
+# CMAKE_PATH: Path to CMake executable (auto-detected if not set)
+# Example: export CMAKE_PATH="/usr/local/bin/cmake"
+
+# --------------------------
+# DEFAULT SETTINGS
+# These can be overridden by command line arguments or environment variables
+# --------------------------
+DEFAULT_FORCE_BUILD=false
+DEFAULT_BUILD_TYPE="$(get_config_value core BUILD_TYPE "Release")"
+DEFAULT_ANDROID_PLATFORM="$(get_config_value android ANDROID_PLATFORM "android-24")"
+DEFAULT_ARCHITECTURES=($(get_config_value android ARCHITECTURES "arm64-v8a x86_64 armeabi-v7a x86"))
+DEFAULT_VERBOSE=false
+DEFAULT_CLEAN=false
+
+# --------------------------
+# SCRIPT CONFIGURATION
+# These variables are used internally by the script
+# --------------------------
+FORCE_BUILD="$DEFAULT_FORCE_BUILD"
+BUILD_TYPE="${BUILD_TYPE:-$DEFAULT_BUILD_TYPE}"
+ANDROID_PLATFORM="${ANDROID_PLATFORM:-$DEFAULT_ANDROID_PLATFORM}"
+ARCHITECTURES=(${ARCHITECTURES:-${DEFAULT_ARCHITECTURES[*]}})
+VERBOSE="$DEFAULT_VERBOSE"
+CLEAN="$DEFAULT_CLEAN"
+
+# Read values from config file if they exist
+ANDROID_HOME="$(get_config_value android ANDROID_HOME "")"
+ANDROID_NDK_PATH="$(get_config_value android ANDROID_NDK_PATH "")"
+JAVA_HOME="$(get_config_value android JAVA_HOME "")"
+
+# Update config file with defaults
+update_config_value android ANDROID_PLATFORM "$DEFAULT_ANDROID_PLATFORM"
+update_config_value android ARCHITECTURES "${DEFAULT_ARCHITECTURES[*]}"
+update_config_value core BUILD_TYPE "$DEFAULT_BUILD_TYPE"
+
+# Function to display help message
+usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Build the Android SDK for Llama Mobile VD"
+    echo ""
+    echo "REQUIRED ENVIRONMENT VARIABLES:"
+    echo "  ANDROID_HOME          Path to Android SDK installation"
+    echo "  JAVA_HOME             Path to Java JDK installation (Java 11 recommended)"
+    echo ""
+    echo "OPTIONAL ENVIRONMENT VARIABLES:"
+    echo "  ANDROID_NDK_PATH      Path to Android NDK installation (auto-detected)"
+    echo "  CMAKE_PATH            Path to CMake executable"
+    echo ""
+    echo "OPTIONS:"
+    echo "  --force                   Force rebuild even if libraries exist"
+    echo "  --build-type <type>       Build type: Debug, Release (default: $DEFAULT_BUILD_TYPE)"
+    echo "  --platform <platform>     Android platform (default: $DEFAULT_ANDROID_PLATFORM)"
+    echo "  --arch <arch>             Single architecture to build (default: all supported)"
+    echo "  -v, --verbose             Enable verbose output"
+    echo "  -c, --clean               Clean existing build directories before building"
+    echo "  -h, --help                Display this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                          # Build with default settings"
+    echo "  $0 --force"
+    echo "  $0 --build-type Debug --arch arm64-v8a"
+    echo "  $0 --clean --verbose        # Clean and build with verbose output"
+    echo ""
+    echo "Supported architectures: ${DEFAULT_ARCHITECTURES[*]}"
+}
 
 # Parse command line arguments
-FORCE_BUILD=false
-NDK_VERSION="29.0.14206865"  # Default NDK version
-for arg in "$@"; do
-    case "$arg" in
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
         --force)
             FORCE_BUILD=true
-            shift
+            shift 1
             ;;
-        --ndk-version=*)
-            NDK_VERSION="${arg#*=}"
-            shift
+        --build-type)
+            BUILD_TYPE="$2"
+            shift 2
+            ;;
+        --build-type=*)
+            BUILD_TYPE="${1#*=}"
+            shift 1
+            ;;
+        --platform)
+            ANDROID_PLATFORM="$2"
+            shift 2
+            ;;
+        --platform=*)
+            ANDROID_PLATFORM="${1#*=}"
+            shift 1
+            ;;
+        --arch)
+            ARCHITECTURES=("$2")  # Build only this architecture
+            shift 2
+            ;;
+        --arch=*)
+            ARCHITECTURES=("${1#*=}")
+            shift 1
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            shift 1
+            ;;
+        -c|--clean)
+            CLEAN=true
+            shift 1
+            ;;
+        -h|--help)
+            usage
+            exit 0
             ;;
         *)
-            shift
+            echo "Unknown option: $1" >&2
+            usage
+            exit 1
             ;;
     esac
 done
@@ -28,44 +198,73 @@ WRAPPER_DIR="$PROJECT_ROOT/lib/wrapper"
 ANDROID_DIR="$PROJECT_ROOT/llama_mobile_vd-android-SDK"
 
 # NDK and CMake configuration
-ANDROID_PLATFORM=android-24
-CMAKE_BUILD_TYPE=Release
+CMAKE_BUILD_TYPE="$BUILD_TYPE"
 
 # Set default ANDROID_HOME if not set
 if [ -z "$ANDROID_HOME" ]; then
-    echo "ANDROID_HOME not set, trying to detect from system..."
+    echo "🔍 ANDROID_HOME not set, trying to detect from system..."
     
-    # Platform-specific detection - check common paths only
+    # Platform-specific detection - check common paths
     OS=$(uname -s)
     
+    # Add more common paths for better detection
     if [ "$OS" = "Darwin" ]; then
         # macOS
-        COMMON_PATHS=("$HOME/Library/Android/sdk" "$HOME/android-sdk")
+        COMMON_PATHS=(
+            "$HOME/Library/Android/sdk"
+            "$HOME/android-sdk"
+            "/Applications/Android Studio.app/Contents/sdk"
+            "/Library/Android/sdk"
+        )
     elif [ "$OS" = "Linux" ]; then
         # Linux
-        COMMON_PATHS=("$HOME/Android/Sdk" "$HOME/android-sdk" "/opt/android-sdk")
-    elif [[ "$OS" = MINGW* ]]; then
-        # Windows (Git Bash)
-        COMMON_PATHS=("$USERPROFILE/AppData/Local/Android/Sdk" "$USERPROFILE/Android/Sdk")
+        COMMON_PATHS=(
+            "$HOME/Android/Sdk"
+            "$HOME/android-sdk"
+            "/opt/android-sdk"
+            "/usr/local/android-sdk"
+            "/usr/android-sdk"
+        )
+    elif [[ "$OS" = MINGW* ]] || [[ "$OS" = CYGWIN* ]]; then
+        # Windows (Git Bash or Cygwin)
+        COMMON_PATHS=(
+            "$USERPROFILE/AppData/Local/Android/Sdk"
+            "$USERPROFILE/Android/Sdk"
+            "C:/Android/Sdk"
+            "C:/Program Files (x86)/Android/sdk"
+            "C:/Users/Public/Android/Sdk"
+        )
     else
         echo "❌ Unsupported operating system: $OS"
         exit 1
     fi
     
-    # Check common paths first (fast and reliable)
+    # Check common paths
     for path in "${COMMON_PATHS[@]}"; do
         if [ -d "$path" ]; then
-            ANDROID_HOME=$path
-            echo "✅ Detected ANDROID_HOME: $ANDROID_HOME"
-            break
+            # Verify it's actually an Android SDK directory by checking for key subdirectories
+            if [ -d "$path/platforms" ] || [ -d "$path/build-tools" ] || [ -d "$path/ndk" ]; then
+                ANDROID_HOME=$path
+                echo "✅ Detected ANDROID_HOME: $ANDROID_HOME"
+                # Update config file with detected value
+                update_config_value android ANDROID_HOME "$ANDROID_HOME"
+                break
+            fi
         fi
     done
     
-    # Final check: if still not found, prompt user
+    # Final check: if still not found, prompt user with detailed instructions
     if [ -z "$ANDROID_HOME" ] || [ ! -d "$ANDROID_HOME" ]; then
         echo "❌ Failed to auto-detect ANDROID_HOME"
         echo ""
-        echo "Please set the ANDROID_HOME environment variable manually:"
+        echo "📋 How to set ANDROID_HOME:"
+        echo ""
+        echo "1. First, locate your Android SDK installation:"
+        echo "   - On macOS: Typically in ~/Library/Android/sdk or /Applications/Android Studio.app/Contents/sdk"
+        echo "   - On Linux: Typically in ~/Android/Sdk or /opt/android-sdk"
+        echo "   - On Windows: Typically in %LOCALAPPDATA%/Android/Sdk or C:/Android/Sdk"
+        echo ""
+        echo "2. You can set it temporarily:"
         echo ""
         echo "On macOS/Linux:"
         echo "  export ANDROID_HOME=/path/to/your/android/sdk"
@@ -75,8 +274,17 @@ if [ -z "$ANDROID_HOME" ]; then
         echo "  export ANDROID_HOME=C:/path/to/your/android/sdk"
         echo "  ./scripts/build-android.sh"
         echo ""
-        echo "Or set it permanently in your shell configuration:"
-        echo "  (e.g., add to ~/.bashrc, ~/.zshrc, or ~/.profile)"
+        echo "On Windows (Command Prompt):"
+        echo "  set ANDROID_HOME=C:\path\to\your\android\sdk"
+        echo "  build-android.bat"
+        echo ""
+        echo "3. Or permanently add it to your environment variables:"
+        echo "   - macOS/Linux: Add to ~/.bashrc, ~/.zshrc, or ~/.profile"
+        echo "   - Windows: System Properties > Advanced > Environment Variables"
+        echo ""
+        echo "4. You can also edit the centralized config file directly:"
+        echo "   - Open $CONFIG_FILE"
+        echo "   - Add: ANDROID_HOME=/path/to/your/android/sdk under [android] section"
         echo ""
         exit 1
     fi
@@ -90,16 +298,53 @@ if [ ! -d "$ANDROID_HOME" ]; then
 fi
 
 echo "Using ANDROID_HOME: $ANDROID_HOME"
-ANDROID_NDK="$ANDROID_HOME/ndk/$NDK_VERSION"
+
+# Set default ANDROID_NDK_PATH if not set
+if [ -z "$ANDROID_NDK_PATH" ]; then
+    echo "🔍 ANDROID_NDK_PATH not set, trying to detect from ANDROID_HOME..."
+    if [ -d "$ANDROID_HOME/ndk" ]; then
+        # Get the first available NDK version
+        ANDROID_NDK_PATH=$(ls -d "$ANDROID_HOME/ndk"/*/ 2>/dev/null | head -n 1)
+        if [ -n "$ANDROID_NDK_PATH" ]; then
+            # Remove trailing slash
+            ANDROID_NDK_PATH=${ANDROID_NDK_PATH%/}
+            echo "✅ Detected ANDROID_NDK_PATH: $ANDROID_NDK_PATH"
+            # Update config file with detected value
+            update_config_value android ANDROID_NDK_PATH "$ANDROID_NDK_PATH"
+        else
+            echo "❌ No NDK versions found in $ANDROID_HOME/ndk"
+            echo "Available NDK versions: $(ls -la $ANDROID_HOME/ndk/ 2>/dev/null || echo 'None found')"
+            echo "Please install an NDK version using Android Studio SDK Manager."
+            echo "You can also edit the ANDROID_NDK_PATH in $CONFIG_FILE under the [android] section."
+            exit 1
+        fi
+    else
+        echo "❌ ANDROID_HOME/ndk directory not found"
+        echo "Please install an NDK version using Android Studio SDK Manager."
+        echo "You can also edit the ANDROID_NDK_PATH in $CONFIG_FILE under the [android] section."
+        exit 1
+    fi
+fi
+
+ANDROID_NDK="$ANDROID_NDK_PATH"
 CMAKE_TOOLCHAIN_FILE="$ANDROID_NDK/build/cmake/android.toolchain.cmake"
 
-# Check if NDK is installed
-echo -n "Checking for NDK $NDK_VERSION... "
+# Check if NDK path is valid
+echo -n "Checking for NDK at $ANDROID_NDK... "
 if [ ! -d "$ANDROID_NDK" ]; then
     echo "✗"
-    echo "Error: NDK $NDK_VERSION not found at $ANDROID_NDK!"
-    echo "Available NDK versions: $(ls -la $ANDROID_HOME/ndk/ 2>/dev/null || echo 'None found')"
-    echo "Please install NDK $NDK_VERSION or update the NDK_VERSION in this script."
+    echo "Error: NDK not found at $ANDROID_NDK!"
+    echo "Please check your ANDROID_NDK_PATH in $CONFIG_FILE."
+    exit 1
+fi
+echo "✓"
+
+# Check if the NDK contains the required toolchain file
+echo -n "Checking for Android toolchain file... "
+if [ ! -f "$CMAKE_TOOLCHAIN_FILE" ]; then
+    echo "✗"
+    echo "Error: Android toolchain file not found at $CMAKE_TOOLCHAIN_FILE!"
+    echo "Please check your NDK installation or try a different NDK version."
     exit 1
 fi
 echo "✓"
@@ -132,8 +377,7 @@ echo "Using $n_cpu cores for build"
 # Step 1: Build the wrapper library for multiple architectures if needed
 echo "=== Building QuiverDB frameworks for Android ==="
 
-# Define architectures to build for
-ARCHITECTURES=("arm64-v8a" "x86_64")
+# Architecture list comes from command line arguments or environment variables
 
 # Check if all libraries already exist
 echo -n "Checking if Android libraries already exist... "

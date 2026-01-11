@@ -1,11 +1,150 @@
 #!/bin/bash -e
 
 # Build script for LlamaMobileVD Flutter SDK
-# This script builds the iOS framework and Android libraries, then copies them to the Flutter SDK directory
+# Enhanced for cross-platform compatibility and user configurability
 
-# Set the working directory to the project root
+# ==========================
+# CENTRAL CONFIGURATION
+# Read settings from centralized config.env file if it exists
+# ==========================
+
+# Paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/config.env"
+
+# Check if config file exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "❌ Config file not found: $CONFIG_FILE"
+    echo "Please run the scripts from the project root directory"
+    exit 1
+fi
+
+# Function to read value from config file
+get_config_value() {
+    local section="$1"
+    local key="$2"
+    local default="$3"
+    
+    if [ -f "$CONFIG_FILE" ]; then
+        local value=$(grep -A 20 "\[$section\]" "$CONFIG_FILE" | grep "^$key=" | cut -d'=' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        if [ -n "$value" ]; then
+            echo "$value"
+            return
+        fi
+    fi
+    
+    echo "$default"
+}
+
+# Function to update value in config file
+update_config_value() {
+    local section="$1"
+    local key="$2"
+    local value="$3"
+    
+    if [ -f "$CONFIG_FILE" ]; then
+        # Update the config file
+        sed -i '' "/\[$section\]/,/^\[/ s/^\($key\s*=\s*\).*/\1$value/" "$CONFIG_FILE"
+    fi
+}
+
+# ==========================
+# CONFIGURATION VARIABLES
+# All build settings are centralized here for easy access
+# ==========================
+
+# --------------------------
+# REQUIRED ENVIRONMENT VARIABLES
+# These variables must be set, either by the user or auto-detected
+# --------------------------
+# ANDROID_HOME          Path to Android SDK installation
+# JAVA_HOME             Path to Java JDK installation (Java 11 recommended)
+
+# --------------------------
+# OPTIONAL ENVIRONMENT VARIABLES
+# These variables have reasonable defaults but can be overridden
+# --------------------------
+# ANDROID_NDK_PATH      Path to Android NDK installation (auto-detected from ANDROID_HOME/ndk)
+# FLUTTER_PATH          Path to Flutter SDK (auto-detected if not set)
+# CMAKE_PATH            Path to CMake executable
+
+# --------------------------
+# DEFAULT SETTINGS
+# These can be overridden by command line arguments or environment variables
+# --------------------------
+DEFAULT_FORCE_BUILD="$(get_config_value flutter FORCE_REBUILD "false")"
+DEFAULT_VERBOSE="$(get_config_value core VERBOSE "false")"
+DEFAULT_CLEAN="$(get_config_value flutter CLEAN_BUILD "false")"
+DEFAULT_BUILD_TYPE="$(get_config_value core BUILD_TYPE "Release")"
+
+# Update config file with defaults
+update_config_value flutter FORCE_REBUILD "$DEFAULT_FORCE_BUILD"
+update_config_value flutter CLEAN_BUILD "$DEFAULT_CLEAN"
+
+# --------------------------
+# SCRIPT CONFIGURATION
+# These variables are used internally by the script
+# --------------------------
+FORCE_BUILD="$DEFAULT_FORCE_BUILD"
+VERBOSE="$DEFAULT_VERBOSE"
+CLEAN="$DEFAULT_CLEAN"
+BUILD_TYPE="${BUILD_TYPE:-$DEFAULT_BUILD_TYPE}"
+
+# Function to display help message
+usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Build the Flutter SDK for Llama Mobile VD"
+    echo ""
+    echo "REQUIRED ENVIRONMENT VARIABLES:"
+    echo "  ANDROID_HOME          Path to Android SDK installation"
+    echo "  JAVA_HOME             Path to Java JDK installation (Java 11 recommended)"
+    echo ""
+    echo "OPTIONAL ENVIRONMENT VARIABLES:"
+    echo "  ANDROID_NDK_PATH      Path to Android NDK installation (auto-detected)"
+    echo "  FLUTTER_PATH          Path to Flutter SDK (auto-detected)"
+    echo "  CMAKE_PATH            Path to CMake executable"
+    echo "  BUILD_TYPE            Build type: Debug, Release (default: $DEFAULT_BUILD_TYPE)"
+    echo ""
+    echo "OPTIONS:"
+    echo "  --force               Force rebuild of all components"
+    echo "  -v, --verbose         Enable verbose output"
+    echo "  -c, --clean           Clean existing build directories before building"
+    echo "  -h, --help            Display this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                          # Build with default settings"
+    echo "  $0 --force --verbose        # Force rebuild with verbose output"
+    echo "  $0 --clean                  # Clean and rebuild"
+}
+
+# Parse command line arguments
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        --force)
+            FORCE_BUILD=true
+            shift 1
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            shift 1
+            ;;
+        -c|--clean)
+            CLEAN=true
+            shift 1
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage
+            exit 1
+            ;;
+    esac
+done
 
 # Define directories
 FLUTTER_SDK_DIR="$PROJECT_ROOT/llama_mobile_vd-flutter-SDK"

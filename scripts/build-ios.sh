@@ -1,24 +1,236 @@
 #!/bin/bash
 
 # iOS build script for QuiverDB wrapper and Llama Mobile VD framework
+# Enhanced for cross-platform compatibility and user configurability
+
+set -e
+
+# ==========================
+# CENTRAL CONFIGURATION
+# Read settings from centralized config.env file if it exists
+# ==========================
+
+# Paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/config.env"
+
+# Check if config file exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "❌ Config file not found: $CONFIG_FILE"
+    echo "Please run the scripts from the project root directory"
+    exit 1
+fi
+
+# Function to read value from config file
+get_config_value() {
+    local section="$1"
+    local key="$2"
+    local default="$3"
+    
+    if [ -f "$CONFIG_FILE" ]; then
+        local value=$(grep -A 20 "\[$section\]" "$CONFIG_FILE" | grep "^$key=" | cut -d'=' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        if [ -n "$value" ]; then
+            echo "$value"
+            return
+        fi
+    fi
+    
+    echo "$default"
+}
+
+# Function to update value in config file
+update_config_value() {
+    local section="$1"
+    local key="$2"
+    local value="$3"
+    
+    if [ -f "$CONFIG_FILE" ]; then
+        # Update the config file
+        sed -i '' "/\[$section\]/,/^\[/ s/^\($key\s*=\s*\).*/\1$value/" "$CONFIG_FILE"
+    fi
+}
+
+# ==========================
+# CONFIGURATION VARIABLES
+# All build settings are centralized here for easy access
+# ==========================
+
+# --------------------------
+# REQUIRED ENVIRONMENT VARIABLES
+# These variables must be set, either by the user or auto-detected
+# --------------------------
+# XCODE_DEVELOPER_DIR: Path to Xcode developer directory (auto-detected if not set)
+# Example: export XCODE_DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
+
+# --------------------------
+# OPTIONAL ENVIRONMENT VARIABLES
+# These variables have reasonable defaults but can be overridden
+# --------------------------
+# BUILD_TYPE: Build type (Debug or Release)
+# Example: export BUILD_TYPE="Debug"
+
+# DEPLOYMENT_TARGET: iOS deployment target
+# Example: export DEPLOYMENT_TARGET="14.0"
+
+# ARCHITECTURES: Architectures to build for
+# Example: export ARCHITECTURES=("arm64" "x86_64")
+
+# CMAKE_PATH: Path to CMake executable (auto-detected if not set)
+# Example: export CMAKE_PATH="/usr/local/bin/cmake"
+
+# --------------------------
+# DEFAULT SETTINGS
+# These can be overridden by command line arguments or environment variables
+# --------------------------
+DEFAULT_FORCE_BUILD=false
+DEFAULT_BUILD_TYPE="$(get_config_value core BUILD_TYPE "Release")"
+DEFAULT_DEPLOYMENT_TARGET="$(get_config_value ios IOS_DEPLOYMENT_TARGET "14.0")"
+DEFAULT_ARCHITECTURES=($(get_config_value ios IOS_ARCHS "arm64 x86_64"))
+DEFAULT_SIMULATOR_ONLY="$(get_config_value ios simulator_only "false")"
+DEFAULT_DEVICE_ONLY=false
+DEFAULT_VERBOSE="$(get_config_value core VERBOSE "false")"
+DEFAULT_CLEAN=false
+
+# Update config file with defaults
+update_config_value ios IOS_DEPLOYMENT_TARGET "$DEFAULT_DEPLOYMENT_TARGET"
+update_config_value ios IOS_ARCHS "$(get_config_value ios IOS_ARCHS "arm64 x86_64")"
+
+# --------------------------
+# SCRIPT CONFIGURATION
+# These variables are used internally by the script
+# --------------------------
+FORCE_BUILD="$DEFAULT_FORCE_BUILD"
+BUILD_TYPE="${BUILD_TYPE:-$DEFAULT_BUILD_TYPE}"
+DEPLOYMENT_TARGET="${DEPLOYMENT_TARGET:-$DEFAULT_DEPLOYMENT_TARGET}"
+ARCHITECTURES=(${ARCHITECTURES:-${DEFAULT_ARCHITECTURES[*]}})
+SIMULATOR_ONLY="$DEFAULT_SIMULATOR_ONLY"
+DEVICE_ONLY="$DEFAULT_DEVICE_ONLY"
+VERBOSE="$DEFAULT_VERBOSE"
+CLEAN="$DEFAULT_CLEAN"
+
+# Function to display help message
+usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Build the iOS SDK for Llama Mobile VD"
+    echo ""
+    echo "REQUIRED DEPENDENCIES:"
+    echo "  Xcode 13.0+               Install from App Store"
+    echo "  Xcode Command Line Tools  Run: xcode-select --install"
+    echo "  CMake 3.20+               Install via Homebrew: brew install cmake"
+    echo ""
+    echo "OPTIONAL ENVIRONMENT VARIABLES:"
+    echo "  XCODE_DEVELOPER_DIR      Path to Xcode developer directory (auto-detected)"
+    echo "  BUILD_TYPE               Build type (Debug or Release)"
+    echo "  DEPLOYMENT_TARGET        iOS deployment target"
+    echo "  ARCHITECTURES            Architectures to build for"
+    echo "  CMAKE_PATH               Path to CMake executable"
+    echo ""
+    echo "OPTIONS:"
+    echo "  --force                   Force rebuild even if framework exists"
+    echo "  --build-type <type>       Build type: Debug, Release (default: $DEFAULT_BUILD_TYPE)"
+    echo "  --deployment-target <ver> iOS deployment target (default: $DEFAULT_DEPLOYMENT_TARGET)"
+    echo "  --arch <arch>             Single architecture to build (default: all supported)"
+    echo "  --simulator-only          Build only for simulator targets"
+    echo "  --device-only             Build only for device targets"
+    echo "  -v, --verbose             Enable verbose output"
+    echo "  -c, --clean               Clean existing build directories before building"
+    echo "  -h, --help                Display this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                          # Build with default settings"
+    echo "  $0 --force --simulator-only"
+    echo "  $0 --build-type Debug --arch x86_64"
+    echo "  $0 --clean --verbose        # Clean and build with verbose output"
+    echo ""
+    echo "Supported architectures: arm64 (device), x86_64 (simulator)"
+}
 
 # Parse command line arguments
-FORCE_BUILD=false
-for arg in "$@"; do
-    case "$arg" in
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
         --force)
             FORCE_BUILD=true
-            shift
+            shift 1
+            ;;
+        --build-type)
+            BUILD_TYPE="$2"
+            shift 2
+            ;;
+        --build-type=*)
+            BUILD_TYPE="${1#*=}"
+            shift 1
+            ;;
+        --deployment-target)
+            DEPLOYMENT_TARGET="$2"
+            shift 2
+            ;;
+        --deployment-target=*)
+            DEPLOYMENT_TARGET="${1#*=}"
+            shift 1
+            ;;
+        --arch)
+            ARCHITECTURES=($2)
+            shift 2
+            ;;
+        --arch=*)
+            ARCHITECTURES=(${1#*=})
+            shift 1
+            ;;
+        --simulator-only)
+            SIMULATOR_ONLY=true
+            DEVICE_ONLY=false
+            ARCHITECTURES=("x86_64")
+            shift 1
+            ;;
+        --device-only)
+            DEVICE_ONLY=true
+            SIMULATOR_ONLY=false
+            ARCHITECTURES=("arm64")
+            shift 1
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            shift 1
+            ;;
+        -c|--clean)
+            CLEAN=true
+            shift 1
+            ;;
+        -h|--help)
+            usage
+            exit 0
             ;;
         *)
-            shift
+            echo "Unknown option: $1" >&2
+            usage
+            exit 1
             ;;
     esac
 done
 
+# Validate build type
+if [[ "$BUILD_TYPE" != "Debug" && "$BUILD_TYPE" != "Release" ]]; then
+    echo "❌ Invalid build type: $BUILD_TYPE"
+    echo "Valid build types: Debug, Release"
+    exit 1
+fi
+
+# Validate architectures
+VALID_ARCHITECTURES=("arm64" "x86_64")
+for arch in "${ARCHITECTURES[@]}"; do
+    if [[ ! " ${VALID_ARCHITECTURES[@]} " =~ " $arch " ]]; then
+        echo "❌ Invalid architecture: $arch"
+        echo "Valid architectures: ${VALID_ARCHITECTURES[*]}"
+        exit 1
+    fi
+
+done
+
 # Set the working directory to the project root
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-PROJECT_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 WRAPPER_DIR="$PROJECT_ROOT/lib/wrapper"
 IOS_DIR="$PROJECT_ROOT/llama_mobile_vd-ios-SDK"
 FRAMEWORK_NAME="LlamaMobileVD"
@@ -30,21 +242,74 @@ echo "=== Checking dependencies ==="
 echo -n "Checking for Xcode... "
 if ! command -v xcodebuild &> /dev/null; then
     echo "✗"
-    echo "Error: Xcode not found or not accessible."
+    echo "❌ Error: Xcode not found or not accessible."
     echo "Please install Xcode from the App Store and run 'xcode-select --install' to install command line tools."
     exit 1
 fi
-echo "✓"
+
+# Read DEVELOPER_DIR from config file if it exists
+DEVELOPER_DIR="$(get_config_value ios DEVELOPER_DIR "")"
+XCODE_DEVELOPER_DIR="$DEVELOPER_DIR"
+
+# Detect Xcode developer directory
+echo -n "Detecting Xcode developer directory... "
+if [ -z "$XCODE_DEVELOPER_DIR" ]; then
+    XCODE_DEVELOPER_DIR=$(xcode-select -p 2>/dev/null || echo "")
+    if [ -n "$XCODE_DEVELOPER_DIR" ]; then
+        echo "✓"
+        echo "✅ Detected XCODE_DEVELOPER_DIR: $XCODE_DEVELOPER_DIR"
+        # Update config file with detected value
+        update_config_value ios DEVELOPER_DIR "$XCODE_DEVELOPER_DIR"
+    else
+        echo "⚠️"
+        echo "⚠️  Warning: Could not auto-detect Xcode developer directory"
+        echo "You can set it manually with: export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer"
+        echo "Or edit the DEVELOPER_DIR in $CONFIG_FILE under the [ios] section"
+    fi
+else
+    echo "✓"
+    echo "✅ Using XCODE_DEVELOPER_DIR: $XCODE_DEVELOPER_DIR"
+    # Set the environment variable for this session
+    export DEVELOPER_DIR="$XCODE_DEVELOPER_DIR"
+fi
 
 # Check for CMake
 echo -n "Checking for CMake... "
 if ! command -v cmake &> /dev/null; then
     echo "✗"
-    echo "Error: CMake not found."
+    echo "❌ Error: CMake not found."
     echo "Please install CMake using Homebrew: 'brew install cmake'"
     exit 1
 fi
-echo "✓"
+
+# Get CMake version
+CMAKE_VERSION=$(cmake --version | head -1 | awk '{print $3}')
+echo "✓ (version: $CMAKE_VERSION)"
+
+# Check for Homebrew (optional but useful)
+echo -n "Checking for Homebrew... "
+if ! command -v brew &> /dev/null; then
+    echo "⚠️"
+    echo "⚠️  Warning: Homebrew not found"
+    echo "Some dependencies might need manual installation"
+else
+    echo "✓"
+fi
+
+echo ""
+
+# Handle architecture selection
+if [ "$SIMULATOR_ONLY" = true ]; then
+    echo "🔧 Building for simulator only (architectures: x86_64)"
+elif [ "$DEVICE_ONLY" = true ]; then
+    echo "🔧 Building for device only (architectures: arm64)"
+else
+    echo "🔧 Building for both device and simulator (architectures: ${ARCHITECTURES[*]})"
+fi
+
+echo "🔧 Build type: $BUILD_TYPE"
+echo "🔧 Deployment target: $DEPLOYMENT_TARGET"
+
 echo ""
 
 # Check if framework already exists
