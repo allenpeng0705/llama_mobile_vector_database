@@ -1,8 +1,25 @@
 <div align="center">
 
+```
+  ____  _                   _     _  ____
+ / ___|| |_ _ __ _   _  ___| |__ (_)|  _ \ ___
+ \___ \| __| '__| | | |/ __| '_ \| || |_) / _ \
+  ___) | |_| |  | |_| | (__| | | | ||  _ <  __/
+ |____/ \__|_|   \__,_|\___|_| |_|_||_| \_\___|
+  __  __                    _     ___ 
+ |  \/  | __ _ _ __ ___    | |   |_ _|
+ | |\/| |/ _` | '_ ` _ \   | |    | | 
+ | |  | | (_| | | | | | |  | |___ | | 
+ |_|  |_|\__,_|_| |_| |_|  |_____|___|
+
+ [VECTOR DATABASE] • [MOBILE SDK] • [HIGH PERFORMANCE]
+```
+
 # llama_mobile_vd
 
-**Cross-platform vector database SDKs for mobile and web applications**
+**Cross-platform vector database SDKs built on QuiverDB**
+
+*Embeddable vector database capabilities for mobile and web applications*
 
 </div>
 
@@ -10,7 +27,18 @@
 
 ## Overview
 
-llama_mobile_vd is a collection of cross-platform vector database SDKs built on top of **QuiverDB** - a high-performance, header-only C++20 vector database with SIMD acceleration. It provides embeddable vector database capabilities for mobile and web applications, running natively on Linux, macOS, Windows, iOS, and Android with a consistent API across all SDKs.
+llama_mobile_vd is a collection of **cross-platform vector database SDKs built on top of QuiverDB** - a high-performance, header-only C++20 vector database with SIMD acceleration. It provides embeddable vector database capabilities for mobile and web applications, running natively on Linux, macOS, Windows, iOS, and Android with a consistent API across all SDKs.
+
+### About the QuiverDB Foundation
+
+At its core, llama_mobile_vd leverages **QuiverDB** - an ultra-lightweight (header-only), high-performance C++20 vector database optimized for edge and mobile deployment. QuiverDB features:
+- Header-only implementation with zero dependencies
+- SIMD acceleration for vector operations
+- GPU (Metal) support for iOS devices
+- Advanced index structures (HNSW)
+- Multi-threaded query execution
+
+The llama_mobile_vd SDKs wrap QuiverDB's core functionality and provide native language interfaces for various mobile and web platforms.
 
 ### Why llama_mobile_vd?
 
