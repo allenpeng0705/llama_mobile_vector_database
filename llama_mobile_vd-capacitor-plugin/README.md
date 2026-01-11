@@ -464,7 +464,7 @@ To build the plugin from source, use the provided build script:
 
 ```bash
 # Navigate to the project root
-cd /path/to/llama_mobile_vd
+cd /path/to/llama_mobile_vector_database
 
 # Run the build script
 bash scripts/build-capacitor-plugin.sh

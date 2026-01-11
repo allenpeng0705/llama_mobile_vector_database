@@ -212,8 +212,7 @@ simulator_only=false
 # --- Android Build Settings ---
 [android]
 ANDROID_HOME=/Users/username/Library/Android/sdk
-ANDROID_NDK_ROOT=/Users/username/Library/Android/sdk/ndk/29.0.14206865
-NDK_VERSION=29.0.14206865
+ANDROID_NDK_PATH=/Users/username/Library/Android/sdk/ndk/29.0.14206865
 ANDROID_PLATFORM=android-24
 ARCHITECTURES=arm64-v8a x86_64 armeabi-v7a x86
 JAVA_HOME=/Library/Java/JavaVirtualMachines/adoptopenjdk-11.jdk/Contents/Home
@@ -281,8 +280,7 @@ Most configuration values can be set either as environment variables or in the `
 | Variable | Description | Platform | config.env Section |
 |----------|-------------|----------|--------------------|
 | `ANDROID_HOME` | Path to Android SDK installation | Android builds | `[android]` |
-| `ANDROID_NDK_ROOT` | Path to Android NDK installation | Android builds | `[android]` |
-| `NDK_VERSION` | Android NDK version | Android builds | `[android]` |
+| `ANDROID_NDK_PATH` | Path to Android NDK installation | Android builds | `[android]` |
 | `JAVA_HOME` | Path to Java JDK installation | Android builds | `[android]` |
 | `DEVELOPER_DIR` | Path to Xcode developer directory | iOS builds (macOS) | `[ios]` |
 | `BUILD_TYPE` | Build type (Debug/Release) | All builds | `[core]` |
@@ -351,7 +349,7 @@ To build on Linux, you need to have the following installed:
 2. **Android SDK not found**
    - Ensure Android Studio is installed
    - Set the `ANDROID_HOME` environment variable
-   - Set the `ANDROID_NDK_ROOT` environment variable
+   - Set the `ANDROID_NDK_PATH` environment variable
 
 3. **Xcode not found** (macOS)
    - Ensure Xcode is installed from the App Store

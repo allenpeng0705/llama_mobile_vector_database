@@ -361,7 +361,7 @@ Get the patch version component.
 If you need to build the SDK from source, you can use the provided build script:
 
 ```bash
-cd /path/to/llama_mobile/llama_mobile_vd
+cd /path/to/llama_mobile_vector_database
 bash scripts/build-rn-SDK.sh
 ```
 

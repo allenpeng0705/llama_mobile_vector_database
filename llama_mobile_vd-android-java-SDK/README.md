@@ -159,13 +159,13 @@ Class for high-performance approximate nearest neighbor search, implementing `Au
 
 ## Building the SDK
 
-The Android Java SDK is built automatically when you run `build-android.sh` from the `llama_mobile_vd/scripts` directory. The SDK will be updated with the latest native libraries.
+The Android Java SDK is built automatically when you run `build-android.sh` from the `llama_mobile_vector_database/scripts` directory. The SDK will be updated with the latest native libraries.
 
 You can also manually update the SDK by running:
 
 ```bash
-cd /Users/shileipeng/Documents/mygithub/llama_mobile/llama_mobile_vd/scripts
-./build-android-SDK.sh
+cd /path/to/llama_mobile_vector_database/scripts
+./build-android.sh
 ```
 
 ## Running Tests

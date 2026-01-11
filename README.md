@@ -85,15 +85,30 @@ Some builds require specific environment variables to be set:
 
 #### Android Builds
 - `ANDROID_HOME`: Path to Android SDK installation
-- `ANDROID_NDK_ROOT`: Path to Android NDK installation (preferably r25c or later)
+- `ANDROID_NDK_PATH`: Path to Android NDK installation (preferably r25c or later, auto-detected if not set)
 - `JAVA_HOME`: Path to Java JDK installation (Java 11 recommended)
 
 #### iOS Builds (macOS only)
 - `XCODE_DEVELOPER_DIR`: Path to Xcode developer directory (optional, auto-detected)
 
+### Centralized Configuration (config.env)
+
+All build scripts now use a centralized `config.env` file located in the `scripts` directory. This file contains all the settings needed for building different SDKs and allows for easy configuration without needing to set environment variables directly.
+
+**Key Features:**
+- All build settings in one place
+- Auto-detection of common paths (SDKs, tools)
+- Platform-specific configurations
+- Persistent settings across builds
+- Clear section-based structure
+
+**Usage:**
+1. Run any build script, which will automatically detect and populate `config.env` with available paths
+2. Or manually edit `scripts/config.env` to customize settings
+
 ### Optional Environment Variables
 
-These variables can be set to customize the build process:
+These variables can be set to override values in `config.env`:
 
 - `CMAKE_PATH`: Path to CMake executable
 - `MAKE_PATH`: Path to make executable
