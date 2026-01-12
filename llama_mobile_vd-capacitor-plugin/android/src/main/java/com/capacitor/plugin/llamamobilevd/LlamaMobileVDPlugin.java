@@ -448,6 +448,98 @@ public class LlamaMobileVDPlugin extends Plugin {
         }
     }
     
+    // MARK: MMapVectorStore Methods
+    
+    /**
+     * Open an existing MMapVectorStore from a file
+     * 
+     * @param call Plugin call with parameters
+     */
+    @PluginMethod
+    public void openMMapVectorStore(PluginCall call) {
+        try {
+            JSObject result = implementation.openMMapVectorStore(call);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject(e.getMessage());
+        }
+    }
+    
+    /**
+     * Search for nearest neighbors in an MMapVectorStore
+     * 
+     * @param call Plugin call with parameters
+     */
+    @PluginMethod
+    public void searchMMapVectorStore(PluginCall call) {
+        try {
+            JSObject result = implementation.searchMMapVectorStore(call);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject(e.getMessage());
+        }
+    }
+    
+    /**
+     * Get the number of vectors in an MMapVectorStore
+     * 
+     * @param call Plugin call with parameters
+     */
+    @PluginMethod
+    public void getMMapVectorStoreCount(PluginCall call) {
+        try {
+            JSObject result = implementation.getMMapVectorStoreCount(call);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject(e.getMessage());
+        }
+    }
+    
+    /**
+     * Get the dimension of vectors in an MMapVectorStore
+     * 
+     * @param call Plugin call with parameters
+     */
+    @PluginMethod
+    public void getMMapVectorStoreDimension(PluginCall call) {
+        try {
+            JSObject result = implementation.getMMapVectorStoreDimension(call);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject(e.getMessage());
+        }
+    }
+    
+    /**
+     * Get the distance metric used by an MMapVectorStore
+     * 
+     * @param call Plugin call with parameters
+     */
+    @PluginMethod
+    public void getMMapVectorStoreMetric(PluginCall call) {
+        try {
+            JSObject result = implementation.getMMapVectorStoreMetric(call);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject(e.getMessage());
+        }
+    }
+    
+    /**
+     * Release an MMapVectorStore and free resources
+     * 
+     * @param call Plugin call with parameters
+     */
+    @PluginMethod
+    public void releaseMMapVectorStore(PluginCall call) {
+        try {
+            implementation.releaseMMapVectorStore(call);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject(e.getMessage());
+        }
+    }
+    
     // MARK: Version Methods
     
     /**

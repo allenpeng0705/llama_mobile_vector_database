@@ -472,3 +472,89 @@ Future<int> getLlamaMobileVDVersionMinor() async {
 Future<int> getLlamaMobileVDVersionPatch() async {
   return await _channel.invokeMethod<int>('getVersionPatch') ?? 0;
 }
+
+/// A memory-mapped vector store for efficiently storing and searching large datasets
+class MMapVectorStore {
+  final int _storeId;
+
+  /// Open an existing MMapVectorStore from a file
+  /// - Parameters:
+  ///   - path: The path to the MMapVectorStore file
+  /// - Throws: An error if the MMapVectorStore could not be opened
+  static Future<MMapVectorStore> open({required String path}) async {
+    final storeId = await _channel.invokeMethod<int>('mmapVectorStoreOpen', {
+      'path': path,
+    });
+
+    if (storeId == null) {
+      throw Exception('Failed to open MMapVectorStore');
+    }
+
+    return MMapVectorStore._(storeId);
+  }
+
+  MMapVectorStore._(this._storeId);
+
+  /// Search for the nearest neighbors of a query vector
+  /// - Parameters:
+  ///   - queryVector: The query vector
+  ///   - k: The number of nearest neighbors to return
+  /// - Returns: An array of search results sorted by distance
+  /// - Throws: An error if the search could not be performed
+  Future<List<SearchResult>> search(List<double> queryVector, int k) async {
+    final results = await _channel.invokeMethod<List<dynamic>>('mmapVectorStoreSearch', {
+      'storeId': _storeId,
+      'queryVector': Float32List.fromList(queryVector),
+      'k': k,
+    });
+
+    if (results == null) {
+      return [];
+    }
+
+    return results
+        .map((result) => SearchResult.fromMap(Map<String, dynamic>.from(result as Map)))
+        .toList();
+  }
+
+  /// Get the number of vectors in the store
+  Future<int> get count async {
+    return await _channel.invokeMethod<int>('mmapVectorStoreCount', {
+          'storeId': _storeId,
+        }) ??
+        0;
+  }
+
+  /// Get the dimension of the vectors in the store
+  Future<int> get dimension async {
+    return await _channel.invokeMethod<int>('mmapVectorStoreDimension', {
+          'storeId': _storeId,
+        }) ??
+        0;
+  }
+
+  /// Get the distance metric used by the store
+  Future<DistanceMetric> get metric async {
+    final metricValue = await _channel.invokeMethod<int>('mmapVectorStoreMetric', {
+      'storeId': _storeId,
+    });
+
+    switch (metricValue) {
+      case 0:
+        return DistanceMetric.l2;
+      case 1:
+        return DistanceMetric.cosine;
+      case 2:
+        return DistanceMetric.dot;
+      default:
+        throw ArgumentError('Unknown distance metric: $metricValue');
+    }
+  }
+
+  /// Destroy the vector store and free resources
+  Future<void> dispose() async {
+    await _channel.invokeMethod('mmapVectorStoreDestroy', {
+      'storeId': _storeId,
+    });
+  }
+}

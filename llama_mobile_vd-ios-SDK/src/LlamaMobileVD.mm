@@ -149,10 +149,10 @@ static LlamaMobileVDDistanceMetric convertDistanceMetricBack(QuiverDBDistanceMet
     }
     
     for (NSUInteger i = 0; i < k; i++) {
-        LlamaMobileVDSearchResult *objResult = [[LlamaMobileVDSearchResult alloc] init];
-        objResult.identifier = cResults[i].id;
-        objResult.distance = cResults[i].distance;
-        [results addObject:objResult];
+        LlamaMobileVDSearchResult *searchResult = [[LlamaMobileVDSearchResult alloc] init];
+        searchResult.identifier = cResults[i].id;
+        searchResult.distance = cResults[i].distance;
+        [results addObject:searchResult];
     }
     
     delete[] cResults;
@@ -160,7 +160,7 @@ static LlamaMobileVDDistanceMetric convertDistanceMetricBack(QuiverDBDistanceMet
 }
 
 - (NSUInteger)size:(NSError **)error {
-    size_t size;
+    size_t size = 0;
     QuiverDBError result = quiverdb_vector_store_size(_store, &size);
     if (result != QUIVERDB_OK) {
         if (error) {
@@ -172,7 +172,7 @@ static LlamaMobileVDDistanceMetric convertDistanceMetricBack(QuiverDBDistanceMet
 }
 
 - (NSUInteger)dimension:(NSError **)error {
-    size_t dimension;
+    size_t dimension = 0;
     QuiverDBError result = quiverdb_vector_store_dimension(_store, &dimension);
     if (result != QUIVERDB_OK) {
         if (error) {
@@ -200,7 +200,7 @@ static LlamaMobileVDDistanceMetric convertDistanceMetricBack(QuiverDBDistanceMet
     QuiverDBError result = quiverdb_vector_store_contains(_store, identifier, &containsInt);
     if (result != QUIVERDB_OK) {
         if (error) {
-            *error = errorFromCode(result, @"Failed to check if identifier exists");
+            *error = errorFromCode(result, @"Failed to check if identifier exists in vector store");
         }
         return NO;
     }
@@ -214,7 +214,7 @@ static LlamaMobileVDDistanceMetric convertDistanceMetricBack(QuiverDBDistanceMet
     QuiverDBError result = quiverdb_vector_store_reserve(_store, capacity);
     if (result != QUIVERDB_OK) {
         if (error) {
-            *error = errorFromCode(result, @"Failed to reserve capacity");
+            *error = errorFromCode(result, @"Failed to reserve vector store capacity");
         }
         return NO;
     }
@@ -237,7 +237,6 @@ static LlamaMobileVDDistanceMetric convertDistanceMetricBack(QuiverDBDistanceMet
 // HNSWIndex implementation
 @interface LlamaMobileVDHNSWIndex () {
     QuiverDBHNSWIndex _index;
-    NSUInteger _dimension;
 }
 @end
 
@@ -251,56 +250,23 @@ static LlamaMobileVDDistanceMetric convertDistanceMetricBack(QuiverDBDistanceMet
     self = [super init];
     if (self) {
         QuiverDBHNSWIndex index;
-        QuiverDBError result = quiverdb_hnsw_index_create_with_params(dimension, convertDistanceMetric(metric), maxElements, M, efConstruction, seed, &index);
+        QuiverDBError result = quiverdb_hnsw_index_create_with_params(
+            dimension,
+            convertDistanceMetric(metric),
+            maxElements,
+            M,
+            efConstruction,
+            seed,
+            &index
+        );
         if (result != QUIVERDB_OK) {
             NSError *error = errorFromCode(result, @"Failed to create HNSW index");
             NSLog(@"Error creating HNSW index: %@", error);
             return nil;
         }
         _index = index;
-        _dimension = dimension;
     }
     return self;
-}
-
-- (instancetype)initWithIndexFile:(NSString *)filename {
-    self = [super init];
-    if (self) {
-        const char *cFilename = [filename UTF8String];
-        QuiverDBHNSWIndex index;
-        QuiverDBError result = quiverdb_hnsw_index_load(cFilename, &index);
-        if (result != QUIVERDB_OK) {
-            NSError *error = errorFromCode(result, @"Failed to load HNSW index from file");
-            NSLog(@"Error loading HNSW index: %@", error);
-            return nil;
-        }
-        _index = index;
-        size_t dimension;
-        quiverdb_hnsw_index_dimension(_index, &dimension);
-        _dimension = dimension;
-    }
-    return self;
-}
-
-+ (instancetype)loadFromFile:(NSString *)filename error:(NSError **)error {
-    const char *cFilename = [filename UTF8String];
-    QuiverDBHNSWIndex index;
-    QuiverDBError result = quiverdb_hnsw_index_load(cFilename, &index);
-    if (result != QUIVERDB_OK) {
-        if (error) {
-            *error = errorFromCode(result, @"Failed to load HNSW index from file");
-        }
-        return nil;
-    }
-    
-    LlamaMobileVDHNSWIndex *instance = [[self alloc] init];
-    if (instance) {
-        instance->_index = index;
-        size_t dimension;
-        quiverdb_hnsw_index_dimension(index, &dimension);
-        instance->_dimension = dimension;
-    }
-    return instance;
 }
 
 - (void)dealloc {
@@ -334,17 +300,17 @@ static LlamaMobileVDDistanceMetric convertDistanceMetricBack(QuiverDBDistanceMet
     QuiverDBError result = quiverdb_hnsw_index_search(_index, query, k, cResults, k);
     if (result != QUIVERDB_OK) {
         if (error) {
-            *error = errorFromCode(result, @"Failed to search vectors in HNSW index");
+            *error = errorFromCode(result, @"Failed to search HNSW index");
         }
         delete[] cResults;
         return nil;
     }
     
     for (NSUInteger i = 0; i < k; i++) {
-        LlamaMobileVDSearchResult *objResult = [[LlamaMobileVDSearchResult alloc] init];
-        objResult.identifier = cResults[i].id;
-        objResult.distance = cResults[i].distance;
-        [results addObject:objResult];
+        LlamaMobileVDSearchResult *searchResult = [[LlamaMobileVDSearchResult alloc] init];
+        searchResult.identifier = cResults[i].id;
+        searchResult.distance = cResults[i].distance;
+        [results addObject:searchResult];
     }
     
     delete[] cResults;
@@ -355,7 +321,7 @@ static LlamaMobileVDDistanceMetric convertDistanceMetricBack(QuiverDBDistanceMet
     QuiverDBError result = quiverdb_hnsw_index_set_ef_search(_index, efSearch);
     if (result != QUIVERDB_OK) {
         if (error) {
-            *error = errorFromCode(result, @"Failed to set ef_search parameter");
+            *error = errorFromCode(result, @"Failed to set efSearch for HNSW index");
         }
         return NO;
     }
@@ -367,7 +333,7 @@ static LlamaMobileVDDistanceMetric convertDistanceMetricBack(QuiverDBDistanceMet
     QuiverDBError result = quiverdb_hnsw_index_get_ef_search(_index, &efSearch);
     if (result != QUIVERDB_OK) {
         if (error) {
-            *error = errorFromCode(result, @"Failed to get ef_search parameter");
+            *error = errorFromCode(result, @"Failed to get efSearch from HNSW index");
         }
         return 0;
     }
@@ -448,14 +414,247 @@ static LlamaMobileVDDistanceMetric convertDistanceMetricBack(QuiverDBDistanceMet
     return YES;
 }
 
++ (nullable instancetype)loadFromFile:(NSString *)filename error:(NSError **)error {
+    LlamaMobileVDHNSWIndex *index = [[LlamaMobileVDHNSWIndex alloc] init];
+    if (index) {
+        const char *cFilename = [filename UTF8String];
+        QuiverDBHNSWIndex hnswIndex;
+        QuiverDBError result = quiverdb_hnsw_index_load(cFilename, &hnswIndex);
+        if (result != QUIVERDB_OK) {
+            if (error) {
+                *error = errorFromCode(result, [NSString stringWithFormat:@"Failed to load HNSW index from file: %@", filename]);
+            }
+            return nil;
+        }
+        index->_index = hnswIndex;
+    }
+    return index;
+}
+
 @end
 
-// Version info
+// MMapVectorStoreBuilder implementation
+@interface LlamaMobileVDMMapVectorStoreBuilder () {
+    QuiverDBMMapVectorStoreBuilder _builder;
+    NSUInteger _dimension;
+}
+@end
+
+@implementation LlamaMobileVDMMapVectorStoreBuilder
+
+- (instancetype)initWithDimension:(NSUInteger)dimension metric:(LlamaMobileVDDistanceMetric)metric {
+    self = [super init];
+    if (self) {
+        QuiverDBMMapVectorStoreBuilder builder;
+        QuiverDBError result = quiverdb_mmap_vector_store_builder_create(dimension, convertDistanceMetric(metric), &builder);
+        if (result != QUIVERDB_OK) {
+            NSError *error = errorFromCode(result, @"Failed to create MMap vector store builder");
+            NSLog(@"Error creating MMap vector store builder: %@", error);
+            return nil;
+        }
+        _builder = builder;
+        _dimension = dimension;
+    }
+    return self;
+}
+
+- (void)dealloc {
+    if (_builder) {
+        quiverdb_mmap_vector_store_builder_destroy(_builder);
+    }
+}
+
+- (BOOL)addIdentifier:(uint64_t)identifier vector:(const float *)vector error:(NSError **)error {
+    QuiverDBError result = quiverdb_mmap_vector_store_builder_add(_builder, identifier, vector);
+    if (result != QUIVERDB_OK) {
+        if (error) {
+            *error = errorFromCode(result, @"Failed to add vector to MMap vector store builder");
+        }
+        return NO;
+    }
+    return YES;
+}
+
+- (BOOL)reserveCapacity:(NSUInteger)capacity error:(NSError **)error {
+    QuiverDBError result = quiverdb_mmap_vector_store_builder_reserve(_builder, capacity);
+    if (result != QUIVERDB_OK) {
+        if (error) {
+            *error = errorFromCode(result, @"Failed to reserve capacity in MMap vector store builder");
+        }
+        return NO;
+    }
+    return YES;
+}
+
+- (BOOL)saveToFile:(NSString *)filename error:(NSError **)error {
+    const char *cFilename = [filename UTF8String];
+    QuiverDBError result = quiverdb_mmap_vector_store_builder_save(_builder, cFilename);
+    if (result != QUIVERDB_OK) {
+        if (error) {
+            *error = errorFromCode(result, @"Failed to save MMap vector store to file");
+        }
+        return NO;
+    }
+    return YES;
+}
+
+- (NSUInteger)size:(NSError **)error {
+    size_t size = 0;
+    QuiverDBError result = quiverdb_mmap_vector_store_builder_size(_builder, &size);
+    if (result != QUIVERDB_OK) {
+        if (error) {
+            *error = errorFromCode(result, @"Failed to get size of MMap vector store builder");
+        }
+        return 0;
+    }
+    return size;
+}
+
+- (NSUInteger)dimension:(NSError **)error {
+    size_t dimension = 0;
+    QuiverDBError result = quiverdb_mmap_vector_store_builder_dimension(_builder, &dimension);
+    if (result != QUIVERDB_OK) {
+        if (error) {
+            *error = errorFromCode(result, @"Failed to get dimension of MMap vector store builder");
+        }
+        return 0;
+    }
+    return dimension;
+}
+
+@end
+
+// MMapVectorStore implementation
+@interface LlamaMobileVDMMapVectorStore () {
+    QuiverDBMMapVectorStore _store;
+}
+@end
+
+@implementation LlamaMobileVDMMapVectorStore
+
++ (nullable instancetype)openFromFile:(NSString *)filename error:(NSError **)error {
+    LlamaMobileVDMMapVectorStore *store = [[LlamaMobileVDMMapVectorStore alloc] init];
+    if (store) {
+        const char *cFilename = [filename UTF8String];
+        QuiverDBMMapVectorStore mmapStore;
+        QuiverDBError result = quiverdb_mmap_vector_store_open(cFilename, &mmapStore);
+        if (result != QUIVERDB_OK) {
+            if (error) {
+                *error = errorFromCode(result, [NSString stringWithFormat:@"Failed to open MMap vector store from file: %@", filename]);
+            }
+            return nil;
+        }
+        store->_store = mmapStore;
+    }
+    return store;
+}
+
+- (void)dealloc {
+    if (_store) {
+        quiverdb_mmap_vector_store_close(_store);
+    }
+}
+
+- (BOOL)getVectorForIdentifier:(uint64_t)identifier vector:(float *)vector vectorSize:(NSUInteger)vectorSize error:(NSError **)error {
+    QuiverDBError result = quiverdb_mmap_vector_store_get(_store, identifier, vector, vectorSize);
+    if (result != QUIVERDB_OK) {
+        if (error) {
+            *error = errorFromCode(result, @"Failed to get vector from MMap vector store");
+        }
+        return NO;
+    }
+    return YES;
+}
+
+- (BOOL)containsIdentifier:(uint64_t)identifier contains:(BOOL *)contains error:(NSError **)error {
+    int containsInt = 0;
+    QuiverDBError result = quiverdb_mmap_vector_store_contains(_store, identifier, &containsInt);
+    if (result != QUIVERDB_OK) {
+        if (error) {
+            *error = errorFromCode(result, @"Failed to check if vector exists in MMap vector store");
+        }
+        return NO;
+    }
+    if (contains) {
+        *contains = containsInt != 0;
+    }
+    return YES;
+}
+
+- (NSArray<LlamaMobileVDSearchResult *> *)searchVector:(const float *)query k:(NSUInteger)k error:(NSError **)error {
+    NSMutableArray<LlamaMobileVDSearchResult *> *results = [NSMutableArray arrayWithCapacity:k];
+    
+    QuiverDBSearchResult *cResults = new QuiverDBSearchResult[k];
+    if (!cResults) {
+        if (error) {
+            *error = errorFromCode(QUIVERDB_OUT_OF_MEMORY, @"Failed to allocate memory for search results");
+        }
+        return nil;
+    }
+    
+    QuiverDBError result = quiverdb_mmap_vector_store_search(_store, query, k, cResults, k);
+    if (result != QUIVERDB_OK) {
+        if (error) {
+            *error = errorFromCode(result, @"Failed to search vectors in MMap vector store");
+        }
+        delete[] cResults;
+        return nil;
+    }
+    
+    for (NSUInteger i = 0; i < k; i++) {
+        LlamaMobileVDSearchResult *searchResult = [[LlamaMobileVDSearchResult alloc] init];
+        searchResult.identifier = cResults[i].id;
+        searchResult.distance = cResults[i].distance;
+        [results addObject:searchResult];
+    }
+    
+    delete[] cResults;
+    return results;
+}
+
+- (NSUInteger)size:(NSError **)error {
+    size_t size = 0;
+    QuiverDBError result = quiverdb_mmap_vector_store_size(_store, &size);
+    if (result != QUIVERDB_OK) {
+        if (error) {
+            *error = errorFromCode(result, @"Failed to get size of MMap vector store");
+        }
+        return 0;
+    }
+    return size;
+}
+
+- (NSUInteger)dimension:(NSError **)error {
+    size_t dimension = 0;
+    QuiverDBError result = quiverdb_mmap_vector_store_dimension(_store, &dimension);
+    if (result != QUIVERDB_OK) {
+        if (error) {
+            *error = errorFromCode(result, @"Failed to get dimension of MMap vector store");
+        }
+        return 0;
+    }
+    return dimension;
+}
+
+- (LlamaMobileVDDistanceMetric)metric:(NSError **)error {
+    QuiverDBDistanceMetric metric;
+    QuiverDBError result = quiverdb_mmap_vector_store_metric(_store, &metric);
+    if (result != QUIVERDB_OK) {
+        if (error) {
+            *error = errorFromCode(result, @"Failed to get metric of MMap vector store");
+        }
+        return LlamaMobileVDDistanceMetricL2;
+    }
+    return convertDistanceMetricBack(metric);
+}
+
+@end
+
+// Version information implementation
 @implementation LlamaMobileVD
 
 + (NSString *)version {
-    const char *cVersion = quiverdb_version();
-    return [NSString stringWithUTF8String:cVersion];
+    return [NSString stringWithUTF8String:quiverdb_version()];
 }
 
 + (NSInteger)versionMajor {

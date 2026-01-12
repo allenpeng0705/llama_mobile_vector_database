@@ -361,6 +361,159 @@ public class HNSWIndex {
     }
 }
 
+/// A builder for creating and saving MMapVectorStore instances
+/// MMapVectorStore is optimized for large datasets that may exceed RAM capacity
+public class MMapVectorStoreBuilder {
+    private let objcBuilder: LlamaMobileVDMMapVectorStoreBuilder
+    
+    /// Initialize a new MMapVectorStore builder
+    /// - Parameters:
+    ///   - dimension: The dimension of the vectors
+    ///   - metric: The distance metric to use for similarity search
+    /// - Throws: An error if the builder could not be created
+    public init(dimension: Int, metric: DistanceMetric) throws {
+        objcBuilder = LlamaMobileVDMMapVectorStoreBuilder(dimension: UInt(dimension), metric: metric.objcValue)
+    }
+    
+    /// Add a vector to the builder
+    /// - Parameters:
+    ///   - vector: The vector to add
+    ///   - id: The ID to associate with the vector
+    /// - Throws: An error if the vector could not be added
+    public func addVector(_ vector: [Float], id: Int) throws {
+        var error: NSError?
+        guard objcBuilder.addIdentifier(UInt64(id), vector: vector, error: &error) else {
+            throw error ?? NSError(domain: "LlamaMobileVD", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to add vector to MMap vector store builder"])
+        }
+    }
+    
+    /// Reserve space for the specified number of vectors
+    /// - Parameter capacity: The number of vectors to reserve space for
+    /// - Throws: An error if the operation fails
+    public func reserve(capacity: Int) throws {
+        var error: NSError?
+        guard objcBuilder.reserveCapacity(UInt(capacity), error: &error) else {
+            throw error ?? NSError(domain: "LlamaMobileVD", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to reserve capacity in MMap vector store builder"])
+        }
+    }
+    
+    /// Save the builder's contents to a file, creating an MMapVectorStore
+    /// - Parameter filename: The path to the file where the vector store should be saved
+    /// - Returns: true if the vector store was saved successfully
+    /// - Throws: An error if the operation fails
+    public func save(filename: String) throws -> Bool {
+        var error: NSError?
+        guard objcBuilder.saveToFile(filename, error: &error) else {
+            throw error ?? NSError(domain: "LlamaMobileVD", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to save MMap vector store to file"])
+        }
+        return true
+    }
+    
+    /// Get the number of vectors in the builder
+    public var count: Int {
+        var error: NSError?
+        return Int(objcBuilder.size(&error) ?? 0)
+    }
+    
+    /// Get the dimension of the vectors in the builder
+    public var dimension: Int {
+        var error: NSError?
+        return Int(objcBuilder.dimension(&error) ?? 0)
+    }
+}
+
+/// A memory-mapped vector store optimized for large datasets that may exceed RAM capacity
+/// Uses memory mapping for efficient access to large datasets without loading everything into RAM
+public class MMapVectorStore {
+    private let objcStore: LlamaMobileVDMMapVectorStore
+    
+    /// Open an MMapVectorStore from a file
+    /// - Parameter filename: The path to the file containing the saved vector store
+    /// - Returns: The loaded MMapVectorStore
+    /// - Throws: An error if the vector store could not be opened
+    public static func open(filename: String) throws -> MMapVectorStore {
+        var error: NSError?
+        guard let objcStore = LlamaMobileVDMMapVectorStore.openFromFile(filename, error: &error) else {
+            throw error ?? NSError(domain: "LlamaMobileVD", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to open MMap vector store from file: \(filename)"])
+        }
+        return MMapVectorStore(objcStore: objcStore)
+    }
+    
+    /// Private initializer for loading an existing store
+    private init(objcStore: LlamaMobileVDMMapVectorStore) {
+        self.objcStore = objcStore
+    }
+    
+    /// Get a vector from the store by ID
+    /// - Parameter id: The ID of the vector to get
+    /// - Returns: The vector if found, nil otherwise
+    /// - Throws: An error if the operation fails
+    public func get(id: Int) throws -> [Float]? {
+        let dimension = self.dimension
+        var vector = [Float](repeating: 0.0, count: dimension)
+        var error: NSError?
+        guard objcStore.getVectorForIdentifier(UInt64(id), vector: &vector, vectorSize: UInt(dimension), error: &error) else {
+            return nil
+        }
+        return vector
+    }
+    
+    /// Search for the nearest neighbors of a query vector
+    /// - Parameters:
+    ///   - queryVector: The query vector
+    ///   - k: The number of nearest neighbors to return
+    /// - Returns: An array of search results sorted by distance
+    /// - Throws: An error if the search could not be performed
+    public func search(_ queryVector: [Float], k: Int) throws -> [SearchResult] {
+        var error: NSError?
+        guard let objcResults = objcStore.searchVector(queryVector, k: UInt(k), error: &error) else {
+            throw error ?? NSError(domain: "LlamaMobileVD", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to search vectors in MMap vector store"])
+        }
+        return objcResults.map { SearchResult(objcResult: $0) }
+    }
+    
+    /// Check if the store contains a vector with the given ID
+    /// - Parameter id: The ID to check
+    /// - Returns: true if the vector exists, false otherwise
+    /// - Throws: An error if the operation fails
+    public func contains(id: Int) throws -> Bool {
+        var contains: ObjCBool = false
+        var error: NSError?
+        guard objcStore.containsIdentifier(UInt64(id), contains: &contains, error: &error) else {
+            throw error ?? NSError(domain: "LlamaMobileVD", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to check if vector exists in MMap vector store"])
+        }
+        return Bool(contains)
+    }
+    
+    /// Get the number of vectors in the store
+    public var count: Int {
+        var error: NSError?
+        return Int(objcStore.size(&error) ?? 0)
+    }
+    
+    /// Get the dimension of the vectors in the store
+    public var dimension: Int {
+        var error: NSError?
+        return Int(objcStore.dimension(&error) ?? 0)
+    }
+    
+    /// Get the distance metric used by the store
+    public var metric: DistanceMetric {
+        var error: NSError?
+        let objcMetric = objcStore.metric(&error)
+        switch objcMetric {
+        case LlamaMobileVDDistanceMetricL2:
+            return .l2
+        case LlamaMobileVDDistanceMetricCosine:
+            return .cosine
+        case LlamaMobileVDDistanceMetricDot:
+            return .dot
+        default:
+            return .l2
+        }
+    }
+}
+
 /// Version information for LlamaMobileVD SDK
 public class LlamaMobileVDVersion {
     /// Get the full version string

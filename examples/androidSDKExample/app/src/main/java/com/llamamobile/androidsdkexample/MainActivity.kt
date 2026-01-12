@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.llamamobile.vd.VectorStore
 import com.llamamobile.vd.HNSWIndex
+import com.llamamobile.vd.MMapVectorStore
 import com.llamamobile.vd.DistanceMetric
 import com.llamamobile.vd.SearchResult
 import java.util.*
@@ -23,6 +24,11 @@ class MainActivity : AppCompatActivity() {
     private var hnswIndex: HNSWIndex? = null
     private var hnswIndexCount: Int = 0
     private var hnswIndexResults: List<SearchResult> = emptyList()
+    
+    // MMapVectorStore state
+    private var mmapVectorStore: MMapVectorStore? = null
+    private var mmapVectorStoreCount: Int = 0
+    private var mmapVectorStoreResults: List<SearchResult> = emptyList()
     
     // Configuration state
     private var dimension: Int = 128
@@ -77,6 +83,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var hnswIndexResultsContainer: LinearLayout
     private lateinit var hnswIndexResultsRecyclerView: RecyclerView
     
+    // MMapVectorStore UI elements
+    private lateinit var mmapFilePathEditText: EditText
+    private lateinit var openMMapVectorStoreButton: Button
+    private lateinit var searchMMapVectorStoreButton: Button
+    private lateinit var getMMapVectorStoreCountButton: Button
+    private lateinit var getMMapVectorStoreDimensionButton: Button
+    private lateinit var getMMapVectorStoreMetricButton: Button
+    private lateinit var releaseMMapVectorStoreButton: Button
+    private lateinit var mmapVectorStoreInfoTextView: TextView
+    private lateinit var mmapVectorStoreResultsContainer: LinearLayout
+    private lateinit var mmapVectorStoreResultsRecyclerView: RecyclerView
+    
     private val handler = Handler(Looper.getMainLooper())
     private val random = Random()
     
@@ -88,6 +106,7 @@ class MainActivity : AppCompatActivity() {
         setupEventListeners()
         updateVectorStoreInfo()
         updateHNSWIndexInfo()
+        updateMMapVectorStoreInfo()
     }
     
     private fun initializeUI() {
@@ -158,6 +177,22 @@ class MainActivity : AppCompatActivity() {
         
         hnswIndexResultsRecyclerView.layoutManager = LinearLayoutManager(this)
         hnswIndexResultsRecyclerView.adapter = SearchResultsAdapter(emptyList())
+        
+        // MMapVectorStore UI elements
+        mmapFilePathEditText = findViewById(R.id.mmap_file_path_edit_text)
+        openMMapVectorStoreButton = findViewById(R.id.open_mmap_vector_store_button)
+        searchMMapVectorStoreButton = findViewById(R.id.search_mmap_vector_store_button)
+        getMMapVectorStoreCountButton = findViewById(R.id.get_mmap_vector_store_count_button)
+        getMMapVectorStoreDimensionButton = findViewById(R.id.get_mmap_vector_store_dimension_button)
+        getMMapVectorStoreMetricButton = findViewById(R.id.get_mmap_vector_store_metric_button)
+        releaseMMapVectorStoreButton = findViewById(R.id.release_mmap_vector_store_button)
+        mmapVectorStoreInfoTextView = findViewById(R.id.mmap_vector_store_info_text_view)
+        mmapVectorStoreResultsContainer = findViewById(R.id.mmap_vector_store_results_container)
+        mmapVectorStoreResultsRecyclerView = findViewById(R.id.mmap_vector_store_results_recycler_view)
+        
+        // Setup MMapVectorStore RecyclerView
+        mmapVectorStoreResultsRecyclerView.layoutManager = LinearLayoutManager(this)
+        mmapVectorStoreResultsRecyclerView.adapter = SearchResultsAdapter(emptyList())
     }
     
     private fun setupEventListeners() {
@@ -315,6 +350,31 @@ class MainActivity : AppCompatActivity() {
         getHNSWCapacityButton.setOnClickListener {
             getHNSWCapacity()
         }
+        
+        // MMapVectorStore listeners
+        openMMapVectorStoreButton.setOnClickListener {
+            openMMapVectorStore()
+        }
+        
+        searchMMapVectorStoreButton.setOnClickListener {
+            searchMMapVectorStore()
+        }
+        
+        getMMapVectorStoreCountButton.setOnClickListener {
+            getMMapVectorStoreCount()
+        }
+        
+        getMMapVectorStoreDimensionButton.setOnClickListener {
+            getMMapVectorStoreDimension()
+        }
+        
+        getMMapVectorStoreMetricButton.setOnClickListener {
+            getMMapVectorStoreMetric()
+        }
+        
+        releaseMMapVectorStoreButton.setOnClickListener {
+            releaseMMapVectorStore()
+        }
     }
     
     private fun updateStatus(message: String) {
@@ -335,6 +395,11 @@ class MainActivity : AppCompatActivity() {
     private fun updateHNSWIndexInfo() {
         val indexStatus = if (hnswIndex != null) getString(R.string.status_created) else getString(R.string.none)
         hnswIndexInfoTextView.text = "${getString(R.string.label_hnsw_index_status)}: $indexStatus\n${getString(R.string.label_vector_count)}: $hnswIndexCount"
+    }
+    
+    private fun updateMMapVectorStoreInfo() {
+        val storeStatus = if (mmapVectorStore != null) getString(R.string.status_created) else getString(R.string.none)
+        mmapVectorStoreInfoTextView.text = "${getString(R.string.label_mmap_vector_store_status)}: $storeStatus\n${getString(R.string.label_vector_count)}: $mmapVectorStoreCount"
     }
     
     // VectorStore operations
@@ -931,6 +996,172 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 handler.post {
                     updateStatus("Error getting HNSW capacity: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    // MMapVectorStore operations
+    private fun openMMapVectorStore() {
+        val filePath = mmapFilePathEditText.text.toString().trim()
+        if (filePath.isEmpty()) {
+            updateStatus("Please enter a valid file path")
+            return
+        }
+        
+        updateStatus(getString(R.string.status_opening_mmap_vector_store))
+        
+        Thread {
+            try {
+                // First close any existing MMapVectorStore
+                mmapVectorStore?.close()
+                
+                val newMMapVectorStore = MMapVectorStore.open(filePath)
+                mmapVectorStore = newMMapVectorStore
+                mmapVectorStoreCount = newMMapVectorStore.getCount()
+                mmapVectorStoreResults = emptyList()
+                
+                handler.post {
+                    mmapVectorStoreResultsContainer.visibility = LinearLayout.GONE
+                    updateMMapVectorStoreInfo()
+                    updateStatus(getString(R.string.status_mmap_vector_store_opened))
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error opening MMapVectorStore: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun searchMMapVectorStore() {
+        if (mmapVectorStore == null) {
+            updateStatus(getString(R.string.status_please_open_mmap_vector_store_first))
+            return
+        }
+        
+        if (mmapVectorStoreCount == 0) {
+            updateStatus("MMapVectorStore is empty")
+            return
+        }
+        
+        updateStatus(getString(R.string.status_searching_mmap_vector_store))
+        
+        Thread {
+            try {
+                // Get the dimension from the store
+                val storeDimension = mmapVectorStore!!.getDimension()
+                val queryVector = createRandomVector(storeDimension)
+                val results = mmapVectorStore!!.search(queryVector, searchK)
+                
+                handler.post {
+                    mmapVectorStoreResults = results.toList()
+                    mmapVectorStoreResultsRecyclerView.adapter = SearchResultsAdapter(results.toList())
+                    mmapVectorStoreResultsContainer.visibility = LinearLayout.VISIBLE
+                    updateStatus(getString(R.string.status_search_completed))
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error searching MMapVectorStore: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun getMMapVectorStoreCount() {
+        if (mmapVectorStore == null) {
+            updateStatus(getString(R.string.status_please_open_mmap_vector_store_first))
+            return
+        }
+        
+        updateStatus("Getting MMapVectorStore count...")
+        
+        Thread {
+            try {
+                val count = mmapVectorStore!!.getCount()
+                
+                handler.post {
+                    mmapVectorStoreCount = count
+                    updateMMapVectorStoreInfo()
+                    updateStatus("MMapVectorStore count: $count")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error getting MMapVectorStore count: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun getMMapVectorStoreDimension() {
+        if (mmapVectorStore == null) {
+            updateStatus(getString(R.string.status_please_open_mmap_vector_store_first))
+            return
+        }
+        
+        updateStatus("Getting MMapVectorStore dimension...")
+        
+        Thread {
+            try {
+                val dimension = mmapVectorStore!!.getDimension()
+                
+                handler.post {
+                    updateStatus("MMapVectorStore dimension: $dimension")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error getting MMapVectorStore dimension: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun getMMapVectorStoreMetric() {
+        if (mmapVectorStore == null) {
+            updateStatus(getString(R.string.status_please_open_mmap_vector_store_first))
+            return
+        }
+        
+        updateStatus("Getting MMapVectorStore metric...")
+        
+        Thread {
+            try {
+                val metric = mmapVectorStore!!.getMetric()
+                
+                handler.post {
+                    updateStatus("MMapVectorStore metric: ${metric.name}")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error getting MMapVectorStore metric: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun releaseMMapVectorStore() {
+        if (mmapVectorStore == null) {
+            updateStatus(getString(R.string.status_please_open_mmap_vector_store_first))
+            return
+        }
+        
+        updateStatus(getString(R.string.status_releasing_mmap_vector_store))
+        
+        Thread {
+            try {
+                mmapVectorStore!!.close()
+                
+                handler.post {
+                    mmapVectorStore = null
+                    mmapVectorStoreCount = 0
+                    mmapVectorStoreResults = emptyList()
+                    mmapVectorStoreResultsContainer.visibility = LinearLayout.GONE
+                    updateMMapVectorStoreInfo()
+                    updateStatus(getString(R.string.status_mmap_vector_store_released))
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error releasing MMapVectorStore: ${e.message}")
                 }
             }
         }.start()

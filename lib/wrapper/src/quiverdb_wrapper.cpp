@@ -2,6 +2,7 @@
 #include "quiverdb_wrapper.h"
 #include "core/vector_store.h"
 #include "core/hnsw_index.h"
+#include "core/mmap_vector_store.h"
 #include "core/version.h"
 
 #include <cstring>
@@ -401,6 +402,200 @@ QuiverDBError quiverdb_hnsw_index_load(const char* filename, QuiverDBHNSWIndex* 
 void quiverdb_hnsw_index_destroy(QuiverDBHNSWIndex index) {
     auto hnsw_index = static_cast<HNSWIndex*>(index);
     delete hnsw_index;
+}
+
+// MMapVectorStoreBuilder implementation
+
+QuiverDBError quiverdb_mmap_vector_store_builder_create(size_t dimension, QuiverDBDistanceMetric metric, QuiverDBMMapVectorStoreBuilder* builder) {
+    try {
+        auto mmap_builder = new MMapVectorStoreBuilder(dimension, convert_metric(metric));
+        *builder = mmap_builder;
+        return QUIVERDB_OK;
+    } catch (const std::invalid_argument&) {
+        return QUIVERDB_INVALID_ARGUMENT;
+    } catch (const std::bad_alloc&) {
+        return QUIVERDB_OUT_OF_MEMORY;
+    } catch (...) {
+        return QUIVERDB_ERROR;
+    }
+}
+
+QuiverDBError quiverdb_mmap_vector_store_builder_add(QuiverDBMMapVectorStoreBuilder builder, uint64_t id, const float* vector) {
+    try {
+        auto mmap_builder = static_cast<MMapVectorStoreBuilder*>(builder);
+        mmap_builder->add(id, vector);
+        return QUIVERDB_OK;
+    } catch (const std::invalid_argument& e) {
+        if (std::strstr(e.what(), "Duplicate ID")) {
+            return QUIVERDB_DUPLICATE_ID;
+        }
+        return QUIVERDB_INVALID_ARGUMENT;
+    } catch (const std::bad_alloc&) {
+        return QUIVERDB_OUT_OF_MEMORY;
+    } catch (...) {
+        return QUIVERDB_ERROR;
+    }
+}
+
+QuiverDBError quiverdb_mmap_vector_store_builder_reserve(QuiverDBMMapVectorStoreBuilder builder, size_t capacity) {
+    try {
+        auto mmap_builder = static_cast<MMapVectorStoreBuilder*>(builder);
+        mmap_builder->reserve(capacity);
+        return QUIVERDB_OK;
+    } catch (const std::bad_alloc&) {
+        return QUIVERDB_OUT_OF_MEMORY;
+    } catch (...) {
+        return QUIVERDB_ERROR;
+    }
+}
+
+QuiverDBError quiverdb_mmap_vector_store_builder_save(QuiverDBMMapVectorStoreBuilder builder, const char* filename) {
+    try {
+        auto mmap_builder = static_cast<MMapVectorStoreBuilder*>(builder);
+        mmap_builder->save(filename);
+        return QUIVERDB_OK;
+    } catch (const std::ios_base::failure&) {
+        return QUIVERDB_FILE_ERROR;
+    } catch (const std::bad_alloc&) {
+        return QUIVERDB_OUT_OF_MEMORY;
+    } catch (...) {
+        return QUIVERDB_ERROR;
+    }
+}
+
+QuiverDBError quiverdb_mmap_vector_store_builder_size(QuiverDBMMapVectorStoreBuilder builder, size_t* size) {
+    try {
+        auto mmap_builder = static_cast<MMapVectorStoreBuilder*>(builder);
+        *size = mmap_builder->size();
+        return QUIVERDB_OK;
+    } catch (...) {
+        return QUIVERDB_ERROR;
+    }
+}
+
+QuiverDBError quiverdb_mmap_vector_store_builder_dimension(QuiverDBMMapVectorStoreBuilder builder, size_t* dimension) {
+    try {
+        auto mmap_builder = static_cast<MMapVectorStoreBuilder*>(builder);
+        *dimension = mmap_builder->dimension();
+        return QUIVERDB_OK;
+    } catch (...) {
+        return QUIVERDB_ERROR;
+    }
+}
+
+void quiverdb_mmap_vector_store_builder_destroy(QuiverDBMMapVectorStoreBuilder builder) {
+    auto mmap_builder = static_cast<MMapVectorStoreBuilder*>(builder);
+    delete mmap_builder;
+}
+
+// MMapVectorStore implementation
+
+QuiverDBError quiverdb_mmap_vector_store_open(const char* filename, QuiverDBMMapVectorStore* store) {
+    try {
+        auto mmap_store = new MMapVectorStore(filename);
+        *store = mmap_store;
+        return QUIVERDB_OK;
+    } catch (const std::ios_base::failure&) {
+        return QUIVERDB_FILE_ERROR;
+    } catch (const std::invalid_argument&) {
+        return QUIVERDB_INVALID_ARGUMENT;
+    } catch (const std::bad_alloc&) {
+        return QUIVERDB_OUT_OF_MEMORY;
+    } catch (...) {
+        return QUIVERDB_ERROR;
+    }
+}
+
+QuiverDBError quiverdb_mmap_vector_store_get(QuiverDBMMapVectorStore store, uint64_t id, float* vector, size_t vector_size) {
+    try {
+        auto mmap_store = static_cast<MMapVectorStore*>(store);
+        size_t dimension = mmap_store->dimension();
+        
+        if (vector_size < dimension) {
+            return QUIVERDB_INVALID_ARGUMENT;
+        }
+        
+        const float* stored_vector = mmap_store->get(id);
+        if (!stored_vector) {
+            return QUIVERDB_ID_NOT_FOUND;
+        }
+        
+        std::memcpy(vector, stored_vector, dimension * sizeof(float));
+        return QUIVERDB_OK;
+    } catch (...) {
+        return QUIVERDB_ERROR;
+    }
+}
+
+QuiverDBError quiverdb_mmap_vector_store_contains(QuiverDBMMapVectorStore store, uint64_t id, int* contains) {
+    try {
+        auto mmap_store = static_cast<MMapVectorStore*>(store);
+        bool result = mmap_store->contains(id);
+        *contains = result ? 1 : 0;
+        return QUIVERDB_OK;
+    } catch (...) {
+        return QUIVERDB_ERROR;
+    }
+}
+
+QuiverDBError quiverdb_mmap_vector_store_search(QuiverDBMMapVectorStore store, const float* query, size_t k, QuiverDBSearchResult* results, size_t results_size) {
+    try {
+        auto mmap_store = static_cast<MMapVectorStore*>(store);
+        
+        if (results_size < k) {
+            return QUIVERDB_INVALID_ARGUMENT;
+        }
+        
+        auto search_results = mmap_store->search(query, k);
+        
+        for (size_t i = 0; i < search_results.size(); ++i) {
+            results[i].id = search_results[i].id;
+            results[i].distance = search_results[i].distance;
+        }
+        
+        return QUIVERDB_OK;
+    } catch (const std::invalid_argument&) {
+        return QUIVERDB_INVALID_ARGUMENT;
+    } catch (const std::bad_alloc&) {
+        return QUIVERDB_OUT_OF_MEMORY;
+    } catch (...) {
+        return QUIVERDB_ERROR;
+    }
+}
+
+QuiverDBError quiverdb_mmap_vector_store_size(QuiverDBMMapVectorStore store, size_t* size) {
+    try {
+        auto mmap_store = static_cast<MMapVectorStore*>(store);
+        *size = mmap_store->size();
+        return QUIVERDB_OK;
+    } catch (...) {
+        return QUIVERDB_ERROR;
+    }
+}
+
+QuiverDBError quiverdb_mmap_vector_store_dimension(QuiverDBMMapVectorStore store, size_t* dimension) {
+    try {
+        auto mmap_store = static_cast<MMapVectorStore*>(store);
+        *dimension = mmap_store->dimension();
+        return QUIVERDB_OK;
+    } catch (...) {
+        return QUIVERDB_ERROR;
+    }
+}
+
+QuiverDBError quiverdb_mmap_vector_store_metric(QuiverDBMMapVectorStore store, QuiverDBDistanceMetric* metric) {
+    try {
+        auto mmap_store = static_cast<MMapVectorStore*>(store);
+        *metric = convert_metric_back(mmap_store->metric());
+        return QUIVERDB_OK;
+    } catch (...) {
+        return QUIVERDB_ERROR;
+    }
+}
+
+void quiverdb_mmap_vector_store_close(QuiverDBMMapVectorStore store) {
+    auto mmap_store = static_cast<MMapVectorStore*>(store);
+    delete mmap_store;
 }
 
 // Version information

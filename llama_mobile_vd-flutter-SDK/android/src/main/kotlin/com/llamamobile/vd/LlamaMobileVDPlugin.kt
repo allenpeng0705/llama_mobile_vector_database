@@ -23,6 +23,10 @@ class LlamaMobileVDPlugin : FlutterPlugin, MethodCallHandler {
     private val hnswIndexes = mutableMapOf<Int, HNSWIndex>()
     private var hnswIndexIdCounter = 0
     
+    // Dictionary to keep track of MMap vector stores
+    private val mmapVectorStores = mutableMapOf<Int, MMapVectorStore>()
+    private var mmapVectorStoreIdCounter = 0
+    
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "llama_mobile_vd")
         channel.setMethodCallHandler(this)
@@ -64,6 +68,14 @@ class LlamaMobileVDPlugin : FlutterPlugin, MethodCallHandler {
             // Version information methods
             "getVersion" -> handleGetVersion(call, result)
             
+            // MMapVectorStore methods
+            "mmapVectorStoreOpen" -> handleMMapVectorStoreOpen(call, result)
+            "mmapVectorStoreSearch" -> handleMMapVectorStoreSearch(call, result)
+            "mmapVectorStoreCount" -> handleMMapVectorStoreCount(call, result)
+            "mmapVectorStoreDimension" -> handleMMapVectorStoreDimension(call, result)
+            "mmapVectorStoreMetric" -> handleMMapVectorStoreMetric(call, result)
+            "mmapVectorStoreDestroy" -> handleMMapVectorStoreDestroy(call, result)
+            
             else -> result.notImplemented()
         }
     }
@@ -77,6 +89,9 @@ class LlamaMobileVDPlugin : FlutterPlugin, MethodCallHandler {
         
         hnswIndexes.values.forEach { it.close() }
         hnswIndexes.clear()
+        
+        mmapVectorStores.values.forEach { it.close() }
+        mmapVectorStores.clear()
     }
     
     // MARK: - VectorStore Methods
@@ -599,6 +614,123 @@ class LlamaMobileVDPlugin : FlutterPlugin, MethodCallHandler {
             result.success(version)
         } catch (e: Exception) {
             result.error("VERSION_FAILED", "Failed to get version: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    // MARK: - MMapVectorStore Methods
+    
+    /**
+     * Handles mmapVectorStoreOpen method call
+     */
+    private fun handleMMapVectorStoreOpen(call: MethodCall, result: Result) {
+        try {
+            val path = call.argument<String>("path") ?: throw IllegalArgumentException("Path is required")
+            
+            val store = MMapVectorStore.open(path)
+            val storeId = mmapVectorStoreIdCounter++
+            mmapVectorStores[storeId] = store
+            
+            result.success(storeId)
+        } catch (e: Exception) {
+            result.error("OPEN_FAILED", "Failed to open MMapVectorStore: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles mmapVectorStoreSearch method call
+     */
+    private fun handleMMapVectorStoreSearch(call: MethodCall, result: Result) {
+        try {
+            val storeId = call.argument<Int>("storeId") ?: throw IllegalArgumentException("Store ID is required")
+            val queryVectorData = call.argument<List<Double>>("queryVector") ?: throw IllegalArgumentException("Query vector is required")
+            val k = call.argument<Int>("k") ?: throw IllegalArgumentException("k is required")
+            
+            val store = mmapVectorStores[storeId] ?: throw IllegalArgumentException("MMapVectorStore not found")
+            
+            // Convert List<Double> to FloatArray
+            val queryVector = queryVectorData.map { it.toFloat() }.toFloatArray()
+            
+            val searchResults = store.search(queryVector, k)
+            
+            // Convert SearchResult array to Flutter-compatible format
+            val flutterResults = searchResults.map { mapOf(
+                "id" to it.id,
+                "distance" to it.distance
+            ) }
+            
+            result.success(flutterResults)
+        } catch (e: Exception) {
+            result.error("SEARCH_FAILED", "Failed to search MMapVectorStore: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles mmapVectorStoreCount method call
+     */
+    private fun handleMMapVectorStoreCount(call: MethodCall, result: Result) {
+        try {
+            val storeId = call.argument<Int>("storeId") ?: throw IllegalArgumentException("Store ID is required")
+            
+            val store = mmapVectorStores[storeId] ?: throw IllegalArgumentException("MMapVectorStore not found")
+            
+            val count = store.getCount()
+            result.success(count)
+        } catch (e: Exception) {
+            result.error("COUNT_FAILED", "Failed to get count: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles mmapVectorStoreDimension method call
+     */
+    private fun handleMMapVectorStoreDimension(call: MethodCall, result: Result) {
+        try {
+            val storeId = call.argument<Int>("storeId") ?: throw IllegalArgumentException("Store ID is required")
+            
+            val store = mmapVectorStores[storeId] ?: throw IllegalArgumentException("MMapVectorStore not found")
+            
+            val dimension = store.dimension
+            result.success(dimension)
+        } catch (e: Exception) {
+            result.error("DIMENSION_FAILED", "Failed to get dimension: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles mmapVectorStoreMetric method call
+     */
+    private fun handleMMapVectorStoreMetric(call: MethodCall, result: Result) {
+        try {
+            val storeId = call.argument<Int>("storeId") ?: throw IllegalArgumentException("Store ID is required")
+            
+            val store = mmapVectorStores[storeId] ?: throw IllegalArgumentException("MMapVectorStore not found")
+            
+            val metric = store.metric
+            // Convert metric to integer value matching the Dart enum
+            val metricValue = when (metric) {
+                DistanceMetric.L2 -> 0
+                DistanceMetric.COSINE -> 1
+                DistanceMetric.DOT -> 2
+            }
+            result.success(metricValue)
+        } catch (e: Exception) {
+            result.error("METRIC_FAILED", "Failed to get metric: ${e.message}", e.stackTraceToString())
+        }
+    }
+    
+    /**
+     * Handles mmapVectorStoreDestroy method call
+     */
+    private fun handleMMapVectorStoreDestroy(call: MethodCall, result: Result) {
+        try {
+            val storeId = call.argument<Int>("storeId") ?: throw IllegalArgumentException("Store ID is required")
+            
+            val store = mmapVectorStores.remove(storeId) ?: throw IllegalArgumentException("MMapVectorStore not found")
+            
+            store.close()
+            result.success(null)
+        } catch (e: Exception) {
+            result.error("DESTROY_FAILED", "Failed to destroy MMapVectorStore: ${e.message}", e.stackTraceToString())
         }
     }
 }

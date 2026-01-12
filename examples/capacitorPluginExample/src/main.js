@@ -169,6 +169,35 @@ document.querySelector('#app').innerHTML = `
       </div>
     </div>
     
+    <!-- MMapVectorStore section -->
+    <div class="section">
+      <h2>MMapVectorStore (Memory-Mapped Vector Store)</h2>
+      
+      <div class="input-group">
+        <label for="mmapPathInput">File Path:</label>
+        <input type="text" id="mmapPathInput" value="/tmp/vectorstore.mmap" placeholder="/tmp/vectorstore.mmap" />
+      </div>
+      
+      <div class="button-group">
+        <button id="openMMapVectorStore">Open MMapVectorStore</button>
+        <button id="searchMMapVectorStore">Search</button>
+        <button id="getMMapVectorStoreCount">Get Count</button>
+        <button id="getMMapVectorStoreDimension">Get Dimension</button>
+        <button id="getMMapVectorStoreMetric">Get Metric</button>
+        <button id="releaseMMapVectorStore">Release</button>
+      </div>
+      
+      <div id="mmapVectorStoreInfo" class="info">
+        MMapVectorStore Status: None
+        Vector Count: 0
+      </div>
+      
+      <div id="mmapVectorStoreResults" class="results">
+        <h3>Search Results:</h3>
+        <div class="no-results">No results yet</div>
+      </div>
+    </div>
+    
     <!-- Version APIs section -->
     <div class="section">
       <h2>Version Information</h2>
@@ -192,6 +221,10 @@ let vectorStoreId = null;
 let vectorStoreCount = 0;
 let hnswIndexId = null;
 let hnswIndexCount = 0;
+let mmapVectorStoreId = null;
+let mmapVectorStoreCount = 0;
+let mmapVectorStoreDimension = 0;
+let mmapVectorStoreMetric = '';
 
 // Configuration state
 let dimension = 128;
@@ -260,6 +293,17 @@ const getVersionMinorBtn = document.getElementById('getVersionMinor');
 const getVersionPatchBtn = document.getElementById('getVersionPatch');
 const versionInfoEl = document.getElementById('versionInfo');
 
+// MMapVectorStore elements
+const mmapPathInputEl = document.getElementById('mmapPathInput');
+const openMMapVectorStoreBtn = document.getElementById('openMMapVectorStore');
+const searchMMapVectorStoreBtn = document.getElementById('searchMMapVectorStore');
+const getMMapVectorStoreCountBtn = document.getElementById('getMMapVectorStoreCount');
+const getMMapVectorStoreDimensionBtn = document.getElementById('getMMapVectorStoreDimension');
+const getMMapVectorStoreMetricBtn = document.getElementById('getMMapVectorStoreMetric');
+const releaseMMapVectorStoreBtn = document.getElementById('releaseMMapVectorStore');
+const mmapVectorStoreInfoEl = document.getElementById('mmapVectorStoreInfo');
+const mmapVectorStoreResultsEl = document.getElementById('mmapVectorStoreResults');
+
 // Update status message
 function updateStatus(message) {
   statusEl.textContent = message;
@@ -290,6 +334,17 @@ function updateHNSWIndexInfo() {
   hnswIndexInfoEl.innerHTML = `
     HNSWIndex Status: ${status}<br>
     Vector Count: ${hnswIndexCount}
+  `;
+}
+
+// Update MMapVectorStore info
+function updateMMapVectorStoreInfo() {
+  const status = mmapVectorStoreId ? 'Opened' : 'None';
+  mmapVectorStoreInfoEl.innerHTML = `
+    MMapVectorStore Status: ${status}<br>
+    Vector Count: ${mmapVectorStoreCount}<br>
+    ${mmapVectorStoreDimension > 0 ? `Dimension: ${mmapVectorStoreDimension}<br>` : ''}
+    ${mmapVectorStoreMetric ? `Metric: ${mmapVectorStoreMetric}` : ''}
   `;
 }
 
@@ -985,6 +1040,136 @@ getVersionPatchBtn.addEventListener('click', async () => {
   }
 });
 
+// MMapVectorStore operations
+openMMapVectorStoreBtn.addEventListener('click', async () => {
+  try {
+    const path = mmapPathInputEl.value;
+    if (!path) {
+      updateStatus('Please enter a valid file path');
+      return;
+    }
+    
+    updateStatus('Opening MMapVectorStore...');
+    
+    // First release any existing MMapVectorStore
+    if (mmapVectorStoreId) {
+      await LlamaMobileVD.releaseMMapVectorStore({ id: mmapVectorStoreId });
+    }
+    
+    const result = await LlamaMobileVD.openMMapVectorStore({ path });
+    mmapVectorStoreId = result.id;
+    mmapVectorStoreCount = result.count;
+    mmapVectorStoreDimension = result.dimension;
+    mmapVectorStoreMetric = result.metric;
+    
+    updateMMapVectorStoreInfo();
+    updateStatus('MMapVectorStore opened successfully');
+  } catch (error) {
+    updateStatus(`Error opening MMapVectorStore: ${error.message}`);
+  }
+});
+
+searchMMapVectorStoreBtn.addEventListener('click', async () => {
+  try {
+    if (!mmapVectorStoreId) {
+      updateStatus('Please open a MMapVectorStore first');
+      return;
+    }
+    
+    updateStatus('Searching MMapVectorStore...');
+    
+    // Use the dimension from the store
+    const queryVector = createRandomVector(mmapVectorStoreDimension);
+    const results = await LlamaMobileVD.searchMMapVectorStore({ 
+      id: mmapVectorStoreId, 
+      vector: queryVector, 
+      k: searchK 
+    });
+    
+    displayResults(mmapVectorStoreResultsEl, results.results);
+    updateStatus('Search completed successfully');
+  } catch (error) {
+    updateStatus(`Error searching MMapVectorStore: ${error.message}`);
+  }
+});
+
+getMMapVectorStoreCountBtn.addEventListener('click', async () => {
+  try {
+    if (!mmapVectorStoreId) {
+      updateStatus('Please open a MMapVectorStore first');
+      return;
+    }
+    
+    updateStatus('Getting MMapVectorStore count...');
+    
+    const result = await LlamaMobileVD.countMMapVectorStore({ id: mmapVectorStoreId });
+    mmapVectorStoreCount = result.count;
+    updateMMapVectorStoreInfo();
+    updateStatus(`MMapVectorStore count: ${result.count}`);
+  } catch (error) {
+    updateStatus(`Error getting count: ${error.message}`);
+  }
+});
+
+getMMapVectorStoreDimensionBtn.addEventListener('click', async () => {
+  try {
+    if (!mmapVectorStoreId) {
+      updateStatus('Please open a MMapVectorStore first');
+      return;
+    }
+    
+    updateStatus('Getting MMapVectorStore dimension...');
+    
+    const result = await LlamaMobileVD.getMMapVectorStoreDimension({ id: mmapVectorStoreId });
+    mmapVectorStoreDimension = result.dimension;
+    updateMMapVectorStoreInfo();
+    updateStatus(`MMapVectorStore dimension: ${result.dimension}`);
+  } catch (error) {
+    updateStatus(`Error getting dimension: ${error.message}`);
+  }
+});
+
+getMMapVectorStoreMetricBtn.addEventListener('click', async () => {
+  try {
+    if (!mmapVectorStoreId) {
+      updateStatus('Please open a MMapVectorStore first');
+      return;
+    }
+    
+    updateStatus('Getting MMapVectorStore metric...');
+    
+    const result = await LlamaMobileVD.getMMapVectorStoreMetric({ id: mmapVectorStoreId });
+    mmapVectorStoreMetric = result.metric;
+    updateMMapVectorStoreInfo();
+    updateStatus(`MMapVectorStore metric: ${result.metric}`);
+  } catch (error) {
+    updateStatus(`Error getting metric: ${error.message}`);
+  }
+});
+
+releaseMMapVectorStoreBtn.addEventListener('click', async () => {
+  try {
+    if (!mmapVectorStoreId) {
+      updateStatus('Please open a MMapVectorStore first');
+      return;
+    }
+    
+    updateStatus('Releasing MMapVectorStore...');
+    
+    await LlamaMobileVD.releaseMMapVectorStore({ id: mmapVectorStoreId });
+    mmapVectorStoreId = null;
+    mmapVectorStoreCount = 0;
+    mmapVectorStoreDimension = 0;
+    mmapVectorStoreMetric = '';
+    updateMMapVectorStoreInfo();
+    displayResults(mmapVectorStoreResultsEl, []);
+    updateStatus('MMapVectorStore released successfully');
+  } catch (error) {
+    updateStatus(`Error releasing MMapVectorStore: ${error.message}`);
+  }
+});
+
 // Initialize info displays
 updateVectorStoreInfo();
 updateHNSWIndexInfo();
+updateMMapVectorStoreInfo();

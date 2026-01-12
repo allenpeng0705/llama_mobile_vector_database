@@ -40,6 +40,13 @@ jest.mock('react-native', () => {
       getVersionMajor: jest.fn(),
       getVersionMinor: jest.fn(),
       getVersionPatch: jest.fn(),
+      // MMapVectorStore methods
+      openMMapVectorStore: jest.fn(),
+      searchMMapVectorStore: jest.fn(),
+      getMMapVectorStoreCount: jest.fn(),
+      getMMapVectorStoreDimension: jest.fn(),
+      getMMapVectorStoreMetric: jest.fn(),
+      releaseMMapVectorStore: jest.fn(),
     },
   };
   
@@ -660,6 +667,175 @@ describe('LlamaMobileVD', () => {
       
       expect(NativeModules.LlamaMobileVD.getVersionPatch).toHaveBeenCalled();
       expect(result).toEqual(mockResponse);
+    });
+  });
+
+  // MARK: MMapVectorStore Tests
+  describe('MMapVectorStore', () => {
+    describe('openMMapVectorStore', () => {
+      it('should call the native module with the correct parameters', async () => {
+        const mockId = 'test-mmap-store-id';
+        const mockResponse = { id: mockId };
+        
+        // Mock the native module response
+        const { NativeModules } = require('react-native');
+        NativeModules.LlamaMobileVD.openMMapVectorStore.mockResolvedValue(mockResponse);
+        
+        const params = {
+          path: '/path/to/vectorstore.mmap',
+        };
+        
+        const result = await LlamaMobileVD.openMMapVectorStore(params);
+        
+        expect(NativeModules.LlamaMobileVD.openMMapVectorStore).toHaveBeenCalledWith(params);
+        expect(result).toEqual(mockResponse);
+      });
+
+      it('should handle different file paths', async () => {
+        const mockId = 'test-mmap-store-id';
+        const mockResponse = { id: mockId };
+        
+        // Mock the native module response
+        const { NativeModules } = require('react-native');
+        NativeModules.LlamaMobileVD.openMMapVectorStore.mockResolvedValue(mockResponse);
+        
+        // Test with different file paths
+        const paths = [
+          '/storage/emulated/0/vectorstore.mmap',
+          '/data/user/0/com.example.app/files/vectors.mmap',
+          '/sdcard/documents/index.mmap'
+        ];
+        
+        for (const path of paths) {
+          await LlamaMobileVD.openMMapVectorStore({ path });
+        }
+        
+        expect(NativeModules.LlamaMobileVD.openMMapVectorStore).toHaveBeenCalledTimes(paths.length);
+      });
+    });
+
+    describe('searchMMapVectorStore', () => {
+      it('should call the native module with the correct parameters', async () => {
+        const mockId = 'test-mmap-store-id';
+        const mockQueryVector = Array(512).fill(0.5);
+        const mockK = 10;
+        const mockResults = [
+          { index: 1, distance: 0.123 },
+          { index: 2, distance: 0.234 },
+          { index: 3, distance: 0.345 },
+        ];
+        
+        // Mock the native module response
+        const { NativeModules } = require('react-native');
+        NativeModules.LlamaMobileVD.searchMMapVectorStore.mockResolvedValue(mockResults);
+        
+        const params = {
+          id: mockId,
+          queryVector: mockQueryVector,
+          k: mockK,
+        };
+        
+        const results = await LlamaMobileVD.searchMMapVectorStore(params);
+        
+        expect(NativeModules.LlamaMobileVD.searchMMapVectorStore).toHaveBeenCalledWith(params);
+        expect(results).toEqual(mockResults);
+      });
+
+      it('should handle different k values', async () => {
+        const mockId = 'test-mmap-store-id';
+        const mockQueryVector = Array(256).fill(0.75);
+        const mockResults = [];
+        
+        // Mock the native module response
+        const { NativeModules } = require('react-native');
+        NativeModules.LlamaMobileVD.searchMMapVectorStore.mockResolvedValue(mockResults);
+        
+        // Test with different k values
+        const kValues = [1, 5, 10, 20, 50];
+        
+        for (const k of kValues) {
+          await LlamaMobileVD.searchMMapVectorStore({
+            id: mockId,
+            queryVector: mockQueryVector,
+            k: k,
+          });
+        }
+        
+        expect(NativeModules.LlamaMobileVD.searchMMapVectorStore).toHaveBeenCalledTimes(kValues.length);
+      });
+    });
+
+    describe('getMMapVectorStoreCount', () => {
+      it('should call the native module with the correct parameters', async () => {
+        const mockId = 'test-mmap-store-id';
+        const mockCount = 100;
+        const mockResponse = { count: mockCount };
+        
+        // Mock the native module response
+        const { NativeModules } = require('react-native');
+        NativeModules.LlamaMobileVD.getMMapVectorStoreCount.mockResolvedValue(mockResponse);
+        
+        const params = { id: mockId };
+        
+        const result = await LlamaMobileVD.getMMapVectorStoreCount(params);
+        
+        expect(NativeModules.LlamaMobileVD.getMMapVectorStoreCount).toHaveBeenCalledWith(params);
+        expect(result).toEqual(mockResponse);
+      });
+    });
+
+    describe('getMMapVectorStoreDimension', () => {
+      it('should call the native module with the correct parameters', async () => {
+        const mockId = 'test-mmap-store-id';
+        const mockDimension = 512;
+        const mockResponse = { dimension: mockDimension };
+        
+        // Mock the native module response
+        const { NativeModules } = require('react-native');
+        NativeModules.LlamaMobileVD.getMMapVectorStoreDimension.mockResolvedValue(mockResponse);
+        
+        const params = { id: mockId };
+        
+        const result = await LlamaMobileVD.getMMapVectorStoreDimension(params);
+        
+        expect(NativeModules.LlamaMobileVD.getMMapVectorStoreDimension).toHaveBeenCalledWith(params);
+        expect(result).toEqual(mockResponse);
+      });
+    });
+
+    describe('getMMapVectorStoreMetric', () => {
+      it('should call the native module with the correct parameters', async () => {
+        const mockId = 'test-mmap-store-id';
+        const mockMetric = DistanceMetric.COSINE;
+        const mockResponse = { metric: mockMetric };
+        
+        // Mock the native module response
+        const { NativeModules } = require('react-native');
+        NativeModules.LlamaMobileVD.getMMapVectorStoreMetric.mockResolvedValue(mockResponse);
+        
+        const params = { id: mockId };
+        
+        const result = await LlamaMobileVD.getMMapVectorStoreMetric(params);
+        
+        expect(NativeModules.LlamaMobileVD.getMMapVectorStoreMetric).toHaveBeenCalledWith(params);
+        expect(result).toEqual(mockResponse);
+      });
+    });
+
+    describe('releaseMMapVectorStore', () => {
+      it('should call the native module with the correct parameters', async () => {
+        const mockId = 'test-mmap-store-id';
+        
+        // Mock the native module response
+        const { NativeModules } = require('react-native');
+        NativeModules.LlamaMobileVD.releaseMMapVectorStore.mockResolvedValue();
+        
+        const params = { id: mockId };
+        
+        await LlamaMobileVD.releaseMMapVectorStore(params);
+        
+        expect(NativeModules.LlamaMobileVD.releaseMMapVectorStore).toHaveBeenCalledWith(params);
+      });
     });
   });
 });

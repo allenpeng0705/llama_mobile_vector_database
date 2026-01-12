@@ -11,6 +11,7 @@ import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.llamamobile.vd.DistanceMetric;
 import com.llamamobile.vd.HNSWIndex;
+import com.llamamobile.vd.MMapVectorStore;
 import com.llamamobile.vd.SearchResult;
 import com.llamamobile.vd.VectorStore;
 
@@ -38,6 +39,11 @@ public class LlamaMobileVDImpl {
      * Map of HNSWIndex instances by ID
      */
     private final Map<String, HNSWIndex> hnswIndexes = new HashMap<>();
+    
+    /**
+     * Map of MMapVectorStore instances by ID
+     */
+    private final Map<String, MMapVectorStore> mmapVectorStores = new HashMap<>();
 
     /**
      * Constructor for the implementation
@@ -777,6 +783,164 @@ public class LlamaMobileVDImpl {
         JSObject result = new JSObject();
         result.put("id", id);
         return result;
+    }
+    
+    // MARK: MMapVectorStore Methods
+    
+    /**
+     * Open an existing MMapVectorStore from a file
+     * 
+     * @param call Plugin call with parameters
+     * @return JSObject with the opened store ID
+     */
+    public JSObject openMMapVectorStore(PluginCall call) {
+        String path = call.getString("path");
+        
+        if (path == null) {
+            throw new IllegalArgumentException("Missing required parameter: path");
+        }
+        
+        MMapVectorStore store = MMapVectorStore.open(path);
+        String id = generateUniqueId();
+        mmapVectorStores.put(id, store);
+        
+        JSObject result = new JSObject();
+        result.put("id", id);
+        return result;
+    }
+    
+    /**
+     * Search for nearest neighbors in an MMapVectorStore
+     * 
+     * @param call Plugin call with parameters
+     * @return JSObject with search results
+     */
+    public JSObject searchMMapVectorStore(PluginCall call) {
+        String id = call.getString("id");
+        JSArray queryVectorArray = call.getArray("queryVector");
+        Integer k = call.getInt("k");
+        
+        if (id == null || queryVectorArray == null || k == null) {
+            throw new IllegalArgumentException("Missing required parameters");
+        }
+        
+        MMapVectorStore store = mmapVectorStores.get(id);
+        if (store == null) {
+            throw new IllegalArgumentException("MMapVectorStore not found with id: " + id);
+        }
+        
+        float[] queryVector = convertToFloatArray(queryVectorArray);
+        SearchResult[] results = store.search(queryVector, k);
+        
+        return convertSearchResultsToJSObject(results);
+    }
+    
+    /**
+     * Get the number of vectors in an MMapVectorStore
+     * 
+     * @param call Plugin call with parameters
+     * @return JSObject with the count of vectors
+     */
+    public JSObject getMMapVectorStoreCount(PluginCall call) {
+        String id = call.getString("id");
+        
+        if (id == null) {
+            throw new IllegalArgumentException("Missing required parameter: id");
+        }
+        
+        MMapVectorStore store = mmapVectorStores.get(id);
+        if (store == null) {
+            throw new IllegalArgumentException("MMapVectorStore not found with id: " + id);
+        }
+        
+        int count = store.getCount();
+        JSObject result = new JSObject();
+        result.put("count", count);
+        return result;
+    }
+    
+    /**
+     * Get the dimension of vectors in an MMapVectorStore
+     * 
+     * @param call Plugin call with parameters
+     * @return JSObject with the dimension
+     */
+    public JSObject getMMapVectorStoreDimension(PluginCall call) {
+        String id = call.getString("id");
+        
+        if (id == null) {
+            throw new IllegalArgumentException("Missing required parameter: id");
+        }
+        
+        MMapVectorStore store = mmapVectorStores.get(id);
+        if (store == null) {
+            throw new IllegalArgumentException("MMapVectorStore not found with id: " + id);
+        }
+        
+        int dimension = store.getDimension();
+        JSObject result = new JSObject();
+        result.put("dimension", dimension);
+        return result;
+    }
+    
+    /**
+     * Get the distance metric used by an MMapVectorStore
+     * 
+     * @param call Plugin call with parameters
+     * @return JSObject with the metric
+     */
+    public JSObject getMMapVectorStoreMetric(PluginCall call) {
+        String id = call.getString("id");
+        
+        if (id == null) {
+            throw new IllegalArgumentException("Missing required parameter: id");
+        }
+        
+        MMapVectorStore store = mmapVectorStores.get(id);
+        if (store == null) {
+            throw new IllegalArgumentException("MMapVectorStore not found with id: " + id);
+        }
+        
+        DistanceMetric metric = store.getMetric();
+        String metricStr;
+        switch (metric) {
+            case L2:
+                metricStr = "L2";
+                break;
+            case COSINE:
+                metricStr = "COSINE";
+                break;
+            case DOT:
+                metricStr = "DOT";
+                break;
+            default:
+                metricStr = metric.name();
+                break;
+        }
+        
+        JSObject result = new JSObject();
+        result.put("metric", metricStr);
+        return result;
+    }
+    
+    /**
+     * Release an MMapVectorStore and free resources
+     * 
+     * @param call Plugin call with parameters
+     */
+    public void releaseMMapVectorStore(PluginCall call) {
+        String id = call.getString("id");
+        
+        if (id == null) {
+            throw new IllegalArgumentException("Missing required parameter: id");
+        }
+        
+        MMapVectorStore store = mmapVectorStores.remove(id);
+        if (store == null) {
+            throw new IllegalArgumentException("MMapVectorStore not found with id: " + id);
+        }
+        
+        store.close();
     }
     
     // MARK: Version Methods

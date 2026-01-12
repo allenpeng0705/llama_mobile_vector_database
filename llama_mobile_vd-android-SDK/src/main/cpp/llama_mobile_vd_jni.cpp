@@ -396,3 +396,246 @@ Java_com_llamamobile_vd_LlamaMobileVD_nativeGetVersion(JNIEnv *env, jclass clazz
     const char *version = quiverdb_version();
     return env->NewStringUTF(version);
 }
+
+// MMapVectorStoreBuilder native methods
+
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStoreBuilder_createBuilder(JNIEnv *env, jclass clazz, jint dimension, jint metric) {
+    QuiverDBMMapVectorStoreBuilder builder;
+    QuiverDBError result = quiverdb_mmap_vector_store_builder_create(dimension, static_cast<QuiverDBDistanceMetric>(metric), &builder);
+    if (result != QUIVERDB_OK) {
+        LOGE("Failed to create MMap vector store builder: %d", result);
+        return 0;
+    }
+    return reinterpret_cast<jlong>(builder);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStoreBuilder_destroyBuilder(JNIEnv *env, jclass clazz, jlong handle) {
+    QuiverDBMMapVectorStoreBuilder builder = reinterpret_cast<QuiverDBMMapVectorStoreBuilder>(handle);
+    quiverdb_mmap_vector_store_builder_destroy(builder);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStoreBuilder_addVector(JNIEnv *env, jclass clazz, jlong handle, jfloatArray vector, jint vectorSize, jint id) {
+    QuiverDBMMapVectorStoreBuilder builder = reinterpret_cast<QuiverDBMMapVectorStoreBuilder>(handle);
+    jfloat *vectorData = env->GetFloatArrayElements(vector, nullptr);
+    if (!vectorData) {
+        LOGE("Failed to get vector data");
+        return false;
+    }
+
+    QuiverDBError result = quiverdb_mmap_vector_store_builder_add(builder, static_cast<uint64_t>(id), vectorData);
+    env->ReleaseFloatArrayElements(vector, vectorData, JNI_ABORT);
+
+    if (result != QUIVERDB_OK) {
+        LOGE("Failed to add vector to MMap vector store builder: %d", result);
+        return false;
+    }
+    return true;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStoreBuilder_reserve(JNIEnv *env, jclass clazz, jlong handle, jint capacity) {
+    QuiverDBMMapVectorStoreBuilder builder = reinterpret_cast<QuiverDBMMapVectorStoreBuilder>(handle);
+    QuiverDBError result = quiverdb_mmap_vector_store_builder_reserve(builder, capacity);
+    if (result != QUIVERDB_OK) {
+        LOGE("Failed to reserve capacity in MMap vector store builder: %d", result);
+    }
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStoreBuilder_save(JNIEnv *env, jclass clazz, jlong handle, jstring filename) {
+    QuiverDBMMapVectorStoreBuilder builder = reinterpret_cast<QuiverDBMMapVectorStoreBuilder>(handle);
+    const char *cFilename = env->GetStringUTFChars(filename, nullptr);
+    if (!cFilename) {
+        LOGE("Failed to get filename string");
+        return false;
+    }
+
+    QuiverDBError result = quiverdb_mmap_vector_store_builder_save(builder, cFilename);
+    env->ReleaseStringUTFChars(filename, cFilename);
+
+    if (result != QUIVERDB_OK) {
+        LOGE("Failed to save MMap vector store: %d", result);
+        return false;
+    }
+    return true;
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStoreBuilder_getCount(JNIEnv *env, jclass clazz, jlong handle) {
+    QuiverDBMMapVectorStoreBuilder builder = reinterpret_cast<QuiverDBMMapVectorStoreBuilder>(handle);
+    size_t size;
+    QuiverDBError result = quiverdb_mmap_vector_store_builder_size(builder, &size);
+    if (result != QUIVERDB_OK) {
+        LOGE("Failed to get MMap vector store builder size: %d", result);
+        return 0;
+    }
+    return static_cast<jint>(size);
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStoreBuilder_dimension(JNIEnv *env, jclass clazz, jlong handle) {
+    QuiverDBMMapVectorStoreBuilder builder = reinterpret_cast<QuiverDBMMapVectorStoreBuilder>(handle);
+    size_t dimension;
+    QuiverDBError result = quiverdb_mmap_vector_store_builder_dimension(builder, &dimension);
+    if (result != QUIVERDB_OK) {
+        LOGE("Failed to get MMap vector store builder dimension: %d", result);
+        return 0;
+    }
+    return static_cast<jint>(dimension);
+}
+
+// MMapVectorStore native methods
+
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_open(JNIEnv *env, jclass clazz, jstring filename) {
+    const char *cFilename = env->GetStringUTFChars(filename, nullptr);
+    if (!cFilename) {
+        LOGE("Failed to get filename string");
+        return 0;
+    }
+
+    QuiverDBMMapVectorStore store;
+    QuiverDBError result = quiverdb_mmap_vector_store_open(cFilename, &store);
+    env->ReleaseStringUTFChars(filename, cFilename);
+
+    if (result != QUIVERDB_OK) {
+        LOGE("Failed to open MMap vector store: %d", result);
+        return 0;
+    }
+    return reinterpret_cast<jlong>(store);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_close(JNIEnv *env, jclass clazz, jlong handle) {
+    QuiverDBMMapVectorStore store = reinterpret_cast<QuiverDBMMapVectorStore>(handle);
+    quiverdb_mmap_vector_store_close(store);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_get(JNIEnv *env, jclass clazz, jlong handle, jint id, jfloatArray vector) {
+    QuiverDBMMapVectorStore store = reinterpret_cast<QuiverDBMMapVectorStore>(handle);
+    jfloat *vectorData = env->GetFloatArrayElements(vector, nullptr);
+    if (!vectorData) {
+        LOGE("Failed to get vector data");
+        return false;
+    }
+
+    size_t vectorSize = env->GetArrayLength(vector);
+    QuiverDBError result = quiverdb_mmap_vector_store_get(store, static_cast<uint64_t>(id), vectorData, vectorSize);
+    if (result != QUIVERDB_OK) {
+        LOGE("Failed to get vector from MMap vector store: %d", result);
+        env->ReleaseFloatArrayElements(vector, vectorData, JNI_ABORT);
+        return false;
+    }
+
+    env->ReleaseFloatArrayElements(vector, vectorData, 0);
+    return true;
+}
+
+extern "C" JNIEXPORT jobjectArray JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_search(JNIEnv *env, jclass clazz, jlong handle, jfloatArray query, jint vectorSize, jint k, jintArray resultCount) {
+    QuiverDBMMapVectorStore store = reinterpret_cast<QuiverDBMMapVectorStore>(handle);
+    jfloat *queryData = env->GetFloatArrayElements(query, nullptr);
+    if (!queryData) {
+        LOGE("Failed to get query data");
+        return nullptr;
+    }
+
+    std::vector<QuiverDBSearchResult> results(k);
+    QuiverDBError result = quiverdb_mmap_vector_store_search(store, queryData, k, results.data(), results.size());
+    env->ReleaseFloatArrayElements(query, queryData, JNI_ABORT);
+
+    if (result != QUIVERDB_OK) {
+        LOGE("Failed to search vectors in MMap vector store: %d", result);
+        return nullptr;
+    }
+
+    // Update result count
+    jint *countPtr = env->GetIntArrayElements(resultCount, nullptr);
+    if (countPtr) {
+        countPtr[0] = static_cast<jint>(results.size());
+        env->ReleaseIntArrayElements(resultCount, countPtr, 0);
+    }
+
+    return createSearchResultArray(env, results);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_contains(JNIEnv *env, jclass clazz, jlong handle, jint id, jintArray contains) {
+    QuiverDBMMapVectorStore store = reinterpret_cast<QuiverDBMMapVectorStore>(handle);
+    int containsResult = 0;
+    QuiverDBError result = quiverdb_mmap_vector_store_contains(store, static_cast<uint64_t>(id), &containsResult);
+    if (result != QUIVERDB_OK) {
+        LOGE("Failed to check if ID exists in MMap vector store: %d", result);
+        return false;
+    }
+
+    // Update contains array
+    jint *containsPtr = env->GetIntArrayElements(contains, nullptr);
+    if (containsPtr) {
+        containsPtr[0] = containsResult;
+        env->ReleaseIntArrayElements(contains, containsPtr, 0);
+    }
+
+    return true;
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_getCount(JNIEnv *env, jclass clazz, jlong handle) {
+    QuiverDBMMapVectorStore store = reinterpret_cast<QuiverDBMMapVectorStore>(handle);
+    size_t size;
+    QuiverDBError result = quiverdb_mmap_vector_store_size(store, &size);
+    if (result != QUIVERDB_OK) {
+        LOGE("Failed to get MMap vector store size: %d", result);
+        return 0;
+    }
+    return static_cast<jint>(size);
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_dimension(JNIEnv *env, jclass clazz, jlong handle) {
+    QuiverDBMMapVectorStore store = reinterpret_cast<QuiverDBMMapVectorStore>(handle);
+    size_t dimension;
+    QuiverDBError result = quiverdb_mmap_vector_store_dimension(store, &dimension);
+    if (result != QUIVERDB_OK) {
+        LOGE("Failed to get MMap vector store dimension: %d", result);
+        return 0;
+    }
+    return static_cast<jint>(dimension);
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_metric(JNIEnv *env, jclass clazz, jlong handle) {
+    QuiverDBMMapVectorStore store = reinterpret_cast<QuiverDBMMapVectorStore>(handle);
+    QuiverDBDistanceMetric metric;
+    QuiverDBError result = quiverdb_mmap_vector_store_metric(store, &metric);
+    if (result != QUIVERDB_OK) {
+        LOGE("Failed to get MMap vector store metric: %d", result);
+        return 0;
+    }
+    return static_cast<jint>(metric);
+}
+
+// Reuse existing search result helper methods
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_freeSearchResults(JNIEnv *env, jclass clazz, jlong results) {
+    // This is a no-op since we don't use the same result allocation pattern as VectorStore and HNSWIndex
+    return 0;
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_getResultId(JNIEnv *env, jclass clazz, jlong results, jint index) {
+    // This is a placeholder - in reality, the search method returns a direct array of results
+    LOGE("getResultId should not be called directly for MMapVectorStore");
+    return 0;
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_getResultDistance(JNIEnv *env, jclass clazz, jlong results, jint index) {
+    // This is a placeholder - in reality, the search method returns a direct array of results
+    LOGE("getResultDistance should not be called directly for MMapVectorStore");
+    return 0.0f;
+}

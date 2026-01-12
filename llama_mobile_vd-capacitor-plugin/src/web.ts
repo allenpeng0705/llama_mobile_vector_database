@@ -136,4 +136,29 @@ export class LlamaMobileVDWeb extends WebPlugin implements LlamaMobileVDPlugin {
   async getVersionPatch(): Promise<{ value: number }> {
     throw new Error(this.UNSUPPORTED_ERROR);
   }
+
+  // MARK: MMapVectorStore Methods
+  async openMMapVectorStore(): Promise<{ id: string }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async searchMMapVectorStore(): Promise<{ results: { id: number; distance: number }[] }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async getMMapVectorStoreCount(): Promise<{ count: number }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async getMMapVectorStoreDimension(): Promise<{ dimension: number }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async getMMapVectorStoreMetric(): Promise<{ metric: string }> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
+
+  async releaseMMapVectorStore(): Promise<void> {
+    throw new Error(this.UNSUPPORTED_ERROR);
+  }
 }

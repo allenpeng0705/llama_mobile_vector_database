@@ -682,4 +682,197 @@ class LlamaMobileVDTests {
         assertEquals(versionMinor, versionParts[1].toIntOrNull())
         assertEquals(versionPatch, versionParts[2].toIntOrNull())
     }
+    
+    @Test
+    fun testMMapVectorStoreBuilderCreation() {
+        for (dimension in testDimensions) {
+            for (metric in testMetrics) {
+                val builder = MMapVectorStoreBuilder(dimension, metric).track()
+                assertEquals(0, builder.getCount())
+                assertEquals(dimension, builder.dimension)
+            }
+        }
+    }
+    
+    @Test
+    fun testMMapVectorStoreBuilderOperations() {
+        val dimension = 512
+        val metric = DistanceMetric.L2
+        
+        val builder = MMapVectorStoreBuilder(dimension, metric).track()
+        
+        // Test adding vectors
+        val vector1 = FloatArray(dimension) { 1.0f }
+        val vector2 = FloatArray(dimension) { 0.5f }
+        val vector3 = FloatArray(dimension) { 0.25f }
+        
+        builder.addVector(vector1, 1)
+        assertEquals(1, builder.getCount())
+        
+        builder.addVector(vector2, 2)
+        assertEquals(2, builder.getCount())
+        
+        builder.addVector(vector3, 3)
+        assertEquals(3, builder.getCount())
+        
+        // Test reserve
+        builder.reserve(100)
+        assertEquals(3, builder.getCount())
+        
+        // Test adding more vectors after reserve
+        for (i in 4..10) {
+            val vector = FloatArray(dimension) { (i / 10.0f) }
+            builder.addVector(vector, i)
+        }
+        assertEquals(10, builder.getCount())
+    }
+    
+    @Test
+    fun testMMapVectorStoreSaveLoad() {
+        val dimension = 256
+        val metric = DistanceMetric.COSINE
+        
+        // Create a temporary file path for testing
+        val tempFilePath = File.createTempFile("mmap_test", ".store").absolutePath
+        
+        try {
+            // Create and populate the builder
+            val builder = MMapVectorStoreBuilder(dimension, metric).track()
+            
+            // Add some vectors
+            val vector1 = FloatArray(dimension) { 1.0f }
+            val vector2 = FloatArray(dimension) { 0.5f }
+            val vector3 = FloatArray(dimension) { 0.25f }
+            
+            builder.addVector(vector1, 1)
+            builder.addVector(vector2, 2)
+            builder.addVector(vector3, 3)
+            
+            // Save to file
+            assertTrue(builder.save(tempFilePath))
+            
+            // Close the builder
+            builder.close()
+            resourcesToClose.remove(builder)
+            
+            // Open the MMapVectorStore
+            val vectorStore = MMapVectorStore.open(tempFilePath).track()
+            
+            // Verify store properties
+            assertEquals(dimension, vectorStore.dimension)
+            assertEquals(metric, vectorStore.metric)
+            assertEquals(3, vectorStore.getCount())
+            
+            // Verify vectors can be retrieved
+            val retrieved1 = vectorStore.get(1)
+            assertNotNull(retrieved1)
+            assertEquals(dimension, retrieved1?.size)
+            for (i in 0 until dimension) {
+                assertEquals(vector1[i], retrieved1!![i], 0.001f)
+            }
+            
+            val retrieved2 = vectorStore.get(2)
+            assertNotNull(retrieved2)
+            for (i in 0 until dimension) {
+                assertEquals(vector2[i], retrieved2!![i], 0.001f)
+            }
+            
+            val retrieved3 = vectorStore.get(3)
+            assertNotNull(retrieved3)
+            for (i in 0 until dimension) {
+                assertEquals(vector3[i], retrieved3!![i], 0.001f)
+            }
+            
+            // Verify contains functionality
+            assertTrue(vectorStore.contains(1))
+            assertTrue(vectorStore.contains(2))
+            assertTrue(vectorStore.contains(3))
+            assertFalse(vectorStore.contains(4))
+        } finally {
+            // Clean up the temporary file
+            File(tempFilePath).delete()
+        }
+    }
+    
+    @Test
+    fun testMMapVectorStoreSearch() {
+        val dimension = 512
+        val metric = DistanceMetric.cosine
+        
+        // Create a temporary file path for testing
+        val tempFilePath = File.createTempFile("mmap_search_test", ".store").absolutePath
+        
+        try {
+            // Create and populate the store
+            val builder = MMapVectorStoreBuilder(dimension, metric).track()
+            
+            // Add known vectors for predictable search results
+            val vector1 = FloatArray(dimension) { 1.0f }  // ID 1
+            val vector2 = FloatArray(dimension) { 0.9f }  // ID 2 - very similar to vector1
+            val vector3 = FloatArray(dimension) { 0.5f }  // ID 3 - somewhat similar
+            val vector4 = FloatArray(dimension) { 0.1f }  // ID 4 - less similar
+            val vector5 = FloatArray(dimension) { -1.0f } // ID 5 - very dissimilar
+            
+            builder.addVector(vector1, 1)
+            builder.addVector(vector2, 2)
+            builder.addVector(vector3, 3)
+            builder.addVector(vector4, 4)
+            builder.addVector(vector5, 5)
+            
+            // Save the store
+            assertTrue(builder.save(tempFilePath))
+            
+            // Close the builder
+            builder.close()
+            resourcesToClose.remove(builder)
+            
+            // Open and search
+            val vectorStore = MMapVectorStore.open(tempFilePath).track()
+            
+            // Test search for vector1 - should find itself first
+            val results1 = vectorStore.search(vector1, 3)
+            assertEquals(3, results1.size)
+            assertEquals(1, results1[0].id)  // Exact match
+            assertEquals(2, results1[1].id)  // Very similar
+            assertEquals(3, results1[2].id)  // Somewhat similar
+            
+            // Test search for vector3 - should find itself first, then similar vectors
+            val results2 = vectorStore.search(vector3, 2)
+            assertEquals(2, results2.size)
+            assertEquals(3, results2[0].id)  // Exact match
+            assertTrue(listOf(2, 4).contains(results2[1].id))  // Should be either 2 or 4 depending on metric
+            
+            // Test search with k larger than the number of vectors
+            val results3 = vectorStore.search(vector1, 10)
+            assertEquals(5, results3.size)  // Only 5 vectors available
+        } finally {
+            // Clean up the temporary file
+            File(tempFilePath).delete()
+        }
+    }
+    
+    @Test
+    fun testMMapVectorStoreErrorHandling() {
+        val dimension = 16
+        val metric = DistanceMetric.L2
+        
+        // Test builder creation with invalid parameters
+        assertThrows(IllegalStateException::class.java) {
+            // Invalid dimension (negative)
+            MMapVectorStoreBuilder(-1, metric)
+        }
+        
+        // Test adding vector with wrong dimension
+        val builder = MMapVectorStoreBuilder(dimension, metric).track()
+        val wrongDimensionVector = FloatArray(dimension + 1) { 0.5f }
+        assertThrows(IllegalArgumentException::class.java) {
+            builder.addVector(wrongDimensionVector, 1)
+        }
+        
+        // Test opening non-existent file
+        val nonExistentPath = "non_existent_file.store"
+        assertThrows(IllegalStateException::class.java) {
+            MMapVectorStore.open(nonExistentPath)
+        }
+    }
 }

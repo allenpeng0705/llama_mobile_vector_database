@@ -12,6 +12,14 @@ class MainViewController: UIViewController {
     private var hnswIndexCount: Int = 0
     private var hnswIndexResults: [SearchResult] = []
     
+    // MMapVectorStore state
+    private var mmapVectorStore: MMapVectorStore?
+    private var mmapVectorStoreCount: Int = 0
+    private var mmapVectorStoreDimension: Int = 0
+    private var mmapVectorStoreMetric: String = ""
+    private var mmapVectorStoreResults: [SearchResult] = []
+    private var mmapFilePath: String = "/tmp/vectorstore.mmap"
+    
     // Configuration state
     private var dimension: Int = 128
     private var selectedMetric: DistanceMetric = .l2
@@ -49,6 +57,14 @@ class MainViewController: UIViewController {
     private let releaseHNSWIndexButton = UIButton(type: .system)
     private let hnswIndexInfoLabel = UILabel()
     private let hnswIndexResultsTableView = UITableView()
+    
+    // MMapVectorStore UI elements
+    private let mmapFilePathTextField = UITextField()
+    private let openMMapVectorStoreButton = UIButton(type: .system)
+    private let searchMMapVectorStoreButton = UIButton(type: .system)
+    private let releaseMMapVectorStoreButton = UIButton(type: .system)
+    private let mmapVectorStoreInfoLabel = UILabel()
+    private let mmapVectorStoreResultsTableView = UITableView()
     
     private let scrollView = UIScrollView()
     private let contentView = UIView()
@@ -504,8 +520,104 @@ class MainViewController: UIViewController {
             hnswIndexResultsTableView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
             hnswIndexResultsTableView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
             hnswIndexResultsTableView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
-            hnswIndexResultsTableView.heightAnchor.constraint(equalToConstant: 200),
-            hnswIndexResultsTableView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -horizontalPadding)
+            hnswIndexResultsTableView.heightAnchor.constraint(equalToConstant: 200)
+        ])
+        
+        currentY += 220
+        
+        // MMapVectorStore section
+        let mmapVectorStoreLabel = createSectionLabel(title: "MMapVectorStore (Memory-Mapped Vector Store)")
+        contentView.addSubview(mmapVectorStoreLabel)
+        NSLayoutConstraint.activate([
+            mmapVectorStoreLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
+            mmapVectorStoreLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding)
+        ])
+        
+        currentY += 20
+        
+        // MMapVectorStore file path text field
+        mmapFilePathTextField.placeholder = "Enter file path"
+        mmapFilePathTextField.text = mmapFilePath
+        mmapFilePathTextField.borderStyle = .roundedRect
+        mmapFilePathTextField.translatesAutoresizingMaskIntoConstraints = false
+        
+        contentView.addSubview(mmapFilePathTextField)
+        NSLayoutConstraint.activate([
+            mmapFilePathTextField.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
+            mmapFilePathTextField.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
+            mmapFilePathTextField.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
+            mmapFilePathTextField.heightAnchor.constraint(equalToConstant: 40)
+        ])
+        
+        currentY += 50
+        
+        // MMapVectorStore buttons row
+        let mmapVectorStoreButtonsStackView = UIStackView()
+        mmapVectorStoreButtonsStackView.axis = .horizontal
+        mmapVectorStoreButtonsStackView.distribution = .fillEqually
+        mmapVectorStoreButtonsStackView.spacing = 8
+        mmapVectorStoreButtonsStackView.translatesAutoresizingMaskIntoConstraints = false
+        
+        openMMapVectorStoreButton.setTitle("Open MMapVectorStore", for: .normal)
+        openMMapVectorStoreButton.addTarget(self, action: #selector(openMMapVectorStoreButtonTapped), for: .touchUpInside)
+        openMMapVectorStoreButton.backgroundColor = .systemBlue
+        openMMapVectorStoreButton.setTitleColor(.white, for: .normal)
+        openMMapVectorStoreButton.layer.cornerRadius = 8
+        
+        searchMMapVectorStoreButton.setTitle("Search", for: .normal)
+        searchMMapVectorStoreButton.addTarget(self, action: #selector(searchMMapVectorStoreButtonTapped), for: .touchUpInside)
+        searchMMapVectorStoreButton.backgroundColor = .systemBlue
+        searchMMapVectorStoreButton.setTitleColor(.white, for: .normal)
+        searchMMapVectorStoreButton.layer.cornerRadius = 8
+        
+        releaseMMapVectorStoreButton.setTitle("Release", for: .normal)
+        releaseMMapVectorStoreButton.addTarget(self, action: #selector(releaseMMapVectorStoreButtonTapped), for: .touchUpInside)
+        releaseMMapVectorStoreButton.backgroundColor = .systemBlue
+        releaseMMapVectorStoreButton.setTitleColor(.white, for: .normal)
+        releaseMMapVectorStoreButton.layer.cornerRadius = 8
+        
+        mmapVectorStoreButtonsStackView.addArrangedSubview(openMMapVectorStoreButton)
+        mmapVectorStoreButtonsStackView.addArrangedSubview(searchMMapVectorStoreButton)
+        mmapVectorStoreButtonsStackView.addArrangedSubview(releaseMMapVectorStoreButton)
+        
+        contentView.addSubview(mmapVectorStoreButtonsStackView)
+        NSLayoutConstraint.activate([
+            mmapVectorStoreButtonsStackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
+            mmapVectorStoreButtonsStackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
+            mmapVectorStoreButtonsStackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
+            mmapVectorStoreButtonsStackView.heightAnchor.constraint(equalToConstant: 40)
+        ])
+        
+        currentY += 50
+        
+        // MMapVectorStore info
+        mmapVectorStoreInfoLabel.numberOfLines = 0
+        mmapVectorStoreInfoLabel.font = UIFont.systemFont(ofSize: 14)
+        mmapVectorStoreInfoLabel.text = "MMapVectorStore Status: None\nVector count: 0\nDimension: 0\nMetric:"
+        mmapVectorStoreInfoLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        contentView.addSubview(mmapVectorStoreInfoLabel)
+        NSLayoutConstraint.activate([
+            mmapVectorStoreInfoLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
+            mmapVectorStoreInfoLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding)
+        ])
+        
+        currentY += 80
+        
+        // MMapVectorStore results table
+        mmapVectorStoreResultsTableView.dataSource = self
+        mmapVectorStoreResultsTableView.delegate = self
+        mmapVectorStoreResultsTableView.register(UITableViewCell.self, forCellReuseIdentifier: "ResultCell")
+        mmapVectorStoreResultsTableView.translatesAutoresizingMaskIntoConstraints = false
+        mmapVectorStoreResultsTableView.isHidden = true
+        
+        contentView.addSubview(mmapVectorStoreResultsTableView)
+        NSLayoutConstraint.activate([
+            mmapVectorStoreResultsTableView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
+            mmapVectorStoreResultsTableView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
+            mmapVectorStoreResultsTableView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
+            mmapVectorStoreResultsTableView.heightAnchor.constraint(equalToConstant: 200),
+            mmapVectorStoreResultsTableView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -horizontalPadding)
         ])
     }
     
@@ -535,6 +647,11 @@ class MainViewController: UIViewController {
     private func updateHNSWIndexInfo() {
         let indexStatusText = hnswIndex != nil ? "Created" : "None"
         hnswIndexInfoLabel.text = "HNSWIndex Status: \(indexStatusText)\nVector count: \(hnswIndexCount)"
+    }
+    
+    private func updateMMapVectorStoreInfo() {
+        let storeStatusText = mmapVectorStore != nil ? "Opened" : "None"
+        mmapVectorStoreInfoLabel.text = "MMapVectorStore Status: \(storeStatusText)\nVector count: \(mmapVectorStoreCount)\nDimension: \(mmapVectorStoreDimension)\nMetric: \(mmapVectorStoreMetric)"
     }
     
     // MARK: - Action Methods
@@ -834,6 +951,103 @@ class MainViewController: UIViewController {
             updateStatus(message: "Error releasing HNSWIndex: \(error.localizedDescription)")
         }
     }
+    
+    // MARK: - MMapVectorStore Action Methods
+    @objc private func openMMapVectorStoreButtonTapped() {
+        // Update file path from text field
+        if let text = mmapFilePathTextField.text, !text.isEmpty {
+            mmapFilePath = text
+        }
+        
+        updateStatus(message: "Opening MMapVectorStore from \(mmapFilePath)...")
+        
+        // Release existing store if any
+        if let existingStore = mmapVectorStore {
+            do {
+                try existingStore.release()
+            } catch {
+                updateStatus(message: "Error releasing existing MMapVectorStore: \(error.localizedDescription)")
+                return
+            }
+        }
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let mmapStore = try MMapVectorStore.open(filePath: self.mmapFilePath)
+                let count = try mmapStore.count()
+                let dimension = try mmapStore.dimension()
+                let metric = try mmapStore.metric()
+                
+                DispatchQueue.main.async {
+                    self.mmapVectorStore = mmapStore
+                    self.mmapVectorStoreCount = count
+                    self.mmapVectorStoreDimension = dimension
+                    self.mmapVectorStoreMetric = metric.rawValue
+                    self.mmapVectorStoreResults.removeAll()
+                    self.mmapVectorStoreResultsTableView.reloadData()
+                    self.mmapVectorStoreResultsTableView.isHidden = true
+                    self.updateMMapVectorStoreInfo()
+                    self.updateStatus(message: "MMapVectorStore opened successfully")
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.updateStatus(message: "Error opening MMapVectorStore: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    @objc private func searchMMapVectorStoreButtonTapped() {
+        guard let mmapStore = mmapVectorStore else {
+            updateStatus(message: "Please open a MMapVectorStore first")
+            return
+        }
+        
+        updateStatus(message: "Searching MMapVectorStore...")
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let queryVector = self.createRandomVector(dimension: self.mmapVectorStoreDimension)
+                let results = try mmapStore.search(queryVector: queryVector, k: self.searchK)
+                
+                DispatchQueue.main.async {
+                    self.mmapVectorStoreResults = results
+                    self.mmapVectorStoreResultsTableView.reloadData()
+                    self.mmapVectorStoreResultsTableView.isHidden = false
+                    self.updateStatus(message: "Search completed successfully")
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.updateStatus(message: "Error searching MMapVectorStore: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    @objc private func releaseMMapVectorStoreButtonTapped() {
+        guard let mmapStore = mmapVectorStore else {
+            updateStatus(message: "Please open a MMapVectorStore first")
+            return
+        }
+        
+        updateStatus(message: "Releasing MMapVectorStore...")
+        
+        do {
+            try mmapStore.release()
+            
+            self.mmapVectorStore = nil
+            self.mmapVectorStoreCount = 0
+            self.mmapVectorStoreDimension = 0
+            self.mmapVectorStoreMetric = ""
+            self.mmapVectorStoreResults.removeAll()
+            self.mmapVectorStoreResultsTableView.reloadData()
+            self.mmapVectorStoreResultsTableView.isHidden = true
+            self.updateMMapVectorStoreInfo()
+            self.updateStatus(message: "MMapVectorStore released successfully")
+        } catch {
+            updateStatus(message: "Error releasing MMapVectorStore: \(error.localizedDescription)")
+        }
+    }
 }
 
 // MARK: - UITableViewDataSource & UITableViewDelegate
@@ -842,15 +1056,25 @@ extension MainViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if tableView == vectorStoreResultsTableView {
             return vectorStoreResults.count
-        } else {
+        } else if tableView == hnswIndexResultsTableView {
             return hnswIndexResults.count
+        } else {
+            return mmapVectorStoreResults.count
         }
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "ResultCell", for: indexPath)
         
-        let results = tableView == vectorStoreResultsTableView ? vectorStoreResults : hnswIndexResults
+        let results: [SearchResult]
+        if tableView == vectorStoreResultsTableView {
+            results = vectorStoreResults
+        } else if tableView == hnswIndexResultsTableView {
+            results = hnswIndexResults
+        } else {
+            results = mmapVectorStoreResults
+        }
+        
         let result = results[indexPath.row]
         
         cell.textLabel?.text = "Vector \(result.index)"

@@ -30,6 +30,8 @@ typedef enum {
 // Opaque handles
 typedef void* QuiverDBVectorStore;
 typedef void* QuiverDBHNSWIndex;
+typedef void* QuiverDBMMapVectorStore;
+typedef void* QuiverDBMMapVectorStoreBuilder;
 
 // Search result structure
 typedef struct {
@@ -67,6 +69,25 @@ QuiverDBError quiverdb_hnsw_index_get_vector(QuiverDBHNSWIndex index, uint64_t i
 QuiverDBError quiverdb_hnsw_index_save(QuiverDBHNSWIndex index, const char* filename);
 QuiverDBError quiverdb_hnsw_index_load(const char* filename, QuiverDBHNSWIndex* index);
 void quiverdb_hnsw_index_destroy(QuiverDBHNSWIndex index);
+
+// MMapVectorStoreBuilder functions
+QuiverDBError quiverdb_mmap_vector_store_builder_create(size_t dimension, QuiverDBDistanceMetric metric, QuiverDBMMapVectorStoreBuilder* builder);
+QuiverDBError quiverdb_mmap_vector_store_builder_add(QuiverDBMMapVectorStoreBuilder builder, uint64_t id, const float* vector);
+QuiverDBError quiverdb_mmap_vector_store_builder_reserve(QuiverDBMMapVectorStoreBuilder builder, size_t capacity);
+QuiverDBError quiverdb_mmap_vector_store_builder_save(QuiverDBMMapVectorStoreBuilder builder, const char* filename);
+QuiverDBError quiverdb_mmap_vector_store_builder_size(QuiverDBMMapVectorStoreBuilder builder, size_t* size);
+QuiverDBError quiverdb_mmap_vector_store_builder_dimension(QuiverDBMMapVectorStoreBuilder builder, size_t* dimension);
+void quiverdb_mmap_vector_store_builder_destroy(QuiverDBMMapVectorStoreBuilder builder);
+
+// MMapVectorStore functions
+QuiverDBError quiverdb_mmap_vector_store_open(const char* filename, QuiverDBMMapVectorStore* store);
+QuiverDBError quiverdb_mmap_vector_store_get(QuiverDBMMapVectorStore store, uint64_t id, float* vector, size_t vector_size);
+QuiverDBError quiverdb_mmap_vector_store_contains(QuiverDBMMapVectorStore store, uint64_t id, int* contains);
+QuiverDBError quiverdb_mmap_vector_store_search(QuiverDBMMapVectorStore store, const float* query, size_t k, QuiverDBSearchResult* results, size_t results_size);
+QuiverDBError quiverdb_mmap_vector_store_size(QuiverDBMMapVectorStore store, size_t* size);
+QuiverDBError quiverdb_mmap_vector_store_dimension(QuiverDBMMapVectorStore store, size_t* dimension);
+QuiverDBError quiverdb_mmap_vector_store_metric(QuiverDBMMapVectorStore store, QuiverDBDistanceMetric* metric);
+void quiverdb_mmap_vector_store_close(QuiverDBMMapVectorStore store);
 
 // Version information
 const char* quiverdb_version();

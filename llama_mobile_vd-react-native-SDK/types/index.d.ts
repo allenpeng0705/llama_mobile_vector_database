@@ -164,6 +164,16 @@ declare module 'llama-mobile-vd' {
   /**
    * LlamaMobileVD API
    */
+  /**
+   * Parameters for opening an MMapVectorStore
+   */
+  export interface OpenMMapParams {
+    /**
+     * The path to the MMapVectorStore file
+     */
+    path: string;
+  }
+
   export interface LlamaMobileVD {
     /**
      * Create a new VectorStore
@@ -248,6 +258,48 @@ declare module 'llama-mobile-vd' {
      * @returns Promise that resolves when the HNSWIndex is released
      */
     releaseHNSWIndex(params: ReleaseParams): Promise<void>;
+
+    /**
+     * Open an MMapVectorStore
+     * @param params Parameters for opening the MMapVectorStore
+     * @returns Promise with the ID of the opened MMapVectorStore
+     */
+    openMMapVectorStore(params: OpenMMapParams): Promise<CreateResult>;
+
+    /**
+     * Search for vectors in an MMapVectorStore
+     * @param params Parameters for searching the MMapVectorStore
+     * @returns Promise with the search results
+     */
+    searchMMapVectorStore(params: SearchParams): Promise<SearchResult[]>;
+
+    /**
+     * Get the number of vectors in an MMapVectorStore
+     * @param params Parameters for counting vectors
+     * @returns Promise with the count of vectors
+     */
+    getMMapVectorStoreCount(params: CountParams): Promise<CountResult>;
+
+    /**
+     * Get the dimension of vectors in an MMapVectorStore
+     * @param params Parameters for getting the dimension
+     * @returns Promise with the dimension information
+     */
+    getMMapVectorStoreDimension(params: CountParams): Promise<{ dimension: number }>;
+
+    /**
+     * Get the distance metric used by an MMapVectorStore
+     * @param params Parameters for getting the metric
+     * @returns Promise with the metric information
+     */
+    getMMapVectorStoreMetric(params: CountParams): Promise<{ metric: DistanceMetric }>;
+
+    /**
+     * Release resources associated with an MMapVectorStore
+     * @param params Parameters for releasing the MMapVectorStore
+     * @returns Promise that resolves when the MMapVectorStore is released
+     */
+    releaseMMapVectorStore(params: ReleaseParams): Promise<void>;
   }
 
   const LlamaMobileVD: LlamaMobileVD;

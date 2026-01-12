@@ -476,3 +476,234 @@ class HNSWIndex(
         }
     }
 }
+
+/**
+ * A builder for creating and saving MMapVectorStore instances
+ * MMapVectorStore is optimized for large datasets that may exceed RAM capacity
+ *
+ * @property dimension The dimension of the vectors
+ * @property metric The distance metric to use for similarity search
+ */
+class MMapVectorStoreBuilder(dimension: Int, metric: DistanceMetric) : AutoCloseable {
+    private val pointer: Long
+
+    init {
+        val metricValue = when (metric) {
+            DistanceMetric.L2 -> 0
+            DistanceMetric.COSINE -> 1
+            DistanceMetric.DOT -> 2
+        }
+        pointer = createBuilder(dimension, metricValue)
+        if (pointer == 0L) {
+            throw IllegalStateException("Failed to create MMap vector store builder")
+        }
+    }
+
+    /**
+     * Add a vector to the builder
+     *
+     * @param vector The vector to add
+     * @param id The ID to associate with the vector
+     * @throws IllegalArgumentException If the vector dimension doesn't match the builder dimension
+     */
+    fun addVector(vector: FloatArray, id: Int) {
+        if (!addVector(pointer, vector, vector.size, id)) {
+            throw IllegalArgumentException("Failed to add vector to MMap vector store builder")
+        }
+    }
+
+    /**
+     * Reserve space for the specified number of vectors
+     *
+     * @param capacity The number of vectors to reserve space for
+     */
+    fun reserve(capacity: Int) {
+        reserve(pointer, capacity)
+    }
+
+    /**
+     * Save the builder's contents to a file, creating an MMapVectorStore
+     *
+     * @param filename The path to the file where the vector store should be saved
+     * @return true if the vector store was saved successfully
+     */
+    fun save(filename: String): Boolean {
+        return save(pointer, filename)
+    }
+
+    /**
+     * Get the number of vectors in the builder
+     *
+     * @return The number of vectors in the builder
+     */
+    fun getCount(): Int {
+        return getCount(pointer)
+    }
+
+    /**
+     * Get the dimension of the vectors in the builder
+     *
+     * @return The dimension of the vectors
+     */
+    val dimension: Int
+        get() = dimension(pointer)
+
+    /**
+     * Close the builder and free resources
+     */
+    override fun close() {
+        destroyBuilder(pointer)
+    }
+
+    // JNI methods
+    private external fun createBuilder(dimension: Int, metric: Int): Long
+    private external fun destroyBuilder(builder: Long)
+    private external fun addVector(builder: Long, vector: FloatArray, vectorSize: Int, id: Int): Boolean
+    private external fun reserve(builder: Long, capacity: Int)
+    private external fun save(builder: Long, filename: String): Boolean
+    private external fun getCount(builder: Long): Int
+    private external fun dimension(builder: Long): Int
+
+    companion object {
+        // Load the native library
+        init {
+            System.loadLibrary("quiverdb_wrapper")
+        }
+    }
+}
+
+/**
+ * A memory-mapped vector store optimized for large datasets that may exceed RAM capacity
+ * Uses memory mapping for efficient access to large datasets without loading everything into RAM
+ */
+class MMapVectorStore private constructor(private val pointer: Long) : AutoCloseable {
+    /**
+     * Open an MMapVectorStore from a file
+     *
+     * @param filename The path to the file containing the saved vector store
+     * @return The loaded MMapVectorStore
+     * @throws IllegalStateException If the vector store could not be opened
+     */
+    companion object {
+        fun open(filename: String): MMapVectorStore {
+            val storePointer = open(filename)
+            if (storePointer == 0L) {
+                throw IllegalStateException("Failed to open MMap vector store from file: $filename")
+            }
+            return MMapVectorStore(storePointer)
+        }
+
+        // JNI method for opening
+        private external fun open(filename: String): Long
+    }
+
+    /**
+     * Get a vector from the store by ID
+     *
+     * @param id The ID of the vector to get
+     * @return The vector if found, null otherwise
+     */
+    fun get(id: Int): FloatArray? {
+        val dimension = dimension
+        val vector = FloatArray(dimension)
+        return if (get(pointer, id, vector)) vector else null
+    }
+
+    /**
+     * Search for the nearest neighbors of a query vector
+     *
+     * @param queryVector The query vector
+     * @param k The number of nearest neighbors to return
+     * @return An array of search results sorted by distance
+     * @throws IllegalArgumentException If the query vector dimension doesn't match the store dimension
+     */
+    fun search(queryVector: FloatArray, k: Int): Array<SearchResult> {
+        val resultCount = IntArray(1)
+        val resultsPtr = search(pointer, queryVector, queryVector.size, k, resultCount)
+        if (resultsPtr == 0L) {
+            throw IllegalArgumentException("Failed to search vectors in MMap vector store")
+        }
+
+        try {
+            val results = mutableListOf<SearchResult>()
+            for (i in 0 until resultCount[0]) {
+                val id = getResultId(resultsPtr, i)
+                val distance = getResultDistance(resultsPtr, i)
+                results.add(SearchResult(id, distance))
+            }
+            return results.toTypedArray()
+        } finally {
+            freeSearchResults(resultsPtr)
+        }
+    }
+
+    /**
+     * Check if the store contains a vector with the given ID
+     *
+     * @param id The ID to check
+     * @return true if the vector exists, false otherwise
+     */
+    fun contains(id: Int): Boolean {
+        val contains = IntArray(1)
+        return contains(pointer, id, contains)
+    }
+
+    /**
+     * Get the number of vectors in the store
+     *
+     * @return The number of vectors in the store
+     */
+    fun getCount(): Int {
+        return getCount(pointer)
+    }
+
+    /**
+     * Get the dimension of the vectors in the store
+     *
+     * @return The dimension of the vectors
+     */
+    val dimension: Int
+        get() = dimension(pointer)
+
+    /**
+     * Get the distance metric used by the store
+     *
+     * @return The distance metric
+     */
+    val metric: DistanceMetric
+        get() {
+            val metricValue = metric(pointer)
+            return when (metricValue) {
+                0 -> DistanceMetric.L2
+                1 -> DistanceMetric.COSINE
+                2 -> DistanceMetric.DOT
+                else -> DistanceMetric.L2
+            }
+        }
+
+    /**
+     * Close the vector store and free resources
+     */
+    override fun close() {
+        close(pointer)
+    }
+
+    // JNI methods
+    private external fun get(store: Long, id: Int, vector: FloatArray): Boolean
+    private external fun search(store: Long, queryVector: FloatArray, vectorSize: Int, k: Int, resultCount: IntArray): Long
+    private external fun contains(store: Long, id: Int, contains: IntArray): Boolean
+    private external fun getCount(store: Long): Int
+    private external fun dimension(store: Long): Int
+    private external fun metric(store: Long): Int
+    private external fun close(store: Long)
+    private external fun freeSearchResults(results: Long)
+    private external fun getResultId(results: Long, index: Int): Int
+    private external fun getResultDistance(results: Long, index: Int): Float
+
+    companion object {
+        // Load the native library
+        init {
+            System.loadLibrary("quiverdb_wrapper")
+        }
+    }
+}

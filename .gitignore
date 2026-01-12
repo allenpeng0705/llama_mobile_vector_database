@@ -10,3 +10,6 @@
 /llama_mobile_vd-react-native-SDK/node_modules
 /llama_mobile_vd-react-native-SDK/android/.gradle
 /llama_mobile_vd-flutter-SDK/build
+/build-shared
+/build-static
+/llama_mobile_vd-ios-SDK/.build

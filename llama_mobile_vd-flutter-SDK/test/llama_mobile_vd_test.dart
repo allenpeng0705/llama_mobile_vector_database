@@ -36,9 +36,26 @@ void main() {
           ];
         case 'hnswIndexCount':
           return 2;
-        case 'hnswIndexClear':
+        case 'hnswIndexSave':
           return null;
-        case 'hnswIndexDestroy':
+        case 'hnswIndexLoad':
+          return 1;
+
+        // MMapVectorStore methods
+        case 'mmapVectorStoreOpen':
+          return 1; // Return mock store ID
+        case 'mmapVectorStoreSearch':
+          return [
+            {'id': 1, 'distance': 0.1},
+            {'id': 2, 'distance': 0.2},
+          ];
+        case 'mmapVectorStoreCount':
+          return 100;
+        case 'mmapVectorStoreDimension':
+          return 512;
+        case 'mmapVectorStoreMetric':
+          return 0; // L2 distance
+        case 'mmapVectorStoreDestroy':
           return null;
         default:
           throw MissingPluginException(
@@ -306,6 +323,79 @@ void main() {
     test('should have correct string representation', () {
       const result = SearchResult(id: 1, distance: 0.1);
       expect(result.toString(), 'SearchResult(id: 1, distance: 0.1)');
+    });
+  });
+
+  group('MMapVectorStore', () {
+    test('should open an MMapVectorStore', () async {
+      final mmapStore =
+          await MMapVectorStore.open(path: '/path/to/vectorstore.mmap');
+      expect(mmapStore, isNotNull);
+    });
+
+    test('should search for vectors', () async {
+      final mmapStore =
+          await MMapVectorStore.open(path: '/path/to/vectorstore.mmap');
+
+      final queryVector = List<double>.generate(512, (_) => 0.5);
+      final results = await mmapStore.search(queryVector, 2);
+
+      expect(results, isA<List<SearchResult>>());
+      expect(results.length, 2);
+      expect(results[0].id, 1);
+      expect(results[0].distance, 0.1);
+    });
+
+    test('should get correct count of vectors', () async {
+      final mmapStore =
+          await MMapVectorStore.open(path: '/path/to/vectorstore.mmap');
+
+      final count = await mmapStore.count;
+      expect(count, 100); // Matches mock response
+    });
+
+    test('should get correct dimension', () async {
+      final mmapStore =
+          await MMapVectorStore.open(path: '/path/to/vectorstore.mmap');
+
+      final dimension = await mmapStore.dimension;
+      expect(dimension, 512); // Matches mock response
+    });
+
+    test('should get correct distance metric', () async {
+      final mmapStore =
+          await MMapVectorStore.open(path: '/path/to/vectorstore.mmap');
+
+      final metric = await mmapStore.metric;
+      expect(metric, DistanceMetric.l2); // Matches mock response (0 = L2)
+    });
+
+    test('should dispose of the store', () async {
+      final mmapStore =
+          await MMapVectorStore.open(path: '/path/to/vectorstore.mmap');
+
+      expect(() => mmapStore.dispose(), returnsNormally);
+    });
+
+    test('should handle different search parameters', () async {
+      final mmapStore =
+          await MMapVectorStore.open(path: '/path/to/vectorstore.mmap');
+
+      final queryVector = List<double>.generate(512, (_) => 0.5);
+
+      // Test different k values
+      expect(() => mmapStore.search(queryVector, 1), returnsNormally);
+      expect(() => mmapStore.search(queryVector, 5), returnsNormally);
+      expect(() => mmapStore.search(queryVector, 10), returnsNormally);
+    });
+
+    test('should handle large query vectors', () async {
+      final mmapStore =
+          await MMapVectorStore.open(path: '/path/to/vectorstore.mmap');
+
+      // Test with large dimension vector (3072 is common for large models)
+      final largeQueryVector = List<double>.generate(3072, (_) => 0.5);
+      expect(() => mmapStore.search(largeQueryVector, 5), returnsNormally);
     });
   });
 }

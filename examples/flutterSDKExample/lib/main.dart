@@ -47,6 +47,15 @@ class _MyHomePageState extends State<MyHomePage> {
   List<double>? _currentHNSWVector;
   String _hnswFilePath = '/tmp/hnsw_index.ann';
 
+  // MMapVectorStore state
+  MMapVectorStore? _mmapVectorStore;
+  List<SearchResult> _mmapVectorStoreResults = [];
+  String _mmapFilePath = '/tmp/vectorstore.mmap';
+  String _mmapAdvancedResult = '';
+  int _mmapVectorCount = 0;
+  int _mmapVectorDimension = 0;
+  String _mmapVectorMetric = '';
+
   // UI state
   int _dimension = 128;
   DistanceMetric _selectedMetric = DistanceMetric.l2;
@@ -894,6 +903,186 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  // Open MMapVectorStore
+  Future<void> _openMMapVectorStore() async {
+    try {
+      setState(() {
+        _statusMessage = 'Opening MMapVectorStore from $_mmapFilePath...';
+      });
+
+      // Release any existing MMapVectorStore
+      if (_mmapVectorStore != null) {
+        await _mmapVectorStore!.dispose();
+      }
+
+      final mmapVectorStore = await MMapVectorStore.open(path: _mmapFilePath);
+      final count = await mmapVectorStore.count;
+      final dimension = await mmapVectorStore.dimension;
+      final metric = await mmapVectorStore.metric;
+
+      setState(() {
+        _mmapVectorStore = mmapVectorStore;
+        _mmapVectorStoreResults.clear();
+        _mmapVectorCount = count;
+        _mmapVectorDimension = dimension;
+        _mmapVectorMetric = metric.toString().split('.').last;
+        _mmapAdvancedResult = 'Opened MMapVectorStore at $_mmapFilePath';
+        _statusMessage = 'MMapVectorStore opened successfully';
+      });
+    } catch (e) {
+      setState(() {
+        _statusMessage = 'Error opening MMapVectorStore: $e';
+        _mmapAdvancedResult = 'Error: $e';
+      });
+    }
+  }
+
+  // Search MMapVectorStore
+  Future<void> _searchMMapVectorStore() async {
+    if (_mmapVectorStore == null) {
+      setState(() {
+        _statusMessage = 'Please open a MMapVectorStore first';
+      });
+      return;
+    }
+
+    try {
+      setState(() {
+        _statusMessage = 'Searching MMapVectorStore...';
+      });
+
+      final queryVector = _createRandomVector(_mmapVectorDimension);
+      final results = await _mmapVectorStore!.search(queryVector, _searchK);
+
+      setState(() {
+        _mmapVectorStoreResults = results;
+        _statusMessage = 'Search completed successfully';
+      });
+    } catch (e) {
+      setState(() {
+        _statusMessage = 'Error searching MMapVectorStore: $e';
+      });
+    }
+  }
+
+  // Get MMapVectorStore count
+  Future<void> _getMMapVectorCount() async {
+    if (_mmapVectorStore == null) {
+      setState(() {
+        _statusMessage = 'Please open a MMapVectorStore first';
+      });
+      return;
+    }
+
+    try {
+      setState(() {
+        _statusMessage = 'Getting MMapVectorStore count...';
+      });
+
+      final count = await _mmapVectorStore!.count;
+
+      setState(() {
+        _mmapVectorCount = count;
+        _mmapAdvancedResult = 'MMapVectorStore count: $count';
+        _statusMessage = 'Count retrieved successfully';
+      });
+    } catch (e) {
+      setState(() {
+        _statusMessage = 'Error getting count: $e';
+        _mmapAdvancedResult = 'Error: $e';
+      });
+    }
+  }
+
+  // Get MMapVectorStore dimension
+  Future<void> _getMMapVectorDimension() async {
+    if (_mmapVectorStore == null) {
+      setState(() {
+        _statusMessage = 'Please open a MMapVectorStore first';
+      });
+      return;
+    }
+
+    try {
+      setState(() {
+        _statusMessage = 'Getting MMapVectorStore dimension...';
+      });
+
+      final dimension = await _mmapVectorStore!.dimension;
+
+      setState(() {
+        _mmapVectorDimension = dimension;
+        _mmapAdvancedResult = 'MMapVectorStore dimension: $dimension';
+        _statusMessage = 'Dimension retrieved successfully';
+      });
+    } catch (e) {
+      setState(() {
+        _statusMessage = 'Error getting dimension: $e';
+        _mmapAdvancedResult = 'Error: $e';
+      });
+    }
+  }
+
+  // Get MMapVectorStore metric
+  Future<void> _getMMapVectorMetric() async {
+    if (_mmapVectorStore == null) {
+      setState(() {
+        _statusMessage = 'Please open a MMapVectorStore first';
+      });
+      return;
+    }
+
+    try {
+      setState(() {
+        _statusMessage = 'Getting MMapVectorStore metric...';
+      });
+
+      final metric = await _mmapVectorStore!.metric;
+
+      setState(() {
+        _mmapVectorMetric = metric.toString().split('.').last;
+        _mmapAdvancedResult = 'MMapVectorStore metric: $_mmapVectorMetric';
+        _statusMessage = 'Metric retrieved successfully';
+      });
+    } catch (e) {
+      setState(() {
+        _statusMessage = 'Error getting metric: $e';
+        _mmapAdvancedResult = 'Error: $e';
+      });
+    }
+  }
+
+  // Release MMapVectorStore
+  Future<void> _releaseMMapVectorStore() async {
+    if (_mmapVectorStore == null) {
+      setState(() {
+        _statusMessage = 'Please open a MMapVectorStore first';
+      });
+      return;
+    }
+
+    try {
+      setState(() {
+        _statusMessage = 'Releasing MMapVectorStore...';
+      });
+
+      await _mmapVectorStore!.dispose();
+
+      setState(() {
+        _mmapVectorStore = null;
+        _mmapVectorStoreResults.clear();
+        _mmapVectorCount = 0;
+        _mmapVectorDimension = 0;
+        _mmapVectorMetric = '';
+        _statusMessage = 'MMapVectorStore released successfully';
+      });
+    } catch (e) {
+      setState(() {
+        _statusMessage = 'Error releasing MMapVectorStore: $e';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1584,6 +1773,169 @@ class _MyHomePageState extends State<MyHomePage> {
                       itemCount: _hnswIndexResults.length,
                       itemBuilder: (context, index) {
                         final result = _hnswIndexResults[index];
+                        return ListTile(
+                          title: Text('Vector ID: ${result.id}'),
+                          subtitle: Text(
+                            'Distance: ${result.distance.toStringAsFixed(6)}',
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+
+            // MMapVectorStore section
+            const Text(
+              'MMapVectorStore (Memory-Mapped Vector Store)',
+              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12.0),
+
+            // File path input
+            TextFormField(
+              initialValue: _mmapFilePath,
+              onChanged: (value) {
+                setState(() {
+                  _mmapFilePath = value;
+                });
+              },
+              decoration: const InputDecoration(labelText: 'File Path'),
+            ),
+
+            const SizedBox(height: 8.0),
+
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _openMMapVectorStore,
+                    child: const Text('Open MMapVectorStore'),
+                  ),
+                ),
+                const SizedBox(width: 8.0),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _searchMMapVectorStore,
+                    child: const Text('Search'),
+                  ),
+                ),
+                const SizedBox(width: 8.0),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _releaseMMapVectorStore,
+                    child: const Text('Release'),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8.0),
+
+            Text(
+              'MMapVectorStore Status: ${_mmapVectorStore != null ? 'Opened' : 'None'}',
+            ),
+
+            const SizedBox(height: 16.0),
+
+            // Advanced MMapVectorStore operations
+            if (_mmapVectorStore != null)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Advanced MMapVectorStore Operations',
+                    style: TextStyle(
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12.0),
+
+                  // Info operations row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _getMMapVectorCount,
+                          child: const Text('Get Count'),
+                        ),
+                      ),
+                      const SizedBox(width: 8.0),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _getMMapVectorDimension,
+                          child: const Text('Get Dimension'),
+                        ),
+                      ),
+                      const SizedBox(width: 8.0),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _getMMapVectorMetric,
+                          child: const Text('Get Metric'),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8.0),
+
+                  // Advanced operation result
+                  if (_mmapAdvancedResult.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: Text(
+                        _mmapAdvancedResult,
+                        style: const TextStyle(fontSize: 14.0),
+                      ),
+                    ),
+
+                  const SizedBox(height: 12.0),
+
+                  // Store info display
+                  Container(
+                    padding: const EdgeInsets.all(12.0),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Count: $_mmapVectorCount'),
+                        Text('Dimension: $_mmapVectorDimension'),
+                        Text('Metric: $_mmapVectorMetric'),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16.0),
+                ],
+              ),
+
+            // MMapVectorStore results
+            if (_mmapVectorStoreResults.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Search Results:',
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8.0),
+                  SizedBox(
+                    height: 200.0,
+                    child: ListView.builder(
+                      itemCount: _mmapVectorStoreResults.length,
+                      itemBuilder: (context, index) {
+                        final result = _mmapVectorStoreResults[index];
                         return ListTile(
                           title: Text('Vector ID: ${result.id}'),
                           subtitle: Text(

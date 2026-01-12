@@ -102,8 +102,8 @@ fi
 echo -e "\n${YELLOW}Step 2: Copying Android JNI libraries...${NC}"
 
 # Source directories for Android JNI libraries
-ANDROID_JAVA_SDK_DIR="$PROJECT_ROOT/llama_mobile_vd-android-java-SDK"
-ANDROID_JNI_SRC="$ANDROID_JAVA_SDK_DIR/src/main/jniLibs"
+ANDROID_SDK_DIR="$PROJECT_ROOT/llama_mobile_vd-android-SDK"
+ANDROID_JNI_SRC="$ANDROID_SDK_DIR/jniLibs"
 
 if [ -d "$ANDROID_JNI_SRC" ]; then
     # Remove existing JNI libraries if they exist
@@ -128,7 +128,7 @@ fi
 # Step 3: Copy Android Java source code from Android Java SDK
 echo -e "\n${YELLOW}Step 3: Copying Android Java source code...${NC}"
 
-ANDROID_JAVA_SRC_SRC="$ANDROID_JAVA_SDK_DIR/src/main/java/com/llamamobile/vd"
+ANDROID_JAVA_SRC_SRC="$ANDROID_SDK_DIR/src/main/java/com/llamamobile/vd"
 
 if [ -d "$ANDROID_JAVA_SRC_SRC" ]; then
     # Remove existing Java source code if it exists

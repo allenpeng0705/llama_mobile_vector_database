@@ -29,11 +29,11 @@ android {
         main {
             // Include the Android Java SDK
             java {
-                srcDirs += ['../../llama_mobile_vd-android-java-SDK/src/main/java']
+                srcDirs += ['../../llama_mobile_vd-android-SDK/src/main/java']
             }
             // Include the JNI libraries
             jniLibs {
-                srcDirs += ['../../llama_mobile_vd-android-java-SDK/src/main/jniLibs']
+                srcDirs += ['../../llama_mobile_vd-android-SDK/jniLibs']
             }
         }
     }

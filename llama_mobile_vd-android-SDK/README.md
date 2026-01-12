@@ -1,14 +1,15 @@
-# LlamaMobileVD Android Kotlin SDK
+# LlamaMobileVD Android SDK
 
-A high-performance vector database SDK for Android applications, built on top of the LlamaMobileVD native library. This SDK provides embeddable vector database capabilities for Android apps, running natively with SIMD acceleration.
+A high-performance vector database SDK for Android applications, built on top of the LlamaMobileVD native library. This SDK provides embeddable vector database capabilities for Android apps with both Java and Kotlin interfaces, running natively with SIMD acceleration.
 
 ## Features
 
-- **Native Kotlin API**: Clean, intuitive Kotlin interface for vector storage and search
+- **Dual API**: Both Java and Kotlin interfaces for vector storage and search
 - **High performance**: Built on a C++ core with ARM NEON acceleration
 - **Multiple distance metrics**: Support for L2 (Euclidean), Cosine, and Dot Product distances
 - **VectorStore**: Exact nearest neighbor search with thread-safe operations
 - **HNSWIndex**: High-performance approximate nearest neighbor search using the Hierarchical Navigable Small World algorithm
+- **MMapVectorStore**: Memory-mapped vector store optimized for large datasets exceeding RAM capacity
 - **Auto-managed resources**: Implements `AutoCloseable` for proper resource management
 - **Multi-dimensional support**: Handles common embedding sizes (384, 768, 1024, 3072 dimensions)
 
@@ -78,7 +79,7 @@ dependencies {
 
 ## Usage
 
-### VectorStore Example
+### VectorStore Example (Kotlin)
 
 ```kotlin
 import com.llamamobile.vd.*
@@ -109,6 +110,160 @@ try {
 } finally {
     // Close the store to free resources
     vectorStore.close()
+}
+```
+
+### VectorStore Example (Java)
+
+```java
+import com.llamamobile.vd.*;
+
+// Create a vector store with 512-dimensional vectors and cosine distance metric
+VectorStore vectorStore = new VectorStore(512, DistanceMetric.COSINE);
+
+try {
+    // Add vectors to the store
+    float[] vector1 = new float[512];
+    for (int i = 0; i < vector1.length; i++) {
+        vector1[i] = 0.5f;
+    }
+    vectorStore.addVector(vector1, 1);
+    
+    float[] vector2 = new float[512];
+    for (int i = 0; i < vector2.length; i++) {
+        vector2[i] = 0.8f;
+    }
+    vectorStore.addVector(vector2, 2);
+    
+    // Search for nearest neighbors
+    float[] queryVector = new float[512];
+    for (int i = 0; i < queryVector.length; i++) {
+        queryVector[i] = 0.6f;
+    }
+    SearchResult[] results = vectorStore.search(queryVector, 2);
+    
+    // Process the results
+    for (SearchResult result : results) {
+        System.out.println("Vector ID: " + result.getId() + ", Distance: " + result.getDistance());
+    }
+    
+    // Clear all vectors from the store
+    vectorStore.clear();
+    
+} finally {
+    // Close the store to free resources
+    vectorStore.close();
+}
+```
+
+### MMapVectorStore Example (Kotlin)
+
+```kotlin
+import com.llamamobile.vd.*
+import java.io.File
+
+// Create a temporary file for the MMapVectorStore
+val tempFile = File.createTempFile("mmap_store", ".store")
+val tempFilePath = tempFile.absolutePath
+
+try {
+    // Create a builder with 512-dimensional vectors and cosine distance metric
+    MMapVectorStoreBuilder(dimension = 512, metric = DistanceMetric.COSINE).use {
+        // Add vectors to the builder
+        it.addVector(FloatArray(512) { 1.0f }, 1)
+        it.addVector(FloatArray(512) { 0.8f }, 2)
+        it.addVector(FloatArray(512) { 0.5f }, 3)
+        
+        // Save the builder to disk
+        it.save(tempFilePath)
+    }
+    
+    // Open the MMapVectorStore from file
+    MMapVectorStore.open(tempFilePath).use { store ->
+        // Verify the store contents
+        println("Total vectors: ${store.getCount()}")
+        println("Dimension: ${store.dimension}")
+        println("Metric: ${store.metric}")
+        
+        // Search for nearest neighbors
+        val queryVector = FloatArray(512) { 0.9f }
+        val results = store.search(queryVector, 2)
+        
+        // Process the results
+        for (result in results) {
+            println("Vector ID: ${result.id}, Distance: ${result.distance}")
+        }
+    }
+} finally {
+    // Clean up the temporary file
+    tempFile.delete()
+}
+```
+
+### MMapVectorStore Example (Java)
+
+```java
+import com.llamamobile.vd.*;
+import java.io.File;
+import java.io.IOException;
+
+// Create a temporary file for the MMapVectorStore
+File tempFile = null;
+try {
+    tempFile = File.createTempFile("mmap_store", ".store");
+    String tempFilePath = tempFile.getAbsolutePath();
+    
+    // Create a builder with 512-dimensional vectors and cosine distance metric
+    try (MMapVectorStoreBuilder builder = new MMapVectorStoreBuilder(512, DistanceMetric.COSINE)) {
+        // Add vectors to the builder
+        float[] vector1 = new float[512];
+        for (int i = 0; i < vector1.length; i++) {
+            vector1[i] = 1.0f;
+        }
+        builder.addVector(vector1, 1);
+        
+        float[] vector2 = new float[512];
+        for (int i = 0; i < vector2.length; i++) {
+            vector2[i] = 0.8f;
+        }
+        builder.addVector(vector2, 2);
+        
+        float[] vector3 = new float[512];
+        for (int i = 0; i < vector3.length; i++) {
+            vector3[i] = 0.5f;
+        }
+        builder.addVector(vector3, 3);
+        
+        // Save the builder to disk
+        builder.save(tempFilePath);
+    }
+    
+    // Open the MMapVectorStore from file
+    try (MMapVectorStore store = MMapVectorStore.open(tempFilePath)) {
+        // Verify the store contents
+        System.out.println("Total vectors: " + store.getCount());
+        System.out.println("Dimension: " + store.getDimension());
+        System.out.println("Metric: " + store.getMetric());
+        
+        // Search for nearest neighbors
+        float[] queryVector = new float[512];
+        for (int i = 0; i < queryVector.length; i++) {
+            queryVector[i] = 0.9f;
+        }
+        SearchResult[] results = store.search(queryVector, 2);
+        
+        // Process the results
+        for (SearchResult result : results) {
+            System.out.println("Vector ID: " + result.getId() + ", Distance: " + result.getDistance());
+        }
+    }
+} catch (IOException e) {
+    e.printStackTrace();
+} finally {
+    if (tempFile != null) {
+        // Clean up the temporary file
+        tempFile.delete();
+    }
 }
 ```
 
@@ -172,6 +327,121 @@ VectorStore(512, DistanceMetric.COSINE).use { vectorStore ->
 
 ## API Reference
 
+### MMapVectorStore
+
+A memory-mapped vector store optimized for large datasets that may exceed RAM capacity. Uses memory mapping for efficient access to large datasets without loading everything into RAM.
+
+```kotlin
+class MMapVectorStore private constructor(private val pointer: Long) : AutoCloseable {
+    companion object {
+        // Open an MMapVectorStore from a file
+        fun open(filename: String): MMapVectorStore
+    }
+    
+    // Get a vector from the store by ID
+    fun get(id: Int): FloatArray?
+    
+    // Search for the k nearest neighbors of a query vector
+    fun search(queryVector: FloatArray, k: Int): Array<SearchResult>
+    
+    // Check if the store contains a vector with the given ID
+    fun contains(id: Int): Boolean
+    
+    // Get the number of vectors in the store
+    fun getCount(): Int
+    
+    // Get the dimension of the vectors in the store
+    val dimension: Int
+    
+    // Get the distance metric used by the store
+    val metric: DistanceMetric
+    
+    // Close the vector store and free resources
+    override fun close()
+}
+```
+
+```java
+public class MMapVectorStore implements AutoCloseable {
+    // Open an MMapVectorStore from a file
+    public static MMapVectorStore open(String filename)
+    
+    // Get a vector from the store by ID
+    public float[] get(int id)
+    
+    // Search for the k nearest neighbors of a query vector
+    public SearchResult[] search(float[] queryVector, int k)
+    
+    // Check if the store contains a vector with the given ID
+    public boolean contains(int id)
+    
+    // Get the number of vectors in the store
+    public int getCount()
+    
+    // Get the dimension of the vectors in the store
+    public int getDimension()
+    
+    // Get the distance metric used by the store
+    public DistanceMetric getMetric()
+    
+    // Close the vector store and free resources
+    @Override
+    public void close()
+}
+```
+
+### MMapVectorStoreBuilder
+
+A builder for creating and saving MMapVectorStore instances.
+
+```kotlin
+class MMapVectorStoreBuilder(dimension: Int, metric: DistanceMetric) : AutoCloseable {
+    // Add a vector to the builder
+    fun addVector(vector: FloatArray, id: Int)
+    
+    // Reserve space for the specified number of vectors
+    fun reserve(capacity: Int)
+    
+    // Save the builder's contents to a file, creating an MMapVectorStore
+    fun save(filename: String): Boolean
+    
+    // Get the number of vectors in the builder
+    fun getCount(): Int
+    
+    // Get the dimension of the vectors in the builder
+    val dimension: Int
+    
+    // Close the builder and free resources
+    override fun close()
+}
+```
+
+```java
+public class MMapVectorStoreBuilder implements AutoCloseable {
+    // Create a new MMapVectorStore builder
+    public MMapVectorStoreBuilder(int dimension, DistanceMetric metric)
+    
+    // Add a vector to the builder
+    public void addVector(float[] vector, int id)
+    
+    // Reserve space for the specified number of vectors
+    public void reserve(int capacity)
+    
+    // Save the builder's contents to a file, creating an MMapVectorStore
+    public boolean save(String filename)
+    
+    // Get the number of vectors in the builder
+    public int getCount()
+    
+    // Get the dimension of the vectors in the builder
+    public int getDimension()
+    
+    // Close the builder and free resources
+    @Override
+    public void close()
+}
+```
+
 ### DistanceMetric
 
 Enum representing the distance metrics supported by LlamaMobileVD:
@@ -184,15 +454,32 @@ enum class DistanceMetric {
 }
 ```
 
+```java
+public enum DistanceMetric {
+    L2(0),      // Euclidean distance
+    COSINE(1),  // Cosine distance
+    DOT(2);     // Dot product distance
+    
+    public int getValue() { ... }
+}
+```
+
 ### SearchResult
 
-Data class representing a result from a vector search operation:
+Class representing a result from a vector search operation:
 
 ```kotlin
 data class SearchResult(
     val id: Int,         // The ID of the vector
     val distance: Float  // The distance between the query vector and the result vector
 )
+```
+
+```java
+public class SearchResult {
+    public int getId() { ... }         // The ID of the vector
+    public float getDistance() { ... }  // The distance between the query vector and the result vector
+}
 ```
 
 ### VectorStore
@@ -258,12 +545,17 @@ class HNSWIndex(
 ## Performance Tips
 
 - For large datasets (10,000+ vectors), use `HNSWIndex` instead of `VectorStore` for faster search performance
+- For very large datasets that exceed RAM capacity (100,000+ vectors), use `MMapVectorStore` to leverage memory mapping
+- MMapVectorStore is particularly useful for:
+  - Datasets larger than device RAM
+  - Applications with limited memory
+  - Persistent vector storage needs
 - Adjust `m` and `efConstruction` parameters when creating an `HNSWIndex`:
   - Higher `m` values create more connections per node (better search quality, higher memory usage)
   - Higher `efConstruction` values improve index quality (slower build time)
 - Adjust `efSearch` parameter during search to balance speed and quality
 - For common embedding sizes (384, 768, 1024, 3072), the SDK is optimized for performance
-- Use `use()` function to ensure proper resource cleanup
+- Use try-with-resources (Java) or `use()` function (Kotlin) to ensure proper resource cleanup
 
 ## Building from Source
 
@@ -302,11 +594,13 @@ cd /path/to/llama_mobile_vector_database/llama_mobile_vd-android-SDK
 The test suite covers:
 - VectorStore creation, addition, search, and deletion operations
 - HNSWIndex creation, addition, search, and deletion operations
+- MMapVectorStore creation, addition, search, and persistence operations
 - All distance metrics (L2, Cosine, Dot)
 - Various vector dimensions (384, 768, 1024, 3072)
 - Edge cases and error handling
 - AutoCloseable interface implementation
 - Large vector dimensions
+- Both Java and Kotlin interface functionality
 
 ## License
 

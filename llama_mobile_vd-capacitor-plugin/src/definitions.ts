@@ -234,14 +234,24 @@ export interface SaveHNSWParams {
 }
 
 /**
- * Parameters for loading an HNSW index
- */
-export interface LoadHNSWParams {
-  /**
-   * The path to load the index from
+   * Parameters for loading an HNSW index
    */
-  path: string;
-}
+  export interface LoadHNSWParams {
+    /**
+     * The path to load the index from
+     */
+    path: string;
+  }
+
+  /**
+   * Parameters for opening an MMapVectorStore
+   */
+  export interface OpenMMapParams {
+    /**
+     * The path to open the vector store from
+     */
+    path: string;
+  }
 
 /**
  * Result containing the ID of a newly created store or index
@@ -574,6 +584,55 @@ export interface LlamaMobileVDPlugin {
    * @returns Promise that resolves when the index is released
    */
   releaseHNSWIndex(params: ReleaseParams): Promise<void>;
+
+  // MARK: MMapVectorStore Methods
+  /**
+   * Open an existing MMapVectorStore from a file
+   *
+   * @param params Parameters for opening the store
+   * @returns Promise with the opened store ID
+   */
+  openMMapVectorStore(params: OpenMMapParams): Promise<CreateResult>;
+
+  /**
+   * Search for nearest neighbors in an MMapVectorStore
+   *
+   * @param params Parameters for searching
+   * @returns Promise with search results
+   */
+  searchMMapVectorStore(params: VectorStoreSearchParams): Promise<SearchResultList>;
+
+  /**
+   * Get the number of vectors in an MMapVectorStore
+   *
+   * @param params Parameters for getting count
+   * @returns Promise with the count of vectors
+   */
+  getMMapVectorStoreCount(params: CountParams): Promise<CountResult>;
+
+  /**
+   * Get the dimension of vectors in an MMapVectorStore
+   *
+   * @param params Parameters for getting the dimension
+   * @returns Promise with the dimension of vectors
+   */
+  getMMapVectorStoreDimension(params: CountParams): Promise<DimensionResult>;
+
+  /**
+   * Get the distance metric used by an MMapVectorStore
+   *
+   * @param params Parameters for getting the metric
+   * @returns Promise with the distance metric
+   */
+  getMMapVectorStoreMetric(params: CountParams): Promise<MetricResult>;
+
+  /**
+   * Release an MMapVectorStore and free resources
+   *
+   * @param params Parameters for releasing
+   * @returns Promise that resolves when the store is released
+   */
+  releaseMMapVectorStore(params: ReleaseParams): Promise<void>;
 
   // MARK: Version Methods
   /**

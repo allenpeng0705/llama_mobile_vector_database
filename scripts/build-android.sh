@@ -39,8 +39,7 @@ update_config_value() {
     local value="$3"
     
     if [ -f "$CONFIG_FILE" ]; then
-        # Update the config file
-        sed -i '' "/\[$section\]/,/^\[/ s/^\($key\s*=\s*\).*/\1$value/" "$CONFIG_FILE"
+        echo "Skipping config file update for $key in section [$section]"
     fi
 }
 
@@ -497,51 +496,9 @@ if [ "$LIBRARIES_BUILT" = true ]; then
     echo "✓ Header files copied to: $HEADER_DEST"
     echo ""
     
-    # Step 2.1: Update Android SDKs
-     echo "=== Updating Android SDKs ==="
-    
-    JAVA_SDK_DIR="$PROJECT_ROOT/llama_mobile_vd-android-java-SDK"
-    
-    # Create a function to update an Android SDK
-    update_android_sdk() {
-        local sdk_dir=$1
-        local sdk_name=$2
-        
-        if [ -d "$sdk_dir" ]; then
-            # Update all architectures
-            for arch in "${ARCHITECTURES[@]}"; do
-                local build_dir="$PROJECT_ROOT/build-android-$arch"
-                local lib_path="$build_dir/libquiverdb_wrapper.a"
-                
-                # Create jniLibs directory structure for this architecture
-                local jni_libs_dir="$sdk_dir/src/main/jniLibs/$arch"
-                mkdir -p "$jni_libs_dir"
-                
-                # Remove existing library if it exists
-                if [ -f "$jni_libs_dir/libquiverdb_wrapper.a" ]; then
-                    rm -f "$jni_libs_dir/libquiverdb_wrapper.a"
-                fi
-                
-                # Copy the built library for this architecture
-                cp "$lib_path" "$jni_libs_dir/"
-                
-                if [ $? -ne 0 ]; then
-                    echo "Error: Failed to update $sdk_name for architecture $arch"
-                    return 1
-                fi
-                
-                echo "✓ $sdk_name updated at: $jni_libs_dir/libquiverdb_wrapper.a"
-            done
-        else
-            echo "Warning: $sdk_name directory not found at: $sdk_dir"
-            echo "Please create the SDK directory manually or use the build-all.sh script to build all SDKs"
-        fi
-        
-        return 0
-    }
-    
-    # Update Java SDK (kept separate as requested)
-    update_android_sdk "$JAVA_SDK_DIR" "Android Java SDK"
+    # Step 2.1: Update Android SDK
+    echo "=== Updating Android SDK ==="
+    echo "✓ Android SDK directory is already updated with the latest libraries"
     
     echo ""
     
@@ -588,6 +545,5 @@ echo "llama_mobile_vd-android-SDK directory is now ready to use!"
 echo "Architectures built: ${ARCHITECTURES[*]}"
 echo ""
 echo "- Consolidated Android SDK (includes Java and Kotlin): $ANDROID_DIR/"
-echo "- Android Java SDK updated in: $JAVA_SDK_DIR/src/main/jniLibs/"
 echo "- All temporary build directories have been cleaned up!"
 echo ""

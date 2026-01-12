@@ -51,6 +51,16 @@ function App(): JSX.Element {
   // Version state
   const [versionInfo, setVersionInfo] = useState<string | null>(null);
   
+  // MMapVectorStore state
+  const [mmapVectorStoreId, setMmapVectorStoreId] = useState<string | null>(null);
+  const [mmapVectorStoreCount, setMmapVectorStoreCount] = useState(0);
+  const [mmapVectorStoreDimension, setMmapVectorStoreDimension] = useState(0);
+  const [mmapVectorStoreMetric, setMmapVectorStoreMetric] = useState('');
+  const [mmapVectorStoreResults, setMmapVectorStoreResults] = useState<any[]>([]);
+  const [mmapFilePath, setMmapFilePath] = useState('/tmp/vectorstore.mmap');
+  const [mmapVectorStoreAdvancedResult, setMmapVectorStoreAdvancedResult] = useState<string | null>(null);
+  const [mmapVectorStoreLoading, setMmapVectorStoreLoading] = useState(false);
+  
   // Status message
   const [status, setStatus] = useState('Ready');
 
@@ -614,6 +624,144 @@ function App(): JSX.Element {
     }
   };
 
+  // MMapVectorStore Methods
+  
+  // Open MMapVectorStore
+  const handleOpenMMapVectorStore = async () => {
+    try {
+      setStatus('Opening MMapVectorStore...');
+      setMmapVectorStoreLoading(true);
+      
+      // Release existing store if any
+      if (mmapVectorStoreId) {
+        await LlamaMobileVD.releaseMMapVectorStore({ id: mmapVectorStoreId });
+      }
+      
+      const result = await LlamaMobileVD.openMMapVectorStore({ path: mmapFilePath });
+      setMmapVectorStoreId(result.id);
+      setMmapVectorStoreCount(result.count);
+      setMmapVectorStoreDimension(result.dimension);
+      setMmapVectorStoreMetric(result.metric);
+      setMmapVectorStoreResults([]);
+      setMmapVectorStoreAdvancedResult(null);
+      setStatus('MMapVectorStore opened successfully');
+    } catch (error) {
+      setStatus(`Error opening MMapVectorStore: ${error}`);
+      Alert.alert('Error', `Failed to open MMapVectorStore: ${error}`);
+    } finally {
+      setMmapVectorStoreLoading(false);
+    }
+  };
+  
+  // Search MMapVectorStore
+  const handleSearchMMapVectorStore = async () => {
+    if (!mmapVectorStoreId) {
+      Alert.alert('Error', 'Please open a MMapVectorStore first');
+      return;
+    }
+    
+    try {
+      setStatus('Searching MMapVectorStore...');
+      setMmapVectorStoreLoading(true);
+      
+      const queryVector = createRandomVector(mmapVectorStoreDimension);
+      const results = await LlamaMobileVD.searchMMapVectorStore({
+        id: mmapVectorStoreId,
+        queryVector,
+        k: 5,
+      });
+      
+      setMmapVectorStoreResults(results);
+      setStatus('Search completed successfully');
+    } catch (error) {
+      setStatus(`Error searching MMapVectorStore: ${error}`);
+      Alert.alert('Error', `Failed to search MMapVectorStore: ${error}`);
+    } finally {
+      setMmapVectorStoreLoading(false);
+    }
+  };
+  
+  // Get MMapVectorStore count
+  const handleGetMMapVectorStoreCount = async () => {
+    if (!mmapVectorStoreId) {
+      Alert.alert('Error', 'Please open a MMapVectorStore first');
+      return;
+    }
+    
+    try {
+      setStatus('Getting MMapVectorStore count...');
+      const result = await LlamaMobileVD.countMMapVectorStore({ id: mmapVectorStoreId });
+      setMmapVectorStoreCount(result.count);
+      setMmapVectorStoreAdvancedResult(`MMapVectorStore count: ${result.count}`);
+      setStatus('Count retrieved successfully');
+    } catch (error) {
+      setStatus(`Error getting MMapVectorStore count: ${error}`);
+      setMmapVectorStoreAdvancedResult(`Error: ${error}`);
+    }
+  };
+  
+  // Get MMapVectorStore dimension
+  const handleGetMMapVectorStoreDimension = async () => {
+    if (!mmapVectorStoreId) {
+      Alert.alert('Error', 'Please open a MMapVectorStore first');
+      return;
+    }
+    
+    try {
+      setStatus('Getting MMapVectorStore dimension...');
+      const result = await LlamaMobileVD.getMMapVectorStoreDimension({ id: mmapVectorStoreId });
+      setMmapVectorStoreDimension(result.dimension);
+      setMmapVectorStoreAdvancedResult(`MMapVectorStore dimension: ${result.dimension}`);
+      setStatus('Dimension retrieved successfully');
+    } catch (error) {
+      setStatus(`Error getting MMapVectorStore dimension: ${error}`);
+      setMmapVectorStoreAdvancedResult(`Error: ${error}`);
+    }
+  };
+  
+  // Get MMapVectorStore metric
+  const handleGetMMapVectorStoreMetric = async () => {
+    if (!mmapVectorStoreId) {
+      Alert.alert('Error', 'Please open a MMapVectorStore first');
+      return;
+    }
+    
+    try {
+      setStatus('Getting MMapVectorStore metric...');
+      const result = await LlamaMobileVD.getMMapVectorStoreMetric({ id: mmapVectorStoreId });
+      setMmapVectorStoreMetric(result.metric);
+      setMmapVectorStoreAdvancedResult(`MMapVectorStore metric: ${result.metric}`);
+      setStatus('Metric retrieved successfully');
+    } catch (error) {
+      setStatus(`Error getting MMapVectorStore metric: ${error}`);
+      setMmapVectorStoreAdvancedResult(`Error: ${error}`);
+    }
+  };
+  
+  // Release MMapVectorStore
+  const handleReleaseMMapVectorStore = async () => {
+    if (!mmapVectorStoreId) {
+      Alert.alert('Error', 'Please open a MMapVectorStore first');
+      return;
+    }
+    
+    try {
+      setStatus('Releasing MMapVectorStore...');
+      await LlamaMobileVD.releaseMMapVectorStore({ id: mmapVectorStoreId });
+      
+      setMmapVectorStoreId(null);
+      setMmapVectorStoreCount(0);
+      setMmapVectorStoreDimension(0);
+      setMmapVectorStoreMetric('');
+      setMmapVectorStoreResults([]);
+      setMmapVectorStoreAdvancedResult(null);
+      setStatus('MMapVectorStore released successfully');
+    } catch (error) {
+      setStatus(`Error releasing MMapVectorStore: ${error}`);
+      Alert.alert('Error', `Failed to release MMapVectorStore: ${error}`);
+    }
+  };
+  
   // Version Methods
   
   // Get SDK version
@@ -1033,6 +1181,109 @@ function App(): JSX.Element {
               <View style={styles.resultContainer}>
                 <Text style={styles.resultLabel}>Result:</Text>
                 <Text style={styles.resultText}>{hnswIndexAdvancedResult}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* MMapVectorStore section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>MMapVectorStore (Memory-Mapped Vector Store)</Text>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>File Path:</Text>
+              <TextInput
+                style={styles.input}
+                value={mmapFilePath}
+                onChangeText={setMmapFilePath}
+                placeholder="/tmp/vectorstore.mmap"
+              />
+            </View>
+
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonPrimary]}
+                onPress={handleOpenMMapVectorStore}
+                disabled={mmapVectorStoreLoading}
+              >
+                <Text style={styles.buttonText}>{mmapVectorStoreLoading ? 'Opening...' : 'Open MMapVectorStore'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSecondary, !mmapVectorStoreId && styles.buttonDisabled]}
+                onPress={handleSearchMMapVectorStore}
+                disabled={!mmapVectorStoreId || mmapVectorStoreLoading}
+              >
+                <Text style={styles.buttonText}>{mmapVectorStoreLoading ? 'Searching...' : 'Search'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall, !mmapVectorStoreId && styles.buttonDisabled]}
+                onPress={handleGetMMapVectorStoreCount}
+                disabled={!mmapVectorStoreId}
+              >
+                <Text style={styles.buttonSmallText}>Get Count</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall, !mmapVectorStoreId && styles.buttonDisabled]}
+                onPress={handleGetMMapVectorStoreDimension}
+                disabled={!mmapVectorStoreId}
+              >
+                <Text style={styles.buttonSmallText}>Get Dimension</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall, !mmapVectorStoreId && styles.buttonDisabled]}
+                onPress={handleGetMMapVectorStoreMetric}
+                disabled={!mmapVectorStoreId}
+              >
+                <Text style={styles.buttonSmallText}>Get Metric</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonDanger, !mmapVectorStoreId && styles.buttonDisabled]}
+                onPress={handleReleaseMMapVectorStore}
+                disabled={!mmapVectorStoreId}
+              >
+                <Text style={styles.buttonText}>Release</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.infoContainer}>
+              <Text style={styles.infoText}>
+                MMapVectorStore Status: {mmapVectorStoreId ? `Opened (ID: ${mmapVectorStoreId})` : 'None'}
+              </Text>
+              <Text style={styles.infoText}>
+                Vector Count: {mmapVectorStoreCount}
+              </Text>
+              <Text style={styles.infoText}>
+                Dimension: {mmapVectorStoreDimension}
+              </Text>
+              <Text style={styles.infoText}>
+                Metric: {mmapVectorStoreMetric}
+              </Text>
+            </View>
+
+            {/* MMapVectorStore search results */}
+            {mmapVectorStoreResults.length > 0 && (
+              <View style={styles.resultsContainer}>
+                <Text style={styles.resultsTitle}>Search Results:</Text>
+                {mmapVectorStoreResults.map((result, index) => (
+                  <View key={index} style={styles.resultItem}>
+                    <Text style={styles.resultIndex}>Result {index + 1}</Text>
+                    <Text style={styles.resultId}>Vector ID: {result.id}</Text>
+                    <Text style={styles.resultDistance}>Distance: {result.distance.toFixed(6)}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* MMapVectorStore advanced result */}
+            {mmapVectorStoreAdvancedResult && (
+              <View style={styles.resultContainer}>
+                <Text style={styles.resultLabel}>Result:</Text>
+                <Text style={styles.resultText}>{mmapVectorStoreAdvancedResult}</Text>
               </View>
             )}
           </View>

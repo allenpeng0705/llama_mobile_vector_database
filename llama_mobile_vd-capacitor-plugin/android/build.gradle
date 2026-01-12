@@ -35,11 +35,11 @@ android {
         main {
             // Include the Android Java SDK
             java {
-                srcDirs += ['../llama_mobile_vd-android-java-SDK/src/main/java']
+                srcDirs += ['../llama_mobile_vd-android-SDK/src/main/java']
             }
             // Include the JNI libraries
             jniLibs {
-                srcDirs += ['../llama_mobile_vd-android-java-SDK/src/main/jniLibs']
+                srcDirs += ['../llama_mobile_vd-android-SDK/jniLibs']
             }
         }
     }
@@ -51,13 +51,13 @@ dependencies {
     implementation 'com.getcapacitor:core:8.0.0'
 
     // Include the LlamaMobileVD Android Java SDK
-    implementation files('../llama_mobile_vd-android-java-SDK/build/outputs/aar/llama_mobile_vd-android-java-SDK-debug.aar')
+    implementation files('../llama_mobile_vd-android-SDK/build/outputs/aar/llama_mobile_vd-android-SDK-debug.aar')
 }
 
 // Copy the required JNI libraries
 android {
     task copyJniLibs(type: Copy) {
-        from '../llama_mobile_vd-android-java-SDK/src/main/jniLibs'
+        from '../llama_mobile_vd-android-SDK/jniLibs'
         into 'src/main/jniLibs'
         include '**/*'
     }

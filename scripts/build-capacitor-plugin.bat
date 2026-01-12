@@ -197,9 +197,9 @@ if exist "%SCRIPT_DIR%\build-android.bat" (
 REM Copy Android files to Capacitor plugin
 echo Copying Android files to Capacitor plugin...
 
-set "ANDROID_JAVA_SDK_DIR=%PROJECT_ROOT%\llama_mobile_vd-android-java-SDK"
-set "ANDROID_JNI_SRC=%ANDROID_JAVA_SDK_DIR%\src\main\jniLibs"
-set "ANDROID_JAVA_SRC_SRC=%ANDROID_JAVA_SDK_DIR%\src\main\java\com\llamamobile\vd"
+set "ANDROID_SDK_DIR=%PROJECT_ROOT%\llama_mobile_vd-android-SDK"
+set "ANDROID_JNI_SRC=%ANDROID_SDK_DIR%\jniLibs"
+set "ANDROID_JAVA_SRC_SRC=%ANDROID_SDK_DIR%\src\main\java\com\llamamobile\vd"
 
 REM Copy JNI libraries
 if exist "%ANDROID_JNI_SRC%" (

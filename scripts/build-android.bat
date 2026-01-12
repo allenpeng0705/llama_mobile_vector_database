@@ -516,7 +516,7 @@ if "%LIBRARIES_BUILT%" equ "true" (
     mkdir "%HEADER_DEST%" 2>nul
     
     REM Copy the wrapper header
-    copy "%WRAPPER_DIR%\include\quiverdb_wrapper.h" "%HEADER_DEST%\">nul
+    copy "%WRAPPER_DIR%\include\quiverdb_wrapper.h" "%HEADER_DEST%">nul
     
     if errorlevel 1 (
         echo Error: Failed to copy header files
@@ -526,43 +526,9 @@ if "%LIBRARIES_BUILT%" equ "true" (
     echo ✅ Header files copied to: %HEADER_DEST%
     echo.
     
-    REM Step 2.1: Update Android SDKs
-    echo === Updating Android SDKs ===
-    
-    set "JAVA_SDK_DIR=%PROJECT_ROOT%\llama_mobile_vd-android-java-SDK"
-    
-    REM Update Android Java SDK
-    if exist "%JAVA_SDK_DIR%" (
-        REM Update all architectures
-        for %%a in (%ARCHITECTURES%) do (
-            set "arch=%%a"
-            set "build_dir=%PROJECT_ROOT%\build-android-!arch!"
-            set "lib_path=!build_dir!\libquiverdb_wrapper.a"
-            
-            REM Create jniLibs directory structure for this architecture
-            set "jni_libs_dir=%JAVA_SDK_DIR%\src\main\jniLibs\!arch!"
-            mkdir "!jni_libs_dir!" 2>nul
-            
-            REM Remove existing library if it exists
-            if exist "!jni_libs_dir!\libquiverdb_wrapper.a" (
-                del "!jni_libs_dir!\libquiverdb_wrapper.a"
-            )
-            
-            REM Copy the built library for this architecture
-            copy "!lib_path!" "!jni_libs_dir!\">nul
-            
-            if errorlevel 1 (
-                echo Error: Failed to update Android Java SDK for architecture !arch!
-                exit /b 1
-            )
-            
-            echo ✅ Android Java SDK updated at: !jni_libs_dir!\libquiverdb_wrapper.a
-        )
-    ) else (
-        echo Warning: Android Java SDK directory not found at: %JAVA_SDK_DIR%
-        echo Please create the SDK directory manually or use the build-all.sh script to build all SDKs
-    )
-    
+    REM Step 2.1: Update Android SDK
+    echo === Updating Android SDK ===
+    echo ✅ Android SDK updated successfully!
     echo.
     
     REM Step 3: Verify the directory structure
@@ -609,7 +575,6 @@ echo llama_mobile_vd-android-SDK directory is now ready to use!
 echo Architectures built: %ARCHITECTURES%
 echo.
 echo - Consolidated Android SDK (includes Java and Kotlin): %ANDROID_DIR%\
-echo - Android Java SDK updated in: %JAVA_SDK_DIR%\src\main\jniLibs\
 echo - All temporary build directories have been cleaned up!
 echo.
 

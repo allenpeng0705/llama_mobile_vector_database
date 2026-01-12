@@ -9,6 +9,7 @@ A high-performance vector database SDK for iOS applications, built on top of the
 - **Multiple distance metrics**: Support for L2 (Euclidean), Cosine, and Dot Product distances
 - **VectorStore**: Exact nearest neighbor search with thread-safe operations
 - **HNSWIndex**: High-performance approximate nearest neighbor search using the Hierarchical Navigable Small World algorithm
+- **MMapVectorStore**: Memory-mapped vector store for large datasets that may exceed RAM capacity
 - **Auto-managed resources**: Automatic memory management with Swift's ARC
 - **Multi-dimensional support**: Handles common embedding sizes (384, 768, 1024, 3072 dimensions)
 
@@ -97,6 +98,55 @@ let count = hnswIndex.count
 print("Total vectors in index: \(count)")
 ```
 
+### MMapVectorStore Example
+
+```swift
+import LlamaMobileVD
+
+// Create a temporary file path
+let tempDir = NSTemporaryDirectory()
+let vectorStorePath = tempDir.appending("my_mmap_store.bin")
+
+// Build the MMapVectorStore using the builder
+let dimension = 1024
+let metric = DistanceMetric.cosine
+
+// Create a builder
+let builder = try MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+
+// Add vectors to the builder
+for i in 0..<1000 {
+    let vector = Array(repeating: Float.random(in: -1.0...1.0), count: dimension)
+    try builder.addVector(vector, id: i + 1)
+}
+
+// Save the builder to file, creating an MMapVectorStore
+try builder.save(filename: vectorStorePath)
+
+// Open the MMapVectorStore from file
+let vectorStore = try MMapVectorStore.open(filename: vectorStorePath)
+
+// Get a vector by ID
+if let vector = try vectorStore.get(id: 42) {
+    print("Vector 42: \(vector.prefix(5))...")
+}
+
+// Search for nearest neighbors
+let queryVector = Array(repeating: 0.0, count: dimension)
+try vectorStore.search(queryVector, k: 5)
+
+// Check store properties
+print("Store dimension: \(vectorStore.dimension)")
+print("Store metric: \(vectorStore.metric)")
+print("Total vectors: \(vectorStore.count)")
+
+// Clean up
+let fileManager = FileManager.default
+if fileManager.fileExists(atPath: vectorStorePath) {
+    try? fileManager.removeItem(atPath: vectorStorePath)
+}
+```
+
 ## API Reference
 
 ### DistanceMetric
@@ -156,14 +206,74 @@ public class HNSWIndex {
 }
 ```
 
+### MMapVectorStoreBuilder
+
+Builder class for creating and saving MMapVectorStore instances:
+
+```swift
+public class MMapVectorStoreBuilder {
+    // Initializer
+    public init(dimension: Int, metric: DistanceMetric) throws
+    
+    // Methods
+    public func addVector(_ vector: [Float], id: Int) throws
+    public func reserve(capacity: Int) throws
+    public func save(filename: String) throws -> Bool
+    
+    // Properties
+    public var count: Int
+    public var dimension: Int
+}
+```
+
+### MMapVectorStore
+
+Memory-mapped vector store optimized for large datasets that may exceed RAM capacity:
+
+```swift
+public class MMapVectorStore {
+    // Static methods
+    public static func open(filename: String) throws -> MMapVectorStore
+    
+    // Methods
+    public func get(id: Int) throws -> [Float]?
+    public func search(_ queryVector: [Float], k: Int) throws -> [SearchResult]
+    public func contains(id: Int) throws -> Bool
+    
+    // Properties
+    public var count: Int
+    public var dimension: Int
+    public var metric: DistanceMetric
+}
+```
+
 ## Performance Tips
 
-- For large datasets (10,000+ vectors), use `HNSWIndex` instead of `VectorStore` for faster search performance
+### Which Vector Store to Choose?
+
+- **VectorStore**: Use for exact nearest neighbor search with small to medium datasets (up to 10,000 vectors)
+- **HNSWIndex**: Use for high-performance approximate nearest neighbor search with large datasets (10,000+ vectors)
+- **MMapVectorStore**: Use for extremely large datasets that may exceed RAM capacity (hundreds of thousands to millions of vectors)
+
+### MMapVectorStore Specific Tips
+
+- MMapVectorStore provides zero-copy access to vector data on disk, making it ideal for large datasets
+- Loading an MMapVectorStore is instant, regardless of size, as it doesn't need to load all vectors into RAM
+- Search performance is slower than HNSWIndex but faster than VectorStore for very large datasets
+- Perfect for applications that need to handle large vector datasets efficiently on mobile devices with limited RAM
+
+### HNSWIndex Optimization
+
 - Adjust `m` and `efConstruction` parameters when creating an `HNSWIndex`:
   - Higher `m` values create more connections per node (better search quality, higher memory usage)
   - Higher `efConstruction` values improve index quality (slower build time)
 - Adjust `efSearch` parameter during search to balance speed and quality
+
+### General Tips
+
 - For common embedding sizes (384, 768, 1024, 3072), the SDK is optimized for performance
+- Use `reserve()` method when you know the expected number of vectors to reduce memory reallocations
+- Prefer vector dimensions that are multiples of 16 for optimal SIMD performance
 
 ## Requirements
 
@@ -208,6 +318,8 @@ xcodebuild test -scheme LlamaMobileVD -destination "platform=iOS Simulator,name=
 The test suite covers:
 - VectorStore creation, addition, search, and deletion operations
 - HNSWIndex creation, addition, search, and deletion operations
+- MMapVectorStoreBuilder creation, vector addition, and saving operations
+- MMapVectorStore opening, vector retrieval, and search operations
 - All distance metrics (L2, Cosine, Dot)
 - Various vector dimensions (384, 768, 1024, 3072)
 - Edge cases and error handling

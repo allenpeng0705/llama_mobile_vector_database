@@ -6,6 +6,7 @@ A high-performance vector database for Flutter applications, providing efficient
 
 - **VectorStore**: A simple and efficient vector storage and search implementation
 - **HNSWIndex**: A high-performance approximate nearest neighbor (ANN) search index using the Hierarchical Navigable Small World (HNSW) algorithm
+- **MMapVectorStore**: A memory-mapped vector store optimized for large datasets and fast access
 - **Multiple Distance Metrics**: Support for L2 (Euclidean), Cosine similarity, and Dot product distances
 - **Cross-Platform**: Works on both iOS and Android with identical API
 - **Efficient**: Optimized for mobile devices with minimal memory footprint
@@ -200,6 +201,37 @@ await loadedIndex.clear();
 await loadedIndex.dispose();
 ```
 
+### Using MMapVectorStore
+
+The MMapVectorStore provides efficient access to large vector datasets using memory-mapped files:
+
+```dart
+// Open an existing MMapVectorStore
+final mmapStore = await MMapVectorStore.open(path: '/path/to/vectorstore.mmap');
+
+// Get basic information about the store
+final count = await mmapStore.count;
+print('Number of vectors: $count');
+
+final dimension = await mmapStore.dimension;
+print('Vector dimension: $dimension');
+
+final metric = await mmapStore.metric;
+print('Distance metric: $metric');
+
+// Search for nearest neighbors
+final queryVector = List<double>.generate(dimension, (i) => i.toDouble());
+final results = await mmapStore.search(queryVector, k: 5);
+
+// Print the search results
+for (final result in results) {
+  print('Vector ID: ${result.id}, Distance: ${result.distance}');
+}
+
+// Close the MMapVectorStore when no longer needed
+await mmapStore.dispose();
+```
+
 ## API Reference
 
 ### DistanceMetric
@@ -269,6 +301,24 @@ A high-performance approximate nearest neighbor search index using the HNSW algo
 - `m`: The maximum number of connections per node (default: 16)
 - `efConstruction`: The size of the dynamic list for candidate selection during construction (default: 200)
 - `efSearch`: The size of the dynamic list for candidate selection during search (default: 50)
+
+### MMapVectorStore
+
+A memory-mapped vector store optimized for large datasets and fast access. This store reads vector data directly from disk using memory mapping, providing efficient access to large datasets without loading everything into memory.
+
+#### Methods
+
+- `static Future<MMapVectorStore> open({required String path})`: Opens an existing MMapVectorStore from a file
+- `Future<List<SearchResult>> search(List<double> queryVector, int k)`: Searches for the nearest neighbors of a query vector
+- `Future<int> get count`: Gets the number of vectors in the store
+- `Future<int> get dimension`: Gets the dimension of vectors in the store
+- `Future<DistanceMetric> get metric`: Gets the distance metric used by the store
+- `Future<void> dispose()`: Closes the MMapVectorStore and frees resources
+
+#### Parameters
+
+- `path`: The path to the MMapVectorStore file
+- `k`: The number of nearest neighbors to retrieve
 
 ### Version Information
 
@@ -357,6 +407,7 @@ flutter test
 The test suite covers:
 - VectorStore creation, addition, search, and deletion operations
 - HNSWIndex creation, addition, search, and deletion operations
+- MMapVectorStore opening, search, and metadata operations
 - All distance metrics (L2, Cosine, Dot)
 - Various vector dimensions (including large 3072-dimensional vectors)
 - Mocked platform channel communication

@@ -58,8 +58,7 @@ The llama_mobile_vd SDKs wrap QuiverDB's core functionality and provide native l
 llama_mobile_vd provides SDKs for all major mobile and web platforms:
 
 - **iOS SDK** (`llama_mobile_vd-ios-SDK`): Native Swift SDK for iOS applications (consolidated)
-- **Android SDK** (`llama_mobile_vd-android-SDK`): Native Kotlin SDK for Android applications (consolidated)
-- **Android Java SDK** (`llama_mobile_vd-android-java-SDK`): Native Java SDK for Android applications (separate)
+- **Android SDK** (`llama_mobile_vd-android-SDK`): Native Kotlin and Java SDK for Android applications (consolidated)
 - **Flutter SDK** (`llama_mobile_vd-flutter-SDK`): Cross-platform Flutter/Dart SDK
 - **React Native SDK** (`llama_mobile_vd-react-native-SDK`): Cross-platform React Native SDK with TypeScript support
 - **Capacitor Plugin** (`llama_mobile_vd-capacitor-plugin`): Cross-platform Capacitor plugin for web/hybrid applications
@@ -90,6 +89,27 @@ Built on QuiverDB's high-performance foundation, all SDKs provide consistent API
 - **countVectorsInIndex**: Get the number of vectors in the index
 - **clearHNSWIndex**: Remove all vectors from the index
 - **releaseHNSWIndex**: Release resources associated with the index
+
+#### MMapVectorStore (Memory-Mapped)
+- **createMMapVectorStoreBuilder**: Create a builder for memory-mapped vector store
+- **addVectorToBuilder**: Add vectors to the builder
+- **saveMMapVectorStore**: Save the built store to disk
+- **openMMapVectorStore**: Open an existing memory-mapped vector store from disk
+- **searchMMapVectorStore**: Perform exact nearest neighbor search on memory-mapped data
+- **closeMMapVectorStore**: Close the memory-mapped vector store
+
+### When to Use Each Index Type
+
+| Index Type | Best For | Key Characteristics |
+|------------|----------|---------------------|
+| **VectorStore** | Small to medium datasets (up to 100k vectors), exact search requirements | In-memory storage, O(n) search time, thread-safe, low memory overhead |
+| **HNSWIndex** | Large datasets (100k+ vectors), fast approximate search | Hierarchical navigable small world graph, O(log n) search time, configurable accuracy/performance tradeoff |
+| **MMapVectorStore** | Very large datasets (1M+ vectors), datasets larger than RAM | Memory-mapped file access, zero-copy reading, instant loading, O(n) search time |
+
+**Choosing the right index:**
+- Use **VectorStore** for small datasets where exact results are critical and memory is not a constraint
+- Use **HNSWIndex** for large datasets where search speed is more important than exact results
+- Use **MMapVectorStore** for extremely large datasets that don't fit in RAM or need to be persistently stored on disk
 
 ### Distance Metrics
 - **L2**: Euclidean distance
@@ -169,12 +189,6 @@ bash build-ios.sh
 ```bash
 cd scripts
 bash build-android.sh
-```
-
-#### Android Java SDK
-```bash
-cd scripts
-bash build-android-java.sh
 ```
 
 #### Flutter SDK
@@ -387,7 +401,7 @@ The repository includes example applications for all SDKs in the `examples` dire
 
 - **iOSSDKExample**: Example iOS application using the iOS SDK
 - **androidSDKExample**: Example Android application using the Android Kotlin SDK
-- **androidJavaSDKExample**: Example Android application using the Android Java SDK
+- **androidJavaSDKExample**: Example Android application using the Android Java interface from the consolidated SDK
 - **flutterSDKExample**: Example Flutter application using the Flutter SDK
 - **rnSDKExample**: Example React Native application using the React Native SDK
 - **capacitorPluginExample**: Example web application using the Capacitor plugin

@@ -351,6 +351,68 @@ const LlamaMobileVDAPI = {
    */
   getVersionPatch() {
     return LlamaMobileVD.getVersionPatch();
+  },
+
+  /**
+   * Open an MMapVectorStore
+   * @param {Object} params - Parameters for opening the MMapVectorStore
+   * @param {string} params.path - The path to the MMapVectorStore file
+   * @returns {Promise<Object>} Promise with the ID of the opened MMapVectorStore
+   */
+  openMMapVectorStore(params) {
+    return LlamaMobileVD.openMMapVectorStore(params);
+  },
+
+  /**
+   * Search for vectors in an MMapVectorStore
+   * @param {Object} params - Parameters for searching the MMapVectorStore
+   * @param {string} params.id - The ID of the MMapVectorStore
+   * @param {number[]} params.queryVector - The query vector
+   * @param {number} params.k - The number of nearest neighbors to return
+   * @returns {Promise<Object[]>} Promise with the search results
+   */
+  searchMMapVectorStore(params) {
+    return LlamaMobileVD.searchMMapVectorStore(params);
+  },
+
+  /**
+   * Get the number of vectors in an MMapVectorStore
+   * @param {Object} params - Parameters for counting vectors
+   * @param {string} params.id - The ID of the MMapVectorStore
+   * @returns {Promise<Object>} Promise with the count of vectors
+   */
+  getMMapVectorStoreCount(params) {
+    return LlamaMobileVD.getMMapVectorStoreCount(params);
+  },
+
+  /**
+   * Get the dimension of vectors in an MMapVectorStore
+   * @param {Object} params - Parameters for getting the dimension
+   * @param {string} params.id - The ID of the MMapVectorStore
+   * @returns {Promise<Object>} Promise with the dimension of the vectors
+   */
+  getMMapVectorStoreDimension(params) {
+    return LlamaMobileVD.getMMapVectorStoreDimension(params);
+  },
+
+  /**
+   * Get the distance metric used by an MMapVectorStore
+   * @param {Object} params - Parameters for getting the metric
+   * @param {string} params.id - The ID of the MMapVectorStore
+   * @returns {Promise<Object>} Promise with the distance metric
+   */
+  getMMapVectorStoreMetric(params) {
+    return LlamaMobileVD.getMMapVectorStoreMetric(params);
+  },
+
+  /**
+   * Release resources associated with an MMapVectorStore
+   * @param {Object} params - Parameters for releasing the MMapVectorStore
+   * @param {string} params.id - The ID of the MMapVectorStore
+   * @returns {Promise<void>} Promise that resolves when the MMapVectorStore is released
+   */
+  releaseMMapVectorStore(params) {
+    return LlamaMobileVD.releaseMMapVectorStore(params);
   }
 };
 

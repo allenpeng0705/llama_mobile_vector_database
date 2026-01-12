@@ -51,6 +51,14 @@ jest.mock('@capacitor/core', () => {
     getVersionMajor: jest.fn(),
     getVersionMinor: jest.fn(),
     getVersionPatch: jest.fn(),
+    
+    // MMapVectorStore Methods
+    openMMapVectorStore: jest.fn(),
+    searchMMapVectorStore: jest.fn(),
+    getMMapVectorStoreCount: jest.fn(),
+    getMMapVectorStoreDimension: jest.fn(),
+    getMMapVectorStoreMetric: jest.fn(),
+    releaseMMapVectorStore: jest.fn(),
   };
 
   return {
@@ -776,6 +784,163 @@ describe('LlamaMobileVD Capacitor Plugin', () => {
       
       expect(mockPlugin.createVectorStore).toHaveBeenCalledWith(options);
       expect(result).toEqual(mockResponse);
+    });
+  });
+
+  // MARK: MMapVectorStore Tests
+  describe('MMapVectorStore', () => {
+    describe('openMMapVectorStore', () => {
+      it('should call the plugin with the correct parameters', async () => {
+        const mockId = 'test-mmap-store-id';
+        const mockResponse = { id: mockId };
+        
+        mockPlugin.openMMapVectorStore.mockResolvedValue(mockResponse);
+        
+        const params = {
+          path: '/path/to/vectorstore.mmap',
+        };
+        
+        const result = await LlamaMobileVD.openMMapVectorStore(params);
+        
+        expect(mockPlugin.openMMapVectorStore).toHaveBeenCalledWith(params);
+        expect(result).toEqual(mockResponse);
+      });
+
+      it('should handle different file paths', async () => {
+        const mockId = 'test-mmap-store-id';
+        const mockResponse = { id: mockId };
+        
+        mockPlugin.openMMapVectorStore.mockResolvedValue(mockResponse);
+        
+        // Test with different file paths
+        const paths = [
+          '/storage/emulated/0/vectorstore.mmap',
+          '/data/user/0/com.example.app/files/vectors.mmap',
+          '/sdcard/documents/index.mmap'
+        ];
+        
+        for (const path of paths) {
+          await LlamaMobileVD.openMMapVectorStore({ path });
+        }
+        
+        expect(mockPlugin.openMMapVectorStore).toHaveBeenCalledTimes(paths.length);
+      });
+    });
+
+    describe('searchMMapVectorStore', () => {
+      it('should call the plugin with the correct parameters', async () => {
+        const mockId = 'test-mmap-store-id';
+        const mockQueryVector = Array(512).fill(0.5);
+        const mockK = 10;
+        const mockResults = {
+          results: [
+            { id: 1, distance: 0.123 },
+            { id: 2, distance: 0.234 },
+            { id: 3, distance: 0.345 },
+          ],
+        };
+        
+        mockPlugin.searchMMapVectorStore.mockResolvedValue(mockResults);
+        
+        const params = {
+          id: mockId,
+          queryVector: mockQueryVector,
+          k: mockK,
+        };
+        
+        const results = await LlamaMobileVD.searchMMapVectorStore(params);
+        
+        expect(mockPlugin.searchMMapVectorStore).toHaveBeenCalledWith(params);
+        expect(results).toEqual(mockResults);
+      });
+
+      it('should handle different k values', async () => {
+        const mockId = 'test-mmap-store-id';
+        const mockQueryVector = Array(256).fill(0.75);
+        const mockResults = {
+          results: [],
+        };
+        
+        mockPlugin.searchMMapVectorStore.mockResolvedValue(mockResults);
+        
+        // Test with different k values
+        const kValues = [1, 5, 10, 20, 50];
+        
+        for (const k of kValues) {
+          await LlamaMobileVD.searchMMapVectorStore({
+            id: mockId,
+            queryVector: mockQueryVector,
+            k: k,
+          });
+        }
+        
+        expect(mockPlugin.searchMMapVectorStore).toHaveBeenCalledTimes(kValues.length);
+      });
+    });
+
+    describe('getMMapVectorStoreCount', () => {
+      it('should call the plugin with the correct parameters', async () => {
+        const mockId = 'test-mmap-store-id';
+        const mockCount = 100;
+        const mockResponse = { count: mockCount };
+        
+        mockPlugin.getMMapVectorStoreCount.mockResolvedValue(mockResponse);
+        
+        const params = { id: mockId };
+        
+        const result = await LlamaMobileVD.getMMapVectorStoreCount(params);
+        
+        expect(mockPlugin.getMMapVectorStoreCount).toHaveBeenCalledWith(params);
+        expect(result).toEqual(mockResponse);
+      });
+    });
+
+    describe('getMMapVectorStoreDimension', () => {
+      it('should call the plugin with the correct parameters', async () => {
+        const mockId = 'test-mmap-store-id';
+        const mockDimension = 512;
+        const mockResponse = { dimension: mockDimension };
+        
+        mockPlugin.getMMapVectorStoreDimension.mockResolvedValue(mockResponse);
+        
+        const params = { id: mockId };
+        
+        const result = await LlamaMobileVD.getMMapVectorStoreDimension(params);
+        
+        expect(mockPlugin.getMMapVectorStoreDimension).toHaveBeenCalledWith(params);
+        expect(result).toEqual(mockResponse);
+      });
+    });
+
+    describe('getMMapVectorStoreMetric', () => {
+      it('should call the plugin with the correct parameters', async () => {
+        const mockId = 'test-mmap-store-id';
+        const mockMetric = DistanceMetric.COSINE;
+        const mockResponse = { metric: mockMetric };
+        
+        mockPlugin.getMMapVectorStoreMetric.mockResolvedValue(mockResponse);
+        
+        const params = { id: mockId };
+        
+        const result = await LlamaMobileVD.getMMapVectorStoreMetric(params);
+        
+        expect(mockPlugin.getMMapVectorStoreMetric).toHaveBeenCalledWith(params);
+        expect(result).toEqual(mockResponse);
+      });
+    });
+
+    describe('releaseMMapVectorStore', () => {
+      it('should call the plugin with the correct parameters', async () => {
+        const mockId = 'test-mmap-store-id';
+        
+        mockPlugin.releaseMMapVectorStore.mockResolvedValue(undefined);
+        
+        const params = { id: mockId };
+        
+        await LlamaMobileVD.releaseMMapVectorStore(params);
+        
+        expect(mockPlugin.releaseMMapVectorStore).toHaveBeenCalledWith(params);
+      });
     });
   });
 });

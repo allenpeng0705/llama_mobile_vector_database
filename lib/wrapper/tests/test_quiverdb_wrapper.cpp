@@ -698,6 +698,140 @@ void test_hnsw_index_comprehensive() {
     std::cout << "" << std::endl;
 }
 
+// Test MMapVectorStore functionality
+void test_mmap_vector_store() {
+    std::cout << "=== Testing MMapVectorStore ===" << std::endl;
+    
+    const size_t dimension = 128;
+    const size_t num_vectors = 100;
+    const size_t k = 5;
+    
+    // Create a temporary file name
+    const char* temp_file = "/tmp/quiverdb_test_mmap.bin";
+    
+    // Create MMapVectorStoreBuilder
+    QuiverDBMMapVectorStoreBuilder builder;
+    QuiverDBError error = quiverdb_mmap_vector_store_builder_create(dimension, QUIVERDB_DISTANCE_L2, &builder);
+    assert(error == QUIVERDB_OK);
+    
+    // Test dimension
+    size_t actual_dimension = 0;
+    error = quiverdb_mmap_vector_store_builder_dimension(builder, &actual_dimension);
+    assert(error == QUIVERDB_OK);
+    assert(actual_dimension == dimension);
+    std::cout << "✓ MMapVectorStoreBuilder dimension test passed" << std::endl;
+    
+    // Add vectors
+    std::vector<float> vectors(num_vectors * dimension);
+    std::vector<uint64_t> ids(num_vectors);
+    
+    for (size_t i = 0; i < num_vectors; ++i) {
+        ids[i] = i + 1;
+        float* vec = &vectors[i * dimension];
+        create_random_vector(vec, dimension);
+        
+        error = quiverdb_mmap_vector_store_builder_add(builder, ids[i], vec);
+        assert(error == QUIVERDB_OK);
+    }
+    
+    // Test size
+    size_t size = 0;
+    error = quiverdb_mmap_vector_store_builder_size(builder, &size);
+    assert(error == QUIVERDB_OK);
+    assert(size == num_vectors);
+    std::cout << "✓ MMapVectorStoreBuilder add and size test passed" << std::endl;
+    
+    // Test reserve
+    error = quiverdb_mmap_vector_store_builder_reserve(builder, num_vectors * 2);
+    assert(error == QUIVERDB_OK);
+    std::cout << "✓ MMapVectorStoreBuilder reserve test passed" << std::endl;
+    
+    // Save to file
+    error = quiverdb_mmap_vector_store_builder_save(builder, temp_file);
+    assert(error == QUIVERDB_OK);
+    std::cout << "✓ MMapVectorStoreBuilder save test passed" << std::endl;
+    
+    // Destroy builder
+    quiverdb_mmap_vector_store_builder_destroy(builder);
+    
+    // Open MMapVectorStore from file
+    QuiverDBMMapVectorStore store;
+    error = quiverdb_mmap_vector_store_open(temp_file, &store);
+    assert(error == QUIVERDB_OK);
+    std::cout << "✓ MMapVectorStore open test passed" << std::endl;
+    
+    // Test size
+    size_t store_size = 0;
+    error = quiverdb_mmap_vector_store_size(store, &store_size);
+    assert(error == QUIVERDB_OK);
+    assert(store_size == num_vectors);
+    std::cout << "✓ MMapVectorStore size test passed" << std::endl;
+    
+    // Test dimension
+    size_t store_dimension = 0;
+    error = quiverdb_mmap_vector_store_dimension(store, &store_dimension);
+    assert(error == QUIVERDB_OK);
+    assert(store_dimension == dimension);
+    std::cout << "✓ MMapVectorStore dimension test passed" << std::endl;
+    
+    // Test metric
+    QuiverDBDistanceMetric metric;
+    error = quiverdb_mmap_vector_store_metric(store, &metric);
+    assert(error == QUIVERDB_OK);
+    assert(metric == QUIVERDB_DISTANCE_L2);
+    std::cout << "✓ MMapVectorStore metric test passed" << std::endl;
+    
+    // Test contains
+    int contains = 0;
+    error = quiverdb_mmap_vector_store_contains(store, ids[0], &contains);
+    assert(error == QUIVERDB_OK);
+    assert(contains == 1);
+    
+    error = quiverdb_mmap_vector_store_contains(store, 9999, &contains);
+    assert(error == QUIVERDB_OK);
+    assert(contains == 0);
+    std::cout << "✓ MMapVectorStore contains test passed" << std::endl;
+    
+    // Test get
+    float retrieved[dimension];
+    error = quiverdb_mmap_vector_store_get(store, ids[0], retrieved, dimension);
+    assert(error == QUIVERDB_OK);
+    
+    // Verify the retrieved vector matches
+    bool matches = true;
+    for (size_t i = 0; i < dimension; ++i) {
+        if (retrieved[i] != vectors[i]) {
+            matches = false;
+            break;
+        }
+    }
+    assert(matches);
+    std::cout << "✓ MMapVectorStore get test passed" << std::endl;
+    
+    // Test search
+    float query[dimension];
+    create_random_vector(query, dimension);
+    
+    QuiverDBSearchResult results[k];
+    error = quiverdb_mmap_vector_store_search(store, query, k, results, k);
+    assert(error == QUIVERDB_OK);
+    
+    // Verify results are sorted
+    for (size_t i = 0; i < k - 1; ++i) {
+        assert(results[i].distance <= results[i + 1].distance);
+    }
+    std::cout << "✓ MMapVectorStore search test passed" << std::endl;
+    
+    // Close store
+    quiverdb_mmap_vector_store_close(store);
+    
+    // Clean up temporary file
+    std::remove(temp_file);
+    
+    std::cout << "=== All MMapVectorStore tests passed! ===" << std::endl;
+    std::cout << "" << std::endl;
+}
+
 int main() {
     std::cout << "Running QuiverDB Wrapper API Tests..." << std::endl;
     std::cout << "" << std::endl;
@@ -710,6 +844,7 @@ int main() {
     test_vector_store_comprehensive();
     test_hnsw_index();
     test_hnsw_index_comprehensive();
+    test_mmap_vector_store();
     test_distance_metrics();
     test_error_handling();
     test_edge_cases();

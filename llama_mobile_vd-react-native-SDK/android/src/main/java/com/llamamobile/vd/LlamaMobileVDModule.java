@@ -34,6 +34,11 @@ public class LlamaMobileVDModule extends ReactContextBaseJavaModule {
      * Map of HNSWIndex instances by ID
      */
     private final Map<String, HNSWIndex> hnswIndexes = new HashMap<>();
+    
+    /**
+     * Map of MMapVectorStore instances by ID
+     */
+    private final Map<String, MMapVectorStore> mmapVectorStores = new HashMap<>();
 
     /**
      * Constructor for the module
@@ -841,6 +846,171 @@ public class LlamaMobileVDModule extends ReactContextBaseJavaModule {
             if (hnswIndexes.remove(id) == null) {
                 throw new Exception("HNSWIndex not found for id: " + id);
             }
+
+            promise.resolve(null);
+        } catch (Exception e) {
+            promise.reject("ERROR", e.getMessage());
+        }
+    }
+
+    /**
+     * Open an MMapVectorStore from a file
+     * @param params Parameters for opening the store
+     * @param promise Completion handler for successful opening
+     */
+    @ReactMethod
+    public void openMMapVectorStore(ReadableMap params, Promise promise) {
+        try {
+            String path = params.getString("path");
+
+            MMapVectorStore store = MMapVectorStore.open(path);
+            String id = generateUniqueId();
+            mmapVectorStores.put(id, store);
+
+            WritableMap result = new WritableNativeMap();
+            result.putString("id", id);
+            promise.resolve(result);
+        } catch (Exception e) {
+            promise.reject("ERROR", e.getMessage());
+        }
+    }
+
+    /**
+     * Search for vectors in an MMapVectorStore
+     * @param params Parameters for searching the store
+     * @param promise Completion handler for successful search
+     */
+    @ReactMethod
+    public void searchMMapVectorStore(ReadableMap params, Promise promise) {
+        try {
+            String id = params.getString("id");
+            ReadableArray queryVectorArray = params.getArray("queryVector");
+            int k = params.getInt("k");
+
+            MMapVectorStore store = mmapVectorStores.get(id);
+            if (store == null) {
+                throw new Exception("MMapVectorStore not found for id: " + id);
+            }
+
+            float[] queryVector = convertToFloatArray(queryVectorArray);
+            SearchResult[] results = store.search(queryVector, k);
+
+            // Convert results to JSON compatible format
+            WritableArray jsonResults = new WritableNativeArray();
+            for (SearchResult result : results) {
+                WritableMap resultMap = new WritableNativeMap();
+                resultMap.putInt("index", result.getIndex());
+                resultMap.putDouble("distance", result.getDistance());
+                jsonResults.pushMap(resultMap);
+            }
+
+            promise.resolve(jsonResults);
+        } catch (Exception e) {
+            promise.reject("ERROR", e.getMessage());
+        }
+    }
+
+    /**
+     * Count the number of vectors in an MMapVectorStore
+     * @param params Parameters for counting vectors
+     * @param promise Completion handler for successful count
+     */
+    @ReactMethod
+    public void countMMapVectorStore(ReadableMap params, Promise promise) {
+        try {
+            String id = params.getString("id");
+
+            MMapVectorStore store = mmapVectorStores.get(id);
+            if (store == null) {
+                throw new Exception("MMapVectorStore not found for id: " + id);
+            }
+
+            int count = store.getCount();
+            WritableMap result = new WritableNativeMap();
+            result.putInt("count", count);
+            promise.resolve(result);
+        } catch (Exception e) {
+            promise.reject("ERROR", e.getMessage());
+        }
+    }
+
+    /**
+     * Get the dimension of vectors in an MMapVectorStore
+     * @param params Parameters for getting the dimension
+     * @param promise Completion handler for successful retrieval
+     */
+    @ReactMethod
+    public void getMMapVectorStoreDimension(ReadableMap params, Promise promise) {
+        try {
+            String id = params.getString("id");
+
+            MMapVectorStore store = mmapVectorStores.get(id);
+            if (store == null) {
+                throw new Exception("MMapVectorStore not found for id: " + id);
+            }
+
+            int dimension = store.getDimension();
+            WritableMap result = new WritableNativeMap();
+            result.putInt("dimension", dimension);
+            promise.resolve(result);
+        } catch (Exception e) {
+            promise.reject("ERROR", e.getMessage());
+        }
+    }
+
+    /**
+     * Get the distance metric used by an MMapVectorStore
+     * @param params Parameters for getting the metric
+     * @param promise Completion handler for successful retrieval
+     */
+    @ReactMethod
+    public void getMMapVectorStoreMetric(ReadableMap params, Promise promise) {
+        try {
+            String id = params.getString("id");
+
+            MMapVectorStore store = mmapVectorStores.get(id);
+            if (store == null) {
+                throw new Exception("MMapVectorStore not found for id: " + id);
+            }
+
+            DistanceMetric metric = store.getMetric();
+            String metricStr;
+            switch (metric) {
+                case L2:
+                    metricStr = "L2";
+                    break;
+                case COSINE:
+                    metricStr = "COSINE";
+                    break;
+                case DOT:
+                    metricStr = "DOT";
+                    break;
+                default:
+                    metricStr = "L2";
+            }
+            WritableMap result = new WritableNativeMap();
+            result.putString("metric", metricStr);
+            promise.resolve(result);
+        } catch (Exception e) {
+            promise.reject("ERROR", e.getMessage());
+        }
+    }
+
+    /**
+     * Release resources associated with an MMapVectorStore
+     * @param params Parameters for releasing the store
+     * @param promise Completion handler for successful release
+     */
+    @ReactMethod
+    public void releaseMMapVectorStore(ReadableMap params, Promise promise) {
+        try {
+            String id = params.getString("id");
+
+            MMapVectorStore store = mmapVectorStores.remove(id);
+            if (store == null) {
+                throw new Exception("MMapVectorStore not found for id: " + id);
+            }
+            store.close();
 
             promise.resolve(null);
         } catch (Exception e) {

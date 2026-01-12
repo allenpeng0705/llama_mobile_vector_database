@@ -563,4 +563,174 @@ final class LlamaMobileVDTests: XCTestCase {
             try? FileManager.default.removeItem(atPath: tempFile)
         }
     }
+    
+    func testMMapVectorStoreBuilderCreation() {
+        for dimension in testDimensions {
+            for metric in testMetrics {
+                XCTAssertNoThrow({
+                    let builder = try MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+                    XCTAssertEqual(builder.count, 0)
+                    XCTAssertEqual(builder.dimension, dimension)
+                }, "Failed to create MMapVectorStoreBuilder with dimension \(dimension) and metric \(metric)")
+            }
+        }
+    }
+    
+    func testMMapVectorStoreBuilderOperations() {
+        let dimension = 512
+        let metric = DistanceMetric.l2
+        
+        XCTAssertNoThrow({
+            let builder = try MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+            
+            // Test adding vectors
+            let vector1 = Array(repeating: Float(1.0), count: dimension)
+            let vector2 = Array(repeating: Float(0.5), count: dimension)
+            let vector3 = Array(repeating: Float(0.25), count: dimension)
+            
+            try builder.addVector(vector1, id: 1)
+            XCTAssertEqual(builder.count, 1)
+            
+            try builder.addVector(vector2, id: 2)
+            XCTAssertEqual(builder.count, 2)
+            
+            try builder.addVector(vector3, id: 3)
+            XCTAssertEqual(builder.count, 3)
+            
+            // Test reserve
+            try builder.reserve(capacity: 100)
+            XCTAssertEqual(builder.count, 3)
+            
+            // Test adding more vectors after reserve
+            for i in 4...10 {
+                let vector = Array(repeating: Float(i) / 10.0, count: dimension)
+                try builder.addVector(vector, id: i)
+            }
+            XCTAssertEqual(builder.count, 10)
+        })
+    }
+    
+    func testMMapVectorStoreSaveLoad() {
+        let dimension = 256
+        let metric = DistanceMetric.cosine
+        
+        // Create a temporary file path
+        let tempDir = NSTemporaryDirectory()
+        let tempFile = tempDir.appending("test_mmap_vector_store.bin")
+        
+        // Clean up any existing file
+        if FileManager.default.fileExists(atPath: tempFile) {
+            try? FileManager.default.removeItem(atPath: tempFile)
+        }
+        
+        XCTAssertNoThrow({
+            // Create builder and add vectors
+            let builder = try MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+            
+            let vector1 = Array(repeating: Float(1.0), count: dimension)
+            let vector2 = Array(repeating: Float(0.5), count: dimension)
+            let vector3 = Array(repeating: Float(0.25), count: dimension)
+            
+            try builder.addVector(vector1, id: 1)
+            try builder.addVector(vector2, id: 2)
+            try builder.addVector(vector3, id: 3)
+            
+            // Save to file
+            let saved = try builder.save(filename: tempFile)
+            XCTAssertTrue(saved)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: tempFile))
+            
+            // Open the saved store
+            let vectorStore = try MMapVectorStore.open(filename: tempFile)
+            
+            // Verify store properties
+            XCTAssertEqual(vectorStore.dimension, dimension)
+            XCTAssertEqual(vectorStore.metric, metric)
+            XCTAssertEqual(vectorStore.count, 3)
+            
+            // Verify vectors can be retrieved
+            let retrieved1 = try vectorStore.get(id: 1)
+            XCTAssertNotNil(retrieved1)
+            XCTAssertEqual(retrieved1, vector1)
+            
+            let retrieved2 = try vectorStore.get(id: 2)
+            XCTAssertNotNil(retrieved2)
+            XCTAssertEqual(retrieved2, vector2)
+            
+            let retrieved3 = try vectorStore.get(id: 3)
+            XCTAssertNotNil(retrieved3)
+            XCTAssertEqual(retrieved3, vector3)
+            
+            // Verify contains functionality
+            XCTAssertTrue(try vectorStore.contains(id: 1))
+            XCTAssertTrue(try vectorStore.contains(id: 2))
+            XCTAssertTrue(try vectorStore.contains(id: 3))
+            XCTAssertFalse(try vectorStore.contains(id: 4))
+        })
+        
+        // Clean up the temporary file
+        if FileManager.default.fileExists(atPath: tempFile) {
+            try? FileManager.default.removeItem(atPath: tempFile)
+        }
+    }
+    
+    func testMMapVectorStoreSearch() {
+        let dimension = 512
+        let metric = DistanceMetric.cosine
+        
+        // Create a temporary file path
+        let tempDir = NSTemporaryDirectory()
+        let tempFile = tempDir.appending("test_mmap_search.bin")
+        
+        // Clean up any existing file
+        if FileManager.default.fileExists(atPath: tempFile) {
+            try? FileManager.default.removeItem(atPath: tempFile)
+        }
+        
+        XCTAssertNoThrow({
+            // Create and populate the store
+            let builder = try MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+            
+            // Add known vectors for predictable search results
+            let vector1 = Array(repeating: Float(1.0), count: dimension)  // ID 1
+            let vector2 = Array(repeating: Float(0.9), count: dimension)  // ID 2 - very similar to vector1
+            let vector3 = Array(repeating: Float(0.5), count: dimension)  // ID 3 - somewhat similar
+            let vector4 = Array(repeating: Float(0.1), count: dimension)  // ID 4 - less similar
+            let vector5 = Array(repeating: Float(-1.0), count: dimension) // ID 5 - very dissimilar
+            
+            try builder.addVector(vector1, id: 1)
+            try builder.addVector(vector2, id: 2)
+            try builder.addVector(vector3, id: 3)
+            try builder.addVector(vector4, id: 4)
+            try builder.addVector(vector5, id: 5)
+            
+            // Save the store
+            try builder.save(filename: tempFile)
+            
+            // Open and search
+            let vectorStore = try MMapVectorStore.open(filename: tempFile)
+            
+            // Test search for vector1 - should find itself first
+            let results1 = try vectorStore.search(vector1, k: 3)
+            XCTAssertEqual(results1.count, 3)
+            XCTAssertEqual(results1[0].id, 1)  // Exact match
+            XCTAssertEqual(results1[1].id, 2)  // Very similar
+            XCTAssertEqual(results1[2].id, 3)  // Somewhat similar
+            
+            // Test search for vector3 - should find itself first, then similar vectors
+            let results2 = try vectorStore.search(vector3, k: 2)
+            XCTAssertEqual(results2.count, 2)
+            XCTAssertEqual(results2[0].id, 3)  // Exact match
+            XCTAssertTrue([2, 4].contains(results2[1].id))  // Should be either 2 or 4 depending on metric
+            
+            // Test search with k larger than the number of vectors
+            let results3 = try vectorStore.search(vector1, k: 10)
+            XCTAssertEqual(results3.count, 5)  // Only 5 vectors available
+        })
+        
+        // Clean up the temporary file
+        if FileManager.default.fileExists(atPath: tempFile) {
+            try? FileManager.default.removeItem(atPath: tempFile)
+        }
+    }
 }
