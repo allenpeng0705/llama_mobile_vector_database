@@ -1,0 +1,44 @@
+{
+  "object" : {
+    "artifacts" : [
+      {
+        "kind" : {
+          "xcframework" : {
+
+          }
+        },
+        "packageRef" : {
+          "identity" : "llama_mobile_vd-ios-sdk",
+          "kind" : "fileSystem",
+          "location" : "/Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-ios-SDK",
+          "name" : "LlamaMobileVD"
+        },
+        "path" : "/Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-ios-SDK/llama_mobile_vd.xcframework",
+        "source" : {
+          "type" : "local"
+        },
+        "targetName" : "llama_mobile_vd"
+      }
+    ],
+    "dependencies" : [
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "llama_mobile_vd-ios-sdk",
+          "kind" : "fileSystem",
+          "location" : "/Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-ios-SDK",
+          "name" : "LlamaMobileVD"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-ios-SDK"
+        },
+        "subpath" : "llama_mobile_vd-ios-sdk"
+      }
+    ],
+    "prebuilts" : [
+
+    ]
+  },
+  "version" : 7
+}

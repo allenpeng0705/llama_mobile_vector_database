@@ -15,6 +15,18 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        ndk {
+            abiFilters 'arm64-v8a', 'x86_64'
+            stl "c++_shared"
+        }
+    }
+    
+    externalNativeBuild {
+        cmake {
+            path '../../../llama_mobile_vd-android-SDK/src/main/cpp/CMakeLists.txt'
+            version "3.18.1"
+        }
     }
 
     buildTypes {
@@ -33,6 +45,24 @@ android {
     buildFeatures {
         viewBinding true
     }
+
+    sourceSets {
+        main {
+            java {
+                srcDirs += ['../../llama_mobile_vd-android-SDK/src/main/java']
+            }
+            
+            kotlin {
+                srcDirs += ['../../llama_mobile_vd-android-SDK/src/main/java']
+            }
+            
+            // Add native libraries
+            jniLibs {
+                srcDirs += ['../../llama_mobile_vd-android-SDK/src/main/jniLibs']
+            }
+        }
+    }    
+
 }
 
 dependencies {
@@ -40,21 +70,8 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
-}
-
-sourceSets {
-    main {
-        kotlin {
-            srcDirs += ['../../llama_mobile_vd-android-SDK/src/main/kotlin']
-        }
-        java {
-            srcDirs += ['../../llama_mobile_vd-android-SDK/src/main/java']
-        }
-        jniLibs {
-            srcDirs += ['../../llama_mobile_vd-android-SDK/jniLibs']
-        }
-    }
 }

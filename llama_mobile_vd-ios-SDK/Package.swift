@@ -23,11 +23,12 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "LlamaMobileVD",
-            dependencies: [],
-            path: "Sources/LlamaMobileVD",
-            resources: [
-                .copy("Frameworks/")
-            ]
+            dependencies: ["llama_mobile_vd"],
+            path: "Sources/LlamaMobileVD"
+        ),
+        .binaryTarget(
+            name: "llama_mobile_vd",
+            path: "llama_mobile_vd.xcframework"
         ),
         .testTarget(
             name: "LlamaMobileVDTests",

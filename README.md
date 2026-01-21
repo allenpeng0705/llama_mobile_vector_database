@@ -112,9 +112,46 @@ Built on QuiverDB's high-performance foundation, all SDKs provide consistent API
 - Use **MMapVectorStore** for extremely large datasets that don't fit in RAM or need to be persistently stored on disk
 
 ### Distance Metrics
-- **L2**: Euclidean distance
-- **Cosine**: Cosine similarity
-- **Dot**: Dot product
+
+#### L2 (Euclidean Distance)
+**Definition**: The straight-line distance between two points in a vector space.
+**Calculation**: √(Σ(v1_i - v2_i)²) for each dimension i.
+**Key Characteristics**:
+- Measures the actual geometric distance between vectors
+- Sensitive to vector magnitude (length)
+- Values range from 0 (identical vectors) to infinity
+- **Use Case**: Best when vector magnitude is meaningful (e.g., physical measurements)
+
+#### Cosine Similarity
+**Definition**: Measures the angle between two vectors, regardless of their magnitude.
+**Calculation**: (v1 · v2) / (||v1|| × ||v2||), where · is dot product and ||v|| is vector magnitude.
+**Key Characteristics**:
+- Normalizes vectors to unit length before comparison
+- Focuses on direction rather than distance
+- Values range from -1 (opposite directions) to 1 (identical directions)
+- **Use Case**: Ideal for text embeddings, where direction matters more than length
+
+#### Dot Product
+**Definition**: The sum of the products of corresponding elements in two vectors.
+**Calculation**: Σ(v1_i × v2_i) for each dimension i.
+**Key Characteristics**:
+- Measures both magnitude and direction
+- Values range from -infinity to infinity
+- Largest when vectors are in the same direction and have large magnitudes
+- **Use Case**: Effective when both direction and magnitude are important
+
+#### Comparison Table
+
+| Metric | Focus | Sensitivity to Magnitude | Typical Range | Best For |
+|--------|-------|---------------------------|---------------|----------|
+| L2 | Distance | Yes | 0 to ∞ | Physical measurements, uniform vector lengths |
+| Cosine | Direction | No | -1 to 1 | Text embeddings, semantic similarity |
+| Dot Product | Direction + Magnitude | Yes | -∞ to ∞ | Recommendation systems, relevance scoring |
+
+#### Implementation Notes
+- **L2** is computationally efficient and works well for most use cases
+- **Cosine** is commonly used for text and image embeddings where magnitude variation isn't meaningful
+- **Dot Product** is often preferred for normalized embeddings (where vectors already have unit length)
 
 ## Build Instructions
 
@@ -241,12 +278,51 @@ ctest
 
 ### Multi-Dimension Tests
 
-The test suite includes specialized tests for common embedding sizes (384, 768, 1024, 3072) with all distance metrics (L2, COSINE, DOT). These tests verify that:
+The test suite includes comprehensive tests for vector dimensions ranging from small to very large sizes (8, 32, 64, 128, 256, 384, 512, 768, 1024, 2048, 3072, 3096) with all distance metrics (L2, COSINE, DOT). These tests verify that:
 
 - VectorStore handles different dimension sizes correctly
 - HNSWIndex works with various embedding dimensions
+- MMapVectorStore supports large-dimensional vectors
 - All distance metrics function properly across dimensions
 - Memory management is efficient for large vectors
+- Search functionality works correctly for very high-dimensional vectors (3096+ dimensions)
+
+### Large Dataset Tests
+
+The test suite includes specialized tests for large dataset scenarios:
+
+- **Medium Dataset (1000 vectors)**: Tests for VectorStore, HNSWIndex, and MMapVectorStore with 1000 vectors
+- **Large Dataset (10000 vectors)**: Performance tests for HNSWIndex with 10000 vectors
+- **Memory-Mapped Datasets**: Tests for MMapVectorStore with large persistent datasets
+
+These tests verify:
+- Performance and accuracy with realistic dataset sizes
+- Memory management efficiency
+- Search functionality with large k values
+- Persistence and retrieval of large datasets
+
+### Platform-Specific Tests
+
+Each SDK includes platform-specific tests:
+
+**iOS SDK Tests**:
+- Swift API tests for all three index types
+- Large dimension tests (3096 dimensions)
+- Large dataset tests (1000+ vectors)
+- Memory-mapped store tests
+- Distance metric verification
+- Error handling and edge cases
+
+**Android SDK Tests**:
+- Kotlin/Java API tests
+- Large dimension support
+- Performance benchmarks
+- Thread safety verification
+
+**Cross-Platform SDK Tests**:
+- Flutter, React Native, and Capacitor plugin tests
+- Platform-specific integration tests
+- Performance tests across devices
 
 ## Usage Examples
 
@@ -256,19 +332,53 @@ The test suite includes specialized tests for common embedding sizes (384, 768, 
 import LlamaMobileVD
 
 // Create a vector store
-let store = try VectorStore(dimension: 128, metric: .cosine)
+let store = try LlamaMobileVD.VectorStore(dimension: 128, metric: .cosine)
 
 // Add vectors
 let vector: [Float] = Array(repeating: 0.0, count: 128)
-try store.addVector(vector, id: 1)
+try store.addVector(id: 1, vector: vector)
 
 // Search
 let query: [Float] = Array(repeating: 0.0, count: 128)
-let searchResults = try store.search(query, k: 5)
+let searchResults = try store.search(query: query, k: 5)
 print("Search results: \(searchResults)")
+
+// Get vector count
+let count = try store.count()
+print("Vector count: \(count)")
+
+// Get a vector by ID
+let retrievedVector = try store.getVector(id: 1)
+print("Retrieved vector: \(retrievedVector)")
 
 // Clear store
 try store.clear()
+
+// Create an HNSW index
+let hnswIndex = try LlamaMobileVD.HNSWIndex(dimension: 128, metric: .cosine, maxElements: 1000)
+
+// Add vectors to HNSW index
+try hnswIndex.addVector(id: 1, vector: vector)
+
+// Search HNSW index
+let hnswResults = try hnswIndex.search(query: query, k: 5)
+print("HNSW search results: \(hnswResults)")
+
+// Create and use MMapVectorStore
+let builder = try LlamaMobileVD.MMapVectorStoreBuilder(dimension: 128, metric: .cosine)
+try builder.addVector(id: 1, vector: vector)
+let tempFile = NSTemporaryDirectory().appending("test_store.bin")
+try builder.save(to: tempFile)
+
+let mmapStore = try LlamaMobileVD.MMapVectorStore.open(from: tempFile)
+let mmapResults = try mmapStore.search(query: query, k: 5)
+print("MMap search results: \(mmapResults)")
+
+// Check library version
+print("Library version: \(LlamaMobileVD.Version.full)")
+print("Major version: \(LlamaMobileVD.Version.major)")
+print("Minor version: \(LlamaMobileVD.Version.minor)")
+print("Patch version: \(LlamaMobileVD.Version.patch)")
 ```
 
 ### Android SDK (Kotlin)

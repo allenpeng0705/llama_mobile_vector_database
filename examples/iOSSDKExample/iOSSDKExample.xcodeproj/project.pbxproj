@@ -7,8 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4C3132936266E9C51B62C879 /* LlamaMobileVD.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 07379DABBF1E1C47C15E24BD /* LlamaMobileVD.xcframework */; };
-		EDEFE6508E8650F8755EE163 /* LlamaMobileVD.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 07379DABBF1E1C47C15E24BD /* LlamaMobileVD.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		171A3270B99163DED49896CF /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55BF9924AB1C3DFF04C75885 /* SceneDelegate.swift */; };
+		1AFD0DB0A1FD6767CB1F9CA2 /* llama_mobile_vd.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 8563A173089C7A2F35D0AEAA /* llama_mobile_vd.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C7C0B9D46108459077A84E74 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61015A3ECFA445A6DC298475 /* MainViewController.swift */; };
+		D897C06FFDC267F14F711A57 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50548A58CB7C11AADE35C57D /* AppDelegate.swift */; };
+		F7766E73E58CAB0C8A3095A5 /* LlamaMobileVD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1442C2B50994686A5354BEC1 /* LlamaMobileVD.swift */; };
+		F81E8F88CD876CF7EB348C25 /* llama_mobile_vd.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8563A173089C7A2F35D0AEAA /* llama_mobile_vd.xcframework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -18,7 +22,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				EDEFE6508E8650F8755EE163 /* LlamaMobileVD.xcframework in Embed Frameworks */,
+				1AFD0DB0A1FD6767CB1F9CA2 /* llama_mobile_vd.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -26,7 +30,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		07379DABBF1E1C47C15E24BD /* LlamaMobileVD.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = LlamaMobileVD.xcframework; path = "../../../llama_mobile_vd-ios-SDK/LlamaMobileVD/LlamaMobileVD.xcframework"; sourceTree = "<group>"; };
+		1442C2B50994686A5354BEC1 /* LlamaMobileVD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaMobileVD.swift; sourceTree = "<group>"; };
+		50548A58CB7C11AADE35C57D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		55BF9924AB1C3DFF04C75885 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		61015A3ECFA445A6DC298475 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+		8563A173089C7A2F35D0AEAA /* llama_mobile_vd.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = llama_mobile_vd.xcframework; path = "../../llama_mobile_vd-ios-SDK/llama_mobile_vd.xcframework"; sourceTree = "<group>"; };
 		D166726F7AFEFC3E69EB8080 /* iOSSDKExample.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = iOSSDKExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -35,7 +43,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4C3132936266E9C51B62C879 /* LlamaMobileVD.xcframework in Frameworks */,
+				F81E8F88CD876CF7EB348C25 /* llama_mobile_vd.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -54,7 +62,7 @@
 		6D46F6C8DA93C7B689D3485F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				07379DABBF1E1C47C15E24BD /* LlamaMobileVD.xcframework */,
+				8563A173089C7A2F35D0AEAA /* llama_mobile_vd.xcframework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -62,6 +70,10 @@
 		DD868675E2EDEC2054799921 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				50548A58CB7C11AADE35C57D /* AppDelegate.swift */,
+				1442C2B50994686A5354BEC1 /* LlamaMobileVD.swift */,
+				61015A3ECFA445A6DC298475 /* MainViewController.swift */,
+				55BF9924AB1C3DFF04C75885 /* SceneDelegate.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -134,6 +146,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D897C06FFDC267F14F711A57 /* AppDelegate.swift in Sources */,
+				F7766E73E58CAB0C8A3095A5 /* LlamaMobileVD.swift in Sources */,
+				C7C0B9D46108459077A84E74 /* MainViewController.swift in Sources */,
+				171A3270B99163DED49896CF /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -149,7 +165,7 @@
 				DEVELOPMENT_TEAM = "";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"\"../../../llama_mobile_vd-ios-SDK/LlamaMobileVD\"",
+					"\"../../llama_mobile_vd-ios-SDK\"",
 				);
 				INFOPLIST_FILE = Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -234,7 +250,7 @@
 				DEVELOPMENT_TEAM = "";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"\"../../../llama_mobile_vd-ios-SDK/LlamaMobileVD\"",
+					"\"../../llama_mobile_vd-ios-SDK\"",
 				);
 				INFOPLIST_FILE = Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;

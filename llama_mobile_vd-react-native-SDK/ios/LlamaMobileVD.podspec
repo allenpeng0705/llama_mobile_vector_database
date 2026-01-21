@@ -14,7 +14,7 @@ Pod::Spec.new do |s|
   s.dependency "React-Core"
   
   # Add the LlamaMobileVD framework dependency
-  s.vendored_frameworks = "../ios/LlamaMobileVD.framework"
+  s.vendored_frameworks = "LlamaMobileVD.framework"
   
   # Other settings
   s.swift_versions = "5.0"

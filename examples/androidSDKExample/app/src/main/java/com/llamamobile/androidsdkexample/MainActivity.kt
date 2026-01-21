@@ -7,36 +7,36 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.llamamobile.vd.VectorStore
-import com.llamamobile.vd.HNSWIndex
-import com.llamamobile.vd.MMapVectorStore
-import com.llamamobile.vd.DistanceMetric
-import com.llamamobile.vd.SearchResult
+import com.llamamobile.vd.LlamaMobileVD
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
-    // Vector Store state
-    private var vectorStore: VectorStore? = null
-    private var vectorStoreCount: Int = 0
-    private var vectorStoreResults: List<SearchResult> = emptyList()
+    // VectorStore state
+    private var vectorStore: LlamaMobileVD.VectorStore? = null
+    private var vectorStoreCount = 0
+    private var vectorStoreResults: List<LlamaMobileVD.SearchResult> = emptyList()
     
-    // HNSW Index state
-    private var hnswIndex: HNSWIndex? = null
-    private var hnswIndexCount: Int = 0
-    private var hnswIndexResults: List<SearchResult> = emptyList()
+    // HNSWIndex state
+    private var hnswIndex: LlamaMobileVD.HNSWIndex? = null
+    private var hnswIndexCount = 0
+    private var hnswIndexResults: List<LlamaMobileVD.SearchResult> = emptyList()
     
     // MMapVectorStore state
-    private var mmapVectorStore: MMapVectorStore? = null
-    private var mmapVectorStoreCount: Int = 0
-    private var mmapVectorStoreResults: List<SearchResult> = emptyList()
+    private var mmapVectorStore: LlamaMobileVD.MMapVectorStore? = null
+    private var mmapVectorStoreCount = 0
+    private var mmapVectorStoreResults: List<LlamaMobileVD.SearchResult> = emptyList()
+    
+    // MMapVectorStoreBuilder state
+    private var mmapVectorStoreBuilder: LlamaMobileVD.MMapVectorStoreBuilder? = null
+    private var mmapVectorStoreBuilderCount = 0
     
     // Configuration state
-    private var dimension: Int = 128
-    private var selectedMetric: DistanceMetric = DistanceMetric.L2
-    private var hnswM: Int = 16
-    private var hnswEfConstruction: Int = 200
-    private var searchK: Int = 5
-    private var efSearch: Int = 50
+    private var dimension = 128
+    private var selectedMetric: LlamaMobileVD.DistanceMetric = LlamaMobileVD.DistanceMetric.L2
+    private var hnswM = 16
+    private var hnswEfConstruction = 200
+    private var searchK = 5
+    private var efSearch = 50
     
     // UI elements
     private lateinit var statusTextView: TextView
@@ -94,6 +94,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mmapVectorStoreInfoTextView: TextView
     private lateinit var mmapVectorStoreResultsContainer: LinearLayout
     private lateinit var mmapVectorStoreResultsRecyclerView: RecyclerView
+    private lateinit var versionInfoTextView: TextView
+    
+    // MMapVectorStoreBuilder UI elements
+    private lateinit var createMMapVectorStoreBuilderButton: Button
+    private lateinit var addVectorsToBuilderButton: Button
+    private lateinit var saveMMapVectorStoreButton: Button
+    private lateinit var clearMMapVectorStoreBuilderButton: Button
+    private lateinit var releaseMMapVectorStoreBuilderButton: Button
     
     private val handler = Handler(Looper.getMainLooper())
     private val random = Random()
@@ -187,12 +195,20 @@ class MainActivity : AppCompatActivity() {
         getMMapVectorStoreMetricButton = findViewById(R.id.get_mmap_vector_store_metric_button)
         releaseMMapVectorStoreButton = findViewById(R.id.release_mmap_vector_store_button)
         mmapVectorStoreInfoTextView = findViewById(R.id.mmap_vector_store_info_text_view)
+        versionInfoTextView = findViewById(R.id.version_info_text_view)
         mmapVectorStoreResultsContainer = findViewById(R.id.mmap_vector_store_results_container)
         mmapVectorStoreResultsRecyclerView = findViewById(R.id.mmap_vector_store_results_recycler_view)
         
         // Setup MMapVectorStore RecyclerView
         mmapVectorStoreResultsRecyclerView.layoutManager = LinearLayoutManager(this)
         mmapVectorStoreResultsRecyclerView.adapter = SearchResultsAdapter(emptyList())
+        
+        // MMapVectorStoreBuilder UI elements initialization
+        createMMapVectorStoreBuilderButton = findViewById(R.id.create_mmap_vector_store_builder_button)
+        addVectorsToBuilderButton = findViewById(R.id.add_vectors_to_builder_button)
+        saveMMapVectorStoreButton = findViewById(R.id.save_mmap_vector_store_button)
+        clearMMapVectorStoreBuilderButton = findViewById(R.id.clear_mmap_vector_store_builder_button)
+        releaseMMapVectorStoreBuilderButton = findViewById(R.id.release_mmap_vector_store_builder_button)
     }
     
     private fun setupEventListeners() {
@@ -207,12 +223,12 @@ class MainActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
         
-        metricRadioGroup.setOnCheckedChangeListener { group, checkedId ->
+        metricRadioGroup.setOnCheckedChangeListener { _, checkedId ->
             selectedMetric = when (checkedId) {
-                R.id.metric_l2 -> DistanceMetric.L2
-                R.id.metric_cosine -> DistanceMetric.COSINE
-                R.id.metric_dot -> DistanceMetric.DOT
-                else -> DistanceMetric.L2
+                R.id.metric_l2 -> LlamaMobileVD.DistanceMetric.L2
+                R.id.metric_cosine -> LlamaMobileVD.DistanceMetric.COSINE
+                R.id.metric_dot -> LlamaMobileVD.DistanceMetric.DOT
+                else -> LlamaMobileVD.DistanceMetric.L2
             }
         }
         
@@ -375,6 +391,27 @@ class MainActivity : AppCompatActivity() {
         releaseMMapVectorStoreButton.setOnClickListener {
             releaseMMapVectorStore()
         }
+        
+        // MMapVectorStoreBuilder listeners
+        createMMapVectorStoreBuilderButton.setOnClickListener {
+            createMMapVectorStoreBuilder()
+        }
+        
+        addVectorsToBuilderButton.setOnClickListener {
+            addVectorsToBuilder()
+        }
+        
+        saveMMapVectorStoreButton.setOnClickListener {
+            saveMMapVectorStore()
+        }
+        
+        clearMMapVectorStoreBuilderButton.setOnClickListener {
+            clearMMapVectorStoreBuilder()
+        }
+        
+        releaseMMapVectorStoreBuilderButton.setOnClickListener {
+            releaseMMapVectorStoreBuilder()
+        }
     }
     
     private fun updateStatus(message: String) {
@@ -388,17 +425,17 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun updateVectorStoreInfo() {
-        val storeStatus = if (vectorStore != null) getString(R.string.status_created) else getString(R.string.none)
+        val storeStatus = if (vectorStore != null) getString(R.string.status_vector_store_created) else getString(R.string.none)
         vectorStoreInfoTextView.text = "${getString(R.string.label_vector_store_status)}: $storeStatus\n${getString(R.string.label_vector_count)}: $vectorStoreCount"
     }
     
     private fun updateHNSWIndexInfo() {
-        val indexStatus = if (hnswIndex != null) getString(R.string.status_created) else getString(R.string.none)
+        val indexStatus = if (hnswIndex != null) getString(R.string.status_hnsw_index_created) else getString(R.string.none)
         hnswIndexInfoTextView.text = "${getString(R.string.label_hnsw_index_status)}: $indexStatus\n${getString(R.string.label_vector_count)}: $hnswIndexCount"
     }
     
     private fun updateMMapVectorStoreInfo() {
-        val storeStatus = if (mmapVectorStore != null) getString(R.string.status_created) else getString(R.string.none)
+        val storeStatus = if (mmapVectorStore != null) getString(R.string.status_mmap_vector_store_opened) else getString(R.string.none)
         mmapVectorStoreInfoTextView.text = "${getString(R.string.label_mmap_vector_store_status)}: $storeStatus\n${getString(R.string.label_vector_count)}: $mmapVectorStoreCount"
     }
     
@@ -411,7 +448,7 @@ class MainActivity : AppCompatActivity() {
                 // First close any existing vector store
                 vectorStore?.close()
                 
-                val newVectorStore = VectorStore(dimension, selectedMetric)
+                val newVectorStore = LlamaMobileVD.VectorStore(dimension, selectedMetric)
                 vectorStore = newVectorStore
                 vectorStoreCount = 0
                 vectorStoreResults = emptyList()
@@ -441,10 +478,10 @@ class MainActivity : AppCompatActivity() {
             try {
                 for (i in 0 until 100) {
                     val vector = createRandomVector(dimension)
-                    vectorStore!!.addVector(vector, i + 1)
+                    vectorStore!!.add((i + 1).toLong(), vector)
                 }
                 
-                val count = vectorStore!!.getCount()
+                val count = vectorStore!!.size()
                 
                 handler.post {
                     vectorStoreCount = count
@@ -557,7 +594,7 @@ class MainActivity : AppCompatActivity() {
         Thread {
             try {
                 val vectorId = 1 // Get the first vector
-                val vector = vectorStore!!.get(vectorId)
+                val vector = vectorStore!!.get(vectorId.toLong())
                 
                 handler.post {
                     updateStatus("Successfully retrieved vector with ID $vectorId, first value: ${vector?.get(0) ?: "null"}")
@@ -580,12 +617,12 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val vectorId = 1 // Update the first vector
+                val vectorId = 1L // Update the first vector
                 val updatedVector = createRandomVector(dimension)
-                val success = vectorStore!!.update(vectorId, updatedVector)
+                vectorStore!!.update(vectorId, updatedVector)
                 
                 handler.post {
-                    updateStatus(if (success) "Successfully updated vector with ID $vectorId" else "Failed to update vector")
+                    updateStatus("Successfully updated vector with ID $vectorId")
                 }
             } catch (e: Exception) {
                 handler.post {
@@ -605,10 +642,10 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val vectorId = 1 // Remove the first vector
+                val vectorId = 1L // Remove the first vector
                 val success = vectorStore!!.remove(vectorId)
                 if (success) {
-                    vectorStoreCount = vectorStore!!.getCount()
+                    vectorStoreCount = vectorStore!!.size()
                 }
                 
                 handler.post {
@@ -633,7 +670,7 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val vectorId = 1
+                val vectorId = 1L
                 val contains = vectorStore!!.contains(vectorId)
                 
                 handler.post {
@@ -681,7 +718,7 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val storeDimension = vectorStore!!.getDimension()
+                val storeDimension = vectorStore!!.dimension()
                 
                 handler.post {
                     updateStatus("VectorStore dimension: $storeDimension")
@@ -704,7 +741,7 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val metric = vectorStore!!.getMetric()
+                val metric = vectorStore!!.metric()
                 
                 handler.post {
                     updateStatus("VectorStore distance metric: ${metric.name}")
@@ -726,7 +763,7 @@ class MainActivity : AppCompatActivity() {
                 // First close any existing HNSW index
                 hnswIndex?.close()
                 
-                val newHnswIndex = HNSWIndex(dimension, selectedMetric, hnswM, hnswEfConstruction)
+                val newHnswIndex = LlamaMobileVD.HNSWIndex(dimension, selectedMetric, 1000, hnswM, hnswEfConstruction, 42)
                 hnswIndex = newHnswIndex
                 hnswIndexCount = 0
                 hnswIndexResults = emptyList()
@@ -756,10 +793,10 @@ class MainActivity : AppCompatActivity() {
             try {
                 for (i in 0 until 100) {
                     val vector = createRandomVector(dimension)
-                    hnswIndex!!.addVector(vector, i + 1)
+                    hnswIndex!!.add((i + 1).toLong(), vector)
                 }
                 
-                val count = hnswIndex!!.getCount()
+                val count = hnswIndex!!.size()
                 
                 handler.post {
                     hnswIndexCount = count
@@ -790,7 +827,8 @@ class MainActivity : AppCompatActivity() {
         Thread {
             try {
                 val queryVector = createRandomVector(dimension)
-                val results = hnswIndex!!.search(queryVector, searchK, efSearch)
+                hnswIndex!!.setEfSearch(efSearch)
+                val results = hnswIndex!!.search(queryVector, searchK)
                 
                 handler.post {
                     hnswIndexResults = results.toList()
@@ -816,7 +854,10 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                hnswIndex!!.clear()
+                // Close and recreate the index to clear it
+                hnswIndex?.close()
+                val newHnswIndex = LlamaMobileVD.HNSWIndex(dimension, selectedMetric, 1000, hnswM, hnswEfConstruction, 42)
+                hnswIndex = newHnswIndex
                 
                 handler.post {
                     hnswIndexCount = 0
@@ -917,7 +958,7 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val vectorId = 1
+                val vectorId = 1L
                 val contains = hnswIndex!!.contains(vectorId)
                 
                 handler.post {
@@ -941,7 +982,7 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val vectorId = 1
+                val vectorId = 1L
                 val vector = hnswIndex!!.getVector(vectorId)
                 
                 handler.post {
@@ -965,7 +1006,7 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val dimension = hnswIndex!!.getDimension()
+                val dimension = hnswIndex!!.dimension()
                 
                 handler.post {
                     updateStatus("HNSW dimension: $dimension")
@@ -988,7 +1029,7 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val capacity = hnswIndex!!.getCapacity()
+                val capacity = hnswIndex!!.capacity()
                 
                 handler.post {
                     updateStatus("HNSW capacity: $capacity")
@@ -1016,9 +1057,9 @@ class MainActivity : AppCompatActivity() {
                 // First close any existing MMapVectorStore
                 mmapVectorStore?.close()
                 
-                val newMMapVectorStore = MMapVectorStore.open(filePath)
+                val newMMapVectorStore = LlamaMobileVD.MMapVectorStore(filePath)
                 mmapVectorStore = newMMapVectorStore
-                mmapVectorStoreCount = newMMapVectorStore.getCount()
+                mmapVectorStoreCount = newMMapVectorStore.size()
                 mmapVectorStoreResults = emptyList()
                 
                 handler.post {
@@ -1050,7 +1091,7 @@ class MainActivity : AppCompatActivity() {
         Thread {
             try {
                 // Get the dimension from the store
-                val storeDimension = mmapVectorStore!!.getDimension()
+                val storeDimension = mmapVectorStore!!.dimension()
                 val queryVector = createRandomVector(storeDimension)
                 val results = mmapVectorStore!!.search(queryVector, searchK)
                 
@@ -1078,7 +1119,7 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val count = mmapVectorStore!!.getCount()
+                val count = mmapVectorStore!!.size()
                 
                 handler.post {
                     mmapVectorStoreCount = count
@@ -1103,7 +1144,7 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val dimension = mmapVectorStore!!.getDimension()
+                val dimension = mmapVectorStore!!.dimension()
                 
                 handler.post {
                     updateStatus("MMapVectorStore dimension: $dimension")
@@ -1126,7 +1167,7 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val metric = mmapVectorStore!!.getMetric()
+                val metric = mmapVectorStore!!.metric()
                 
                 handler.post {
                     updateStatus("MMapVectorStore metric: ${metric.name}")
@@ -1167,13 +1208,146 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
     
+    // MMapVectorStoreBuilder operations
+    private fun createMMapVectorStoreBuilder() {
+        updateStatus("Creating MMapVectorStoreBuilder...")
+        
+        Thread {
+            try {
+                // First close any existing builder
+                mmapVectorStoreBuilder?.close()
+                
+                val newBuilder = LlamaMobileVD.MMapVectorStoreBuilder(dimension, selectedMetric)
+                mmapVectorStoreBuilder = newBuilder
+                mmapVectorStoreBuilderCount = 0
+                
+                handler.post {
+                    updateStatus("MMapVectorStoreBuilder created successfully")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error creating MMapVectorStoreBuilder: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun addVectorsToBuilder() {
+        if (mmapVectorStoreBuilder == null) {
+            updateStatus("Please create MMapVectorStoreBuilder first")
+            return
+        }
+        
+        updateStatus("Adding vectors to MMapVectorStoreBuilder...")
+        
+        Thread {
+            try {
+                for (i in 0 until 100) {
+                    val vector = createRandomVector(dimension)
+                    mmapVectorStoreBuilder!!.add((mmapVectorStoreBuilderCount + i + 1).toLong(), vector)
+                }
+                
+                val count = mmapVectorStoreBuilder!!.size()
+                
+                handler.post {
+                    mmapVectorStoreBuilderCount = count
+                    updateStatus("Added 100 vectors to MMapVectorStoreBuilder. Total: $count")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error adding vectors to MMapVectorStoreBuilder: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun saveMMapVectorStore() {
+        val filePath = mmapFilePathEditText.text.toString().trim()
+        if (filePath.isEmpty()) {
+            updateStatus("Please enter a valid file path")
+            return
+        }
+        
+        if (mmapVectorStoreBuilder == null) {
+            updateStatus("Please create MMapVectorStoreBuilder first")
+            return
+        }
+        
+        updateStatus("Saving MMapVectorStore to file...")
+        
+        Thread {
+            try {
+                mmapVectorStoreBuilder!!.save(filePath)
+                
+                handler.post {
+                    updateStatus("MMapVectorStore saved successfully to $filePath")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error saving MMapVectorStore: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun clearMMapVectorStoreBuilder() {
+        if (mmapVectorStoreBuilder == null) {
+            updateStatus("Please create MMapVectorStoreBuilder first")
+            return
+        }
+        
+        updateStatus("Clearing MMapVectorStoreBuilder...")
+        
+        Thread {
+            try {
+                mmapVectorStoreBuilder!!.close()
+                val newBuilder = LlamaMobileVD.MMapVectorStoreBuilder(dimension, selectedMetric)
+                mmapVectorStoreBuilder = newBuilder
+                
+                handler.post {
+                    mmapVectorStoreBuilderCount = 0
+                    updateStatus("MMapVectorStoreBuilder cleared successfully")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error clearing MMapVectorStoreBuilder: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun releaseMMapVectorStoreBuilder() {
+        if (mmapVectorStoreBuilder == null) {
+            updateStatus("Please create MMapVectorStoreBuilder first")
+            return
+        }
+        
+        updateStatus("Releasing MMapVectorStoreBuilder...")
+        
+        Thread {
+            try {
+                mmapVectorStoreBuilder!!.close()
+                
+                handler.post {
+                    mmapVectorStoreBuilder = null
+                    mmapVectorStoreBuilderCount = 0
+                    updateStatus("MMapVectorStoreBuilder released successfully")
+                }
+            } catch (e: Exception) {
+                handler.post {
+                    updateStatus("Error releasing MMapVectorStoreBuilder: ${e.message}")
+                }
+            }
+        }.start()
+    }
+    
     // Version operations
     private fun getVersion() {
         updateStatus("Getting SDK version...")
         
         Thread {
             try {
-                val version = getLlamaMobileVDVersion()
+                val version = LlamaMobileVD.getVersion()
                 
                 handler.post {
                     versionInfoTextView.text = "Version: $version"
@@ -1192,13 +1366,10 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val version = getLlamaMobileVDVersion()
-                val major = getLlamaMobileVDVersionMajor()
-                val minor = getLlamaMobileVDVersionMinor()
-                val patch = getLlamaMobileVDVersionPatch()
+                val version = LlamaMobileVD.getVersion()
                 
                 handler.post {
-                    versionInfoTextView.text = "Version: $version\nMajor: $major, Minor: $minor, Patch: $patch"
+                    versionInfoTextView.text = "Version: $version"
                     updateStatus("Successfully retrieved detailed SDK version")
                 }
             } catch (e: Exception) {
@@ -1210,7 +1381,7 @@ class MainActivity : AppCompatActivity() {
     }
     
     // Search Results Adapter
-    inner class SearchResultsAdapter(private val results: List<SearchResult>) : RecyclerView.Adapter<SearchResultsAdapter.ViewHolder>() {
+    inner class SearchResultsAdapter(private val results: List<LlamaMobileVD.SearchResult>) : RecyclerView.Adapter<SearchResultsAdapter.ViewHolder>() {
         
         inner class ViewHolder(itemView: android.view.View) : RecyclerView.ViewHolder(itemView) {
             val vectorIndexTextView: TextView = itemView.findViewById(android.R.id.text1)

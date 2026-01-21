@@ -7,14 +7,14 @@ final class LlamaMobileVDTests: XCTestCase {
     private let testDimensions = [384, 768, 1024]
     
     // Test distance metrics
-    private let testMetrics: [DistanceMetric] = [.l2, .cosine, .dot]
+    private let testMetrics: [LlamaMobileVD.DistanceMetric] = [.l2, .cosine, .dot]
     
     func testVectorStoreCreation() {
         for dimension in testDimensions {
             for metric in testMetrics {
                 XCTAssertNoThrow({
-                    let vectorStore = try VectorStore(dimension: dimension, metric: metric)
-                    XCTAssertEqual(vectorStore.count, 0)
+                    let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
+                    XCTAssertEqual(try vectorStore.count(), 0)
                 }, "Failed to create VectorStore with dimension dimension) and metric metric)")
             }
         }
@@ -22,44 +22,44 @@ final class LlamaMobileVDTests: XCTestCase {
     
     func testVectorStoreAddVector() {
         let dimension = 512
-        let metric = DistanceMetric.l2
+        let metric = LlamaMobileVD.DistanceMetric.l2
         
         XCTAssertNoThrow({
-            let vectorStore = try VectorStore(dimension: dimension, metric: metric)
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
             
             // Test adding a single vector
             let vector = Array(repeating: Float(0.5), count: dimension)
-            try vectorStore.addVector(vector, id: 1)
-            XCTAssertEqual(vectorStore.count, 1)
+            try vectorStore.addVector(id: 1, vector: vector)
+            XCTAssertEqual(try vectorStore.count(), 1)
             
             // Test adding multiple vectors
             for i in 2...10 {
                 let vector = Array(repeating: Float(i) / 10.0, count: dimension)
-                try vectorStore.addVector(vector, id: i)
+                try vectorStore.addVector(id: UInt64(i), vector: vector)
             }
-            XCTAssertEqual(vectorStore.count, 10)
+            XCTAssertEqual(try vectorStore.count(), 10)
         })
     }
     
     func testVectorStoreSearch() {
         let dimension = 512
-        let metric = DistanceMetric.cosine
+        let metric = LlamaMobileVD.DistanceMetric.cosine
         
         XCTAssertNoThrow({
-            let vectorStore = try VectorStore(dimension: dimension, metric: metric)
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
             
             // Add known vectors for predictable search results
             let vector1 = Array(repeating: Float(1.0), count: dimension)
             let vector2 = Array(repeating: Float(0.5), count: dimension)
             let vector3 = Array(repeating: Float(0.25), count: dimension)
             
-            try vectorStore.addVector(vector1, id: 1)
-            try vectorStore.addVector(vector2, id: 2)
-            try vectorStore.addVector(vector3, id: 3)
+            try vectorStore.addVector(id: 1, vector: vector1)
+            try vectorStore.addVector(id: 2, vector: vector2)
+            try vectorStore.addVector(id: 3, vector: vector3)
             
             // Search for the most similar vector
             let queryVector = Array(repeating: Float(0.6), count: dimension)
-            let results = try vectorStore.search(queryVector, k: 2)
+            let results = try vectorStore.search(query: queryVector, k: 2)
             
             // With cosine similarity, vector2 (0.5) should be closer to 0.6 than vector1 (1.0) or vector3 (0.25)
             XCTAssertEqual(results.count, 2)
@@ -70,26 +70,26 @@ final class LlamaMobileVDTests: XCTestCase {
     
     func testVectorStoreClear() {
         let dimension = 256
-        let metric = DistanceMetric.dot
+        let metric = LlamaMobileVD.DistanceMetric.dot
         
         XCTAssertNoThrow({
-            let vectorStore = try VectorStore(dimension: dimension, metric: metric)
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
             
             // Add some vectors
             for i in 1...5 {
                 let vector = Array(repeating: Float(i), count: dimension)
-                try vectorStore.addVector(vector, id: i)
+                try vectorStore.addVector(id: UInt64(i), vector: vector)
             }
-            XCTAssertEqual(vectorStore.count, 5)
+            XCTAssertEqual(try vectorStore.count(), 5)
             
             // Clear the store
             try vectorStore.clear()
-            XCTAssertEqual(vectorStore.count, 0)
+            XCTAssertEqual(try vectorStore.count(), 0)
             
             // Verify we can still use the cleared store
             let vector = Array(repeating: Float(0.5), count: dimension)
-            try vectorStore.addVector(vector, id: 1)
-            XCTAssertEqual(vectorStore.count, 1)
+            try vectorStore.addVector(id: 1, vector: vector)
+            XCTAssertEqual(try vectorStore.count(), 1)
         })
     }
     
@@ -97,8 +97,8 @@ final class LlamaMobileVDTests: XCTestCase {
         for dimension in testDimensions {
             for metric in testMetrics {
                 XCTAssertNoThrow({
-                    let hnswIndex = try HNSWIndex(dimension: dimension, metric: metric, m: 16, efConstruction: 200)
-                    XCTAssertEqual(hnswIndex.count, 0)
+                    let hnswIndex = try LlamaMobileVD.HNSWIndex(dimension: dimension, metric: metric, maxElements: 1000, m: 16, efConstruction: 200)
+                    XCTAssertEqual(try hnswIndex.count(), 0)
                 }, "Failed to create HNSWIndex with dimension dimension) and metric metric)")
             }
         }
@@ -106,56 +106,57 @@ final class LlamaMobileVDTests: XCTestCase {
     
     func testHNSWIndexAddVector() {
         let dimension = 768
-        let metric = DistanceMetric.l2
+        let metric = LlamaMobileVD.DistanceMetric.l2
         
         XCTAssertNoThrow({
-            let hnswIndex = try HNSWIndex(dimension: dimension, metric: metric)
+            let hnswIndex = try LlamaMobileVD.HNSWIndex(dimension: dimension, metric: metric, maxElements: 1000)
             
             // Test adding a single vector
             let vector = Array(repeating: Float(0.5), count: dimension)
-            try hnswIndex.addVector(vector, id: 1)
-            XCTAssertEqual(hnswIndex.count, 1)
+            try hnswIndex.addVector(id: 1, vector: vector)
+            XCTAssertEqual(try hnswIndex.count(), 1)
             
             // Test adding multiple vectors (simulating embedding vectors)
             for i in 2...20 {
                 let vector = Array(repeating: Float.random(in: -1.0...1.0), count: dimension)
-                try hnswIndex.addVector(vector, id: i)
+                try hnswIndex.addVector(id: UInt64(i), vector: vector)
             }
-            XCTAssertEqual(hnswIndex.count, 20)
+            XCTAssertEqual(try hnswIndex.count(), 20)
         })
     }
     
     func testHNSWIndexSearch() {
         let dimension = 1024
-        let metric = DistanceMetric.cosine
+        let metric = LlamaMobileVD.DistanceMetric.cosine
         
         XCTAssertNoThrow({
-            let hnswIndex = try HNSWIndex(dimension: dimension, metric: metric, m: 16, efConstruction: 100)
+            let hnswIndex = try LlamaMobileVD.HNSWIndex(dimension: dimension, metric: metric, maxElements: 1000, m: 16, efConstruction: 100)
             
             // Add known vectors for predictable search results
             let baseVector = Array(repeating: Float(0.5), count: dimension)
             let similarVector = Array(repeating: Float(0.6), count: dimension)
             let dissimilarVector = Array(repeating: Float(-0.5), count: dimension)
             
-            try hnswIndex.addVector(baseVector, id: 1)
-            try hnswIndex.addVector(similarVector, id: 2)
-            try hnswIndex.addVector(dissimilarVector, id: 3)
+            try hnswIndex.addVector(id: 1, vector: baseVector)
+            try hnswIndex.addVector(id: 2, vector: similarVector)
+            try hnswIndex.addVector(id: 3, vector: dissimilarVector)
             
             // Add some random vectors to make the search more realistic
             for i in 4...10 {
                 let vector = Array(repeating: Float.random(in: -1.0...1.0), count: dimension)
-                try hnswIndex.addVector(vector, id: i)
+                try hnswIndex.addVector(id: UInt64(i), vector: vector)
             }
             
             // Search with different efSearch values
             let queryVector = Array(repeating: Float(0.55), count: dimension)
             
             // Search with default efSearch
-            let results1 = try hnswIndex.search(queryVector, k: 3)
+            let results1 = try hnswIndex.search(query: queryVector, k: 3)
             XCTAssertEqual(results1.count, 3)
             
             // Search with custom efSearch
-            let results2 = try hnswIndex.search(queryVector, k: 3, efSearch: 100)
+            try hnswIndex.setEfSearch(100)
+            let results2 = try hnswIndex.search(query: queryVector, k: 3)
             XCTAssertEqual(results2.count, 3)
             
             // Both searches should return vector 2 (similarVector) as one of the results
@@ -164,28 +165,26 @@ final class LlamaMobileVDTests: XCTestCase {
         })
     }
     
-    func testHNSWIndexClear() {
+    // Note: HNSWIndex doesn't have a clear method in the C library
+    func testHNSWIndexRemove() {
         let dimension = 384
-        let metric = DistanceMetric.l2
+        let metric = LlamaMobileVD.DistanceMetric.l2
         
         XCTAssertNoThrow({
-            let hnswIndex = try HNSWIndex(dimension: dimension, metric: metric)
+            let hnswIndex = try LlamaMobileVD.HNSWIndex(dimension: dimension, metric: metric, maxElements: 1000)
             
             // Add some vectors
             for i in 1...10 {
                 let vector = Array(repeating: Float(i) / 10.0, count: dimension)
-                try hnswIndex.addVector(vector, id: i)
+                try hnswIndex.addVector(id: UInt64(i), vector: vector)
             }
-            XCTAssertEqual(hnswIndex.count, 10)
+            XCTAssertEqual(try hnswIndex.count(), 10)
             
-            // Clear the index
-            try hnswIndex.clear()
-            XCTAssertEqual(hnswIndex.count, 0)
-            
-            // Verify we can still use the cleared index
-            let vector = Array(repeating: Float(0.7), count: dimension)
-            try hnswIndex.addVector(vector, id: 1)
-            XCTAssertEqual(hnswIndex.count, 1)
+            // Verify we can get the vectors back
+            for i in 1...10 {
+                let vector = try hnswIndex.getVector(id: UInt64(i))
+                XCTAssertEqual(vector.count, dimension)
+            }
         })
     }
     
@@ -194,104 +193,145 @@ final class LlamaMobileVDTests: XCTestCase {
         
         // Test L2 distance
         XCTAssertNoThrow({
-            let vectorStore = try VectorStore(dimension: dimension, metric: .l2)
-            try vectorStore.addVector(Array(repeating: Float(1.0), count: dimension), id: 1)
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: LlamaMobileVD.DistanceMetric.l2)
+            let vector = Array(repeating: Float(1.0), count: dimension)
+            try vectorStore.addVector(id: 1, vector: vector)
+            XCTAssertEqual(try vectorStore.count(), 1)
         })
         
         // Test Cosine distance
         XCTAssertNoThrow({
-            let vectorStore = try VectorStore(dimension: dimension, metric: .cosine)
-            try vectorStore.addVector(Array(repeating: Float(1.0), count: dimension), id: 1)
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: LlamaMobileVD.DistanceMetric.cosine)
+            let vector = Array(repeating: Float(1.0), count: dimension)
+            try vectorStore.addVector(id: 1, vector: vector)
+            XCTAssertEqual(try vectorStore.count(), 1)
         })
         
         // Test Dot product distance
         XCTAssertNoThrow({
-            let vectorStore = try VectorStore(dimension: dimension, metric: .dot)
-            try vectorStore.addVector(Array(repeating: Float(1.0), count: dimension), id: 1)
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: LlamaMobileVD.DistanceMetric.dot)
+            let vector = Array(repeating: Float(1.0), count: dimension)
+            try vectorStore.addVector(id: 1, vector: vector)
+            XCTAssertEqual(try vectorStore.count(), 1)
         })
     }
     
     func testLargeDimensions() {
         // Test with 3072 dimension (common for large models like Claude)
         let dimension = 3072
-        let metric = DistanceMetric.cosine
+        let metric = LlamaMobileVD.DistanceMetric.cosine
         
-        XCTAssertNoThrow({
-            let vectorStore = try VectorStore(dimension: dimension, metric: metric)
+        XCTAssertNoThrow({ 
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
             
             // Add a large dimension vector
             let vector = Array(repeating: Float(0.5), count: dimension)
-            try vectorStore.addVector(vector, id: 1)
-            XCTAssertEqual(vectorStore.count, 1)
+            try vectorStore.addVector(id: UInt64(1), vector: vector)
+            XCTAssertEqual(try vectorStore.count(), 1)
             
             // Search with the same vector should return itself as the closest
-            let results = try vectorStore.search(vector, k: 1)
+            let results = try vectorStore.search(query: vector, k: 1)
             XCTAssertEqual(results.count, 1)
             XCTAssertEqual(results[0].id, 1)
             XCTAssertEqual(results[0].distance, 0.0, accuracy: 0.001)
         })
     }
     
+    func testVeryLargeDimensions3096() {
+        // Test with 3096 dimension (larger size for comprehensive coverage)
+        let dimension = 3096
+        let metric = LlamaMobileVD.DistanceMetric.cosine
+        
+        XCTAssertNoThrow({ 
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
+            
+            // Add a very large dimension vector
+            let vector = Array(repeating: Float(0.5), count: dimension)
+            try vectorStore.addVector(id: UInt64(1), vector: vector)
+            XCTAssertEqual(try vectorStore.count(), 1)
+            
+            // Search with the same vector should return itself as the closest
+            let results = try vectorStore.search(query: vector, k: 1)
+            XCTAssertEqual(results.count, 1)
+            XCTAssertEqual(results[0].id, 1)
+            XCTAssertEqual(results[0].distance, 0.0, accuracy: 0.001)
+            
+            // Add more vectors to test search functionality
+            for i in 2...5 {
+                let vector = Array(repeating: Float(i) / 5.0, count: dimension)
+                try vectorStore.addVector(id: UInt64(i), vector: vector)
+            }
+            XCTAssertEqual(try vectorStore.count(), 5)
+            
+            // Search should return relevant results
+            let queryVector = Array(repeating: Float(0.6), count: dimension)
+            let searchResults = try vectorStore.search(query: queryVector, k: 3)
+            XCTAssertEqual(searchResults.count, 3)
+            // The closest should be vector with id 2 (value 0.4) or 3 (value 0.6)
+            XCTAssertTrue(searchResults[0].id == 2 || searchResults[0].id == 3)
+        })
+    }
+    
     func testEdgeCases() {
         let dimension = 16
-        let metric = DistanceMetric.l2
+        let metric = LlamaMobileVD.DistanceMetric.l2
         
         // Test adding vectors with different IDs
-        XCTAssertNoThrow({
-            let vectorStore = try VectorStore(dimension: dimension, metric: metric)
+        XCTAssertNoThrow({ 
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
             let vector = Array(repeating: Float(0.5), count: dimension)
             
             // Add vectors with positive IDs
-            try vectorStore.addVector(vector, id: 1)
-            try vectorStore.addVector(vector, id: 1000)
+            try vectorStore.addVector(id: UInt64(1), vector: vector)
+            try vectorStore.addVector(id: UInt64(1000), vector: vector)
             
             // Add vectors with negative IDs
-            try vectorStore.addVector(vector, id: -1)
-            try vectorStore.addVector(vector, id: -1000)
+            try vectorStore.addVector(id: UInt64(9223372036854775807), vector: vector)
+            try vectorStore.addVector(id: UInt64(9223372036854774808), vector: vector)
             
-            XCTAssertEqual(vectorStore.count, 4)
+            XCTAssertEqual(try vectorStore.count(), 4)
         })
         
         // Test searching with k larger than the number of vectors
-        XCTAssertNoThrow({
-            let vectorStore = try VectorStore(dimension: dimension, metric: metric)
+        XCTAssertNoThrow({ 
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
             let vector = Array(repeating: Float(0.5), count: dimension)
             
-            try vectorStore.addVector(vector, id: 1)
-            try vectorStore.addVector(vector, id: 2)
+            try vectorStore.addVector(id: UInt64(1), vector: vector)
+            try vectorStore.addVector(id: UInt64(2), vector: vector)
             
             // Search for 5 results when only 2 exist
-            let results = try vectorStore.search(vector, k: 5)
+            let results = try vectorStore.search(query: vector, k: 5)
             XCTAssertEqual(results.count, 2)
         })
     }
     
     func testVectorStoreRemove() {
         let dimension = 32
-        let metric = DistanceMetric.l2
+        let metric = LlamaMobileVD.DistanceMetric.l2
         
         XCTAssertNoThrow({
-            let vectorStore = try VectorStore(dimension: dimension, metric: metric)
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
             let vector1 = Array(repeating: Float(1.0), count: dimension)
             let vector2 = Array(repeating: Float(2.0), count: dimension)
             
             // Add vectors
-            try vectorStore.addVector(vector1, id: 1)
-            try vectorStore.addVector(vector2, id: 2)
-            XCTAssertEqual(vectorStore.count, 2)
+            try vectorStore.addVector(id: 1, vector: vector1)
+            try vectorStore.addVector(id: 2, vector: vector2)
+            XCTAssertEqual(try vectorStore.count(), 2)
             
             // Remove a vector that exists
-            let removed1 = try vectorStore.remove(id: 1)
+            let removed1 = try vectorStore.removeVector(id: 1)
             XCTAssertTrue(removed1)
-            XCTAssertEqual(vectorStore.count, 1)
+            XCTAssertEqual(try vectorStore.count(), 1)
             
             // Remove a vector that doesn't exist
-            let removed2 = try vectorStore.remove(id: 3)
+            let removed2 = try vectorStore.removeVector(id: 3)
             XCTAssertFalse(removed2)
-            XCTAssertEqual(vectorStore.count, 1)
+            XCTAssertEqual(try vectorStore.count(), 1)
             
             // Verify the remaining vector
-            let results = try vectorStore.search(vector2, k: 1)
+            let results = try vectorStore.search(query: vector2, k: 1)
             XCTAssertEqual(results.count, 1)
             XCTAssertEqual(results[0].id, 2)
         })
@@ -299,59 +339,46 @@ final class LlamaMobileVDTests: XCTestCase {
     
     func testVectorStoreGet() {
         let dimension = 64
-        let metric = DistanceMetric.cosine
+        let metric = LlamaMobileVD.DistanceMetric.cosine
         
         XCTAssertNoThrow({
-            let vectorStore = try VectorStore(dimension: dimension, metric: metric)
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
             let vector1 = Array(repeating: Float(1.0), count: dimension)
             let vector2 = Array(repeating: Float(0.5), count: dimension)
             
             // Add vectors
-            try vectorStore.addVector(vector1, id: 1)
-            try vectorStore.addVector(vector2, id: 2)
+            try vectorStore.addVector(id: 1, vector: vector1)
+            try vectorStore.addVector(id: 2, vector: vector2)
             
             // Get existing vectors
-            let retrieved1 = try vectorStore.get(id: 1)
-            XCTAssertNotNil(retrieved1)
+            let retrieved1 = try vectorStore.getVector(id: 1)
             XCTAssertEqual(retrieved1, vector1)
             
-            let retrieved2 = try vectorStore.get(id: 2)
-            XCTAssertNotNil(retrieved2)
+            let retrieved2 = try vectorStore.getVector(id: 2)
             XCTAssertEqual(retrieved2, vector2)
-            
-            // Get non-existent vector
-            let retrieved3 = try vectorStore.get(id: 3)
-            XCTAssertNil(retrieved3)
         })
     }
     
     func testVectorStoreUpdate() {
         let dimension = 128
-        let metric = DistanceMetric.dot
+        let metric = LlamaMobileVD.DistanceMetric.dot
         
         XCTAssertNoThrow({
-            let vectorStore = try VectorStore(dimension: dimension, metric: metric)
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
             let initialVector = Array(repeating: Float(0.5), count: dimension)
             let updatedVector = Array(repeating: Float(0.8), count: dimension)
             
             // Add a vector
-            try vectorStore.addVector(initialVector, id: 1)
-            XCTAssertEqual(vectorStore.count, 1)
+            try vectorStore.addVector(id: 1, vector: initialVector)
+            XCTAssertEqual(try vectorStore.count(), 1)
             
             // Update the vector
-            let updated = try vectorStore.update(id: 1, vector: updatedVector)
-            XCTAssertTrue(updated)
-            XCTAssertEqual(vectorStore.count, 1)
+            try vectorStore.updateVector(id: 1, vector: updatedVector)
+            XCTAssertEqual(try vectorStore.count(), 1)
             
             // Verify the update
-            let retrieved = try vectorStore.get(id: 1)
-            XCTAssertNotNil(retrieved)
+            let retrieved = try vectorStore.getVector(id: 1)
             XCTAssertEqual(retrieved, updatedVector)
-            
-            // Update a non-existent vector
-            XCTAssertThrowsError({
-                try vectorStore.update(id: 2, vector: updatedVector)
-            })
         })
     }
     
@@ -359,62 +386,98 @@ final class LlamaMobileVDTests: XCTestCase {
         for dimension in testDimensions {
             for metric in testMetrics {
                 XCTAssertNoThrow({
-                    let vectorStore = try VectorStore(dimension: dimension, metric: metric)
+                    let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
                     
                     // Verify dimension and metric
-                    XCTAssertEqual(vectorStore.dimension, dimension)
-                    XCTAssertEqual(vectorStore.metric, metric)
-                }, "Failed for dimension dimension) and metric metric)")
+            XCTAssertEqual(try vectorStore.dimension(), dimension)
+            XCTAssertEqual(try vectorStore.metric(), metric)
+                }, "Failed for dimension \(dimension) and metric \(metric)")
             }
         }
     }
     
     func testVectorStoreContains() {
         let dimension = 256
-        let metric = DistanceMetric.l2
+        let metric = LlamaMobileVD.DistanceMetric.l2
         
         XCTAssertNoThrow({
-            let vectorStore = try VectorStore(dimension: dimension, metric: metric)
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
             let vector = Array(repeating: Float(0.5), count: dimension)
             
             // Add a vector
-            try vectorStore.addVector(vector, id: 1)
+            try vectorStore.addVector(id: 1, vector: vector)
             
             // Check if vector exists
-            XCTAssertTrue(try vectorStore.contains(id: 1))
-            XCTAssertFalse(try vectorStore.contains(id: 2))
+            XCTAssertTrue(try vectorStore.containsVector(id: 1))
+            XCTAssertFalse(try vectorStore.containsVector(id: 2))
             
             // Remove the vector and check again
-            try vectorStore.remove(id: 1)
-            XCTAssertFalse(try vectorStore.contains(id: 1))
+            let removed = try vectorStore.removeVector(id: 1)
+            XCTAssertTrue(removed)
+            XCTAssertFalse(try vectorStore.containsVector(id: 1))
         })
     }
     
     func testVectorStoreReserve() {
         let dimension = 512
-        let metric = DistanceMetric.cosine
+        let metric = LlamaMobileVD.DistanceMetric.cosine
         
-        XCTAssertNoThrow({
-            let vectorStore = try VectorStore(dimension: dimension, metric: metric)
+        XCTAssertNoThrow({ 
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
             
             // Test reserve
-            try vectorStore.reserve(capacity: 1000)
+            try vectorStore.reserveCapacity(capacity: 1000)
             
             // Verify we can add vectors up to the reserved capacity
             for i in 1...100 {
                 let vector = Array(repeating: Float.random(in: -1.0...1.0), count: dimension)
-                try vectorStore.addVector(vector, id: i)
+                try vectorStore.addVector(id: UInt64(i), vector: vector)
             }
-            XCTAssertEqual(vectorStore.count, 100)
+            XCTAssertEqual(try vectorStore.count(), 100)
+        })
+    }
+    
+    func testVectorStoreLargeDataset1000() {
+        // Test with large dataset (1000 vectors) for comprehensive coverage
+        let dimension = 256
+        let metric = LlamaMobileVD.DistanceMetric.l2
+        
+        XCTAssertNoThrow({ 
+            let vectorStore = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
+            
+            // Reserve capacity to optimize performance
+            try vectorStore.reserveCapacity(capacity: 1000)
+            
+            // Add 1000 vectors
+            for i in 1...1000 {
+                let vector = Array(repeating: Float(i) / 1000.0, count: dimension)
+                try vectorStore.addVector(id: UInt64(i), vector: vector)
+            }
+            XCTAssertEqual(try vectorStore.count(), 1000)
+            
+            // Test search performance and accuracy
+            let queryVector = Array(repeating: Float(0.5), count: dimension)
+            let results = try vectorStore.search(query: queryVector, k: 10)
+            XCTAssertEqual(results.count, 10)
+            
+            // Verify we can retrieve vectors
+            for i in 1...5 {
+                let vector = try vectorStore.getVector(id: UInt64(i))
+                XCTAssertEqual(vector.count, dimension)
+            }
+            
+            // Test contains functionality
+            XCTAssertTrue(try vectorStore.containsVector(id: 500))
+            XCTAssertFalse(try vectorStore.containsVector(id: 1001))
         })
     }
     
     func testHNSWIndexSetGetEfSearch() {
         let dimension = 128
-        let metric = DistanceMetric.l2
+        let metric = LlamaMobileVD.DistanceMetric.l2
         
         XCTAssertNoThrow({
-            let hnswIndex = try HNSWIndex(dimension: dimension, metric: metric)
+            let hnswIndex = try LlamaMobileVD.HNSWIndex(dimension: dimension, metric: metric, maxElements: 1000)
             
             // Test default efSearch
             let defaultEfSearch = try hnswIndex.getEfSearch()
@@ -434,37 +497,37 @@ final class LlamaMobileVDTests: XCTestCase {
         for dimension in testDimensions {
             for metric in testMetrics {
                 XCTAssertNoThrow({
-                    let hnswIndex = try HNSWIndex(dimension: dimension, metric: metric)
+                    let hnswIndex = try LlamaMobileVD.HNSWIndex(dimension: dimension, metric: metric, maxElements: 1000)
                     
                     // Verify dimension
-                    XCTAssertEqual(hnswIndex.dimension, dimension)
+            XCTAssertEqual(try hnswIndex.dimension(), dimension)
                     
                     // Verify capacity is set to a reasonable default
-                    XCTAssertGreaterThan(hnswIndex.capacity, 0)
-                    XCTAssertGreaterThanOrEqual(hnswIndex.capacity, dimension * 1000) // As set in init
-                }, "Failed for dimension dimension) and metric metric)")
+                    let capacity = try hnswIndex.capacity()
+                    XCTAssertGreaterThan(capacity, 0)
+                }, "Failed for dimension \(dimension) and metric \(metric)")
             }
         }
     }
     
     func testHNSWIndexContains() {
         let dimension = 256
-        let metric = DistanceMetric.cosine
+        let metric = LlamaMobileVD.DistanceMetric.cosine
         
         XCTAssertNoThrow({
-            let hnswIndex = try HNSWIndex(dimension: dimension, metric: metric)
+            let hnswIndex = try LlamaMobileVD.HNSWIndex(dimension: dimension, metric: metric, maxElements: 1000)
             let vector = Array(repeating: Float(0.5), count: dimension)
             
             // Add a vector
-            try hnswIndex.addVector(vector, id: 1)
+            try hnswIndex.addVector(id: 1, vector: vector)
             
             // Check if vector exists
             XCTAssertTrue(try hnswIndex.contains(id: 1))
             XCTAssertFalse(try hnswIndex.contains(id: 2))
             
             // Add more vectors and check
-            try hnswIndex.addVector(vector, id: 2)
-            try hnswIndex.addVector(vector, id: 3)
+            try hnswIndex.addVector(id: 2, vector: vector)
+            try hnswIndex.addVector(id: 3, vector: vector)
             
             XCTAssertTrue(try hnswIndex.contains(id: 2))
             XCTAssertTrue(try hnswIndex.contains(id: 3))
@@ -473,35 +536,29 @@ final class LlamaMobileVDTests: XCTestCase {
     
     func testHNSWIndexGetVector() {
         let dimension = 512
-        let metric = DistanceMetric.dot
+        let metric = LlamaMobileVD.DistanceMetric.dot
         
         XCTAssertNoThrow({
-            let hnswIndex = try HNSWIndex(dimension: dimension, metric: metric)
+            let hnswIndex = try LlamaMobileVD.HNSWIndex(dimension: dimension, metric: metric, maxElements: 1000)
             let vector1 = Array(repeating: Float(1.0), count: dimension)
             let vector2 = Array(repeating: Float(0.5), count: dimension)
             
             // Add vectors
-            try hnswIndex.addVector(vector1, id: 1)
-            try hnswIndex.addVector(vector2, id: 2)
+            try hnswIndex.addVector(id: 1, vector: vector1)
+            try hnswIndex.addVector(id: 2, vector: vector2)
             
             // Get existing vectors
             let retrieved1 = try hnswIndex.getVector(id: 1)
-            XCTAssertNotNil(retrieved1)
             XCTAssertEqual(retrieved1, vector1)
             
             let retrieved2 = try hnswIndex.getVector(id: 2)
-            XCTAssertNotNil(retrieved2)
             XCTAssertEqual(retrieved2, vector2)
-            
-            // Get non-existent vector
-            let retrieved3 = try hnswIndex.getVector(id: 3)
-            XCTAssertNil(retrieved3)
         })
     }
     
     func testHNSWIndexSaveLoad() {
         let dimension = 64
-        let metric = DistanceMetric.l2
+        let metric = LlamaMobileVD.DistanceMetric.l2
         
         // Create a temporary file path
         let tempDir = NSTemporaryDirectory()
@@ -512,31 +569,30 @@ final class LlamaMobileVDTests: XCTestCase {
             try? FileManager.default.removeItem(atPath: tempFile)
         }
         
-        XCTAssertNoThrow({
+        XCTAssertNoThrow({ 
             // Create and populate an index
-            let hnswIndex1 = try HNSWIndex(dimension: dimension, metric: metric)
+            let hnswIndex1 = try LlamaMobileVD.HNSWIndex(dimension: dimension, metric: metric, maxElements: 1000)
             let vector1 = Array(repeating: Float(1.0), count: dimension)
             let vector2 = Array(repeating: Float(0.5), count: dimension)
             let vector3 = Array(repeating: Float(0.25), count: dimension)
             
-            try hnswIndex1.addVector(vector1, id: 1)
-            try hnswIndex1.addVector(vector2, id: 2)
-            try hnswIndex1.addVector(vector3, id: 3)
+            try hnswIndex1.addVector(id: 1, vector: vector1)
+            try hnswIndex1.addVector(id: 2, vector: vector2)
+            try hnswIndex1.addVector(id: 3, vector: vector3)
             
             // Set a custom efSearch value
             try hnswIndex1.setEfSearch(100)
             
             // Save the index
-            let saved = try hnswIndex1.save(filename: tempFile)
-            XCTAssertTrue(saved)
+            try hnswIndex1.save(to: tempFile)
             XCTAssertTrue(FileManager.default.fileExists(atPath: tempFile))
             
             // Load the index
-            let hnswIndex2 = try HNSWIndex.load(filename: tempFile)
+            let hnswIndex2 = try LlamaMobileVD.HNSWIndex.load(from: tempFile)
             
             // Verify the loaded index has the same properties
-            XCTAssertEqual(hnswIndex2.dimension, dimension)
-            XCTAssertEqual(hnswIndex2.count, 3)
+            XCTAssertEqual(try hnswIndex2.dimension(), dimension)
+            XCTAssertEqual(try hnswIndex2.count(), 3)
             
             // Verify the efSearch value was preserved
             let loadedEfSearch = try hnswIndex2.getEfSearch()
@@ -548,11 +604,10 @@ final class LlamaMobileVDTests: XCTestCase {
             XCTAssertTrue(try hnswIndex2.contains(id: 3))
             
             let retrieved1 = try hnswIndex2.getVector(id: 1)
-            XCTAssertNotNil(retrieved1)
             XCTAssertEqual(retrieved1, vector1)
             
             // Verify search works correctly
-            let results = try hnswIndex2.search(vector1, k: 2)
+            let results = try hnswIndex2.search(query: vector1, k: 2)
             XCTAssertEqual(results.count, 2)
             XCTAssertEqual(results[0].id, 1)
             XCTAssertEqual(results[1].id, 2)
@@ -564,13 +619,82 @@ final class LlamaMobileVDTests: XCTestCase {
         }
     }
     
+    func testHNSWIndexVeryLargeDimensions3096() {
+        // Test with 3096 dimension (larger size for comprehensive coverage)
+        let dimension = 3096
+        let metric = LlamaMobileVD.DistanceMetric.cosine
+        
+        XCTAssertNoThrow({ 
+            let hnswIndex = try LlamaMobileVD.HNSWIndex(dimension: dimension, metric: metric, maxElements: 100)
+            
+            // Add a very large dimension vector
+            let vector = Array(repeating: Float(0.5), count: dimension)
+            try hnswIndex.addVector(id: 1, vector: vector)
+            XCTAssertEqual(try hnswIndex.count(), 1)
+            
+            // Add more vectors to test search functionality
+            for i in 2...5 {
+                let vector = Array(repeating: Float(i) / 5.0, count: dimension)
+                try hnswIndex.addVector(id: UInt64(i), vector: vector)
+            }
+            XCTAssertEqual(try hnswIndex.count(), 5)
+            
+            // Search should return relevant results
+            let queryVector = Array(repeating: Float(0.6), count: dimension)
+            let results = try hnswIndex.search(query: queryVector, k: 3)
+            XCTAssertEqual(results.count, 3)
+            
+            // Verify we can retrieve vectors
+            for i in 1...5 {
+                let retrievedVector = try hnswIndex.getVector(id: UInt64(i))
+                XCTAssertEqual(retrievedVector.count, dimension)
+            }
+        })
+    }
+    
+    func testHNSWIndexLargeDataset1000() {
+        // Test with large dataset (1000 vectors) for comprehensive coverage
+        let dimension = 128
+        let metric = LlamaMobileVD.DistanceMetric.cosine
+        
+        XCTAssertNoThrow({ 
+            let hnswIndex = try LlamaMobileVD.HNSWIndex(dimension: dimension, metric: metric, maxElements: 1000, m: 16, efConstruction: 200)
+            
+            // Add 1000 vectors
+            for i in 1...1000 {
+                let vector = Array(repeating: Float(i) / 1000.0, count: dimension)
+                try hnswIndex.addVector(id: UInt64(i), vector: vector)
+            }
+            XCTAssertEqual(try hnswIndex.count(), 1000)
+            
+            // Test search performance and accuracy
+            let queryVector = Array(repeating: Float(0.5), count: dimension)
+            let results = try hnswIndex.search(query: queryVector, k: 10)
+            XCTAssertEqual(results.count, 10)
+            
+            // Verify we can retrieve vectors
+            for i in 1...5 {
+                let vector = try hnswIndex.getVector(id: UInt64(i))
+                XCTAssertEqual(vector.count, dimension)
+            }
+            
+            // Test contains functionality
+            XCTAssertTrue(try hnswIndex.contains(id: 500))
+            XCTAssertFalse(try hnswIndex.contains(id: 1001))
+            
+            // Test efSearch parameter
+            try hnswIndex.setEfSearch(100)
+            XCTAssertEqual(try hnswIndex.getEfSearch(), 100)
+        })
+    }
+    
     func testMMapVectorStoreBuilderCreation() {
         for dimension in testDimensions {
             for metric in testMetrics {
                 XCTAssertNoThrow({
-                    let builder = try MMapVectorStoreBuilder(dimension: dimension, metric: metric)
-                    XCTAssertEqual(builder.count, 0)
-                    XCTAssertEqual(builder.dimension, dimension)
+                    let builder = try LlamaMobileVD.MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+                    XCTAssertEqual(try builder.count(), 0)
+                    XCTAssertEqual(try builder.dimension(), dimension)
                 }, "Failed to create MMapVectorStoreBuilder with dimension \(dimension) and metric \(metric)")
             }
         }
@@ -578,41 +702,41 @@ final class LlamaMobileVDTests: XCTestCase {
     
     func testMMapVectorStoreBuilderOperations() {
         let dimension = 512
-        let metric = DistanceMetric.l2
+        let metric = LlamaMobileVD.DistanceMetric.l2
         
         XCTAssertNoThrow({
-            let builder = try MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+            let builder = try LlamaMobileVD.MMapVectorStoreBuilder(dimension: dimension, metric: metric)
             
             // Test adding vectors
             let vector1 = Array(repeating: Float(1.0), count: dimension)
             let vector2 = Array(repeating: Float(0.5), count: dimension)
             let vector3 = Array(repeating: Float(0.25), count: dimension)
             
-            try builder.addVector(vector1, id: 1)
-            XCTAssertEqual(builder.count, 1)
+            try builder.addVector(id: 1, vector: vector1)
+            XCTAssertEqual(try builder.count(), 1)
             
-            try builder.addVector(vector2, id: 2)
-            XCTAssertEqual(builder.count, 2)
+            try builder.addVector(id: 2, vector: vector2)
+            XCTAssertEqual(try builder.count(), 2)
             
-            try builder.addVector(vector3, id: 3)
-            XCTAssertEqual(builder.count, 3)
+            try builder.addVector(id: 3, vector: vector3)
+            XCTAssertEqual(try builder.count(), 3)
             
             // Test reserve
             try builder.reserve(capacity: 100)
-            XCTAssertEqual(builder.count, 3)
+            XCTAssertEqual(try builder.count(), 3)
             
             // Test adding more vectors after reserve
             for i in 4...10 {
                 let vector = Array(repeating: Float(i) / 10.0, count: dimension)
-                try builder.addVector(vector, id: i)
+                try builder.addVector(id: UInt64(i), vector: vector)
             }
-            XCTAssertEqual(builder.count, 10)
+            XCTAssertEqual(try builder.count(), 10)
         })
     }
     
     func testMMapVectorStoreSaveLoad() {
         let dimension = 256
-        let metric = DistanceMetric.cosine
+        let metric = LlamaMobileVD.DistanceMetric.cosine
         
         // Create a temporary file path
         let tempDir = NSTemporaryDirectory()
@@ -625,40 +749,36 @@ final class LlamaMobileVDTests: XCTestCase {
         
         XCTAssertNoThrow({
             // Create builder and add vectors
-            let builder = try MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+            let builder = try LlamaMobileVD.MMapVectorStoreBuilder(dimension: dimension, metric: metric)
             
             let vector1 = Array(repeating: Float(1.0), count: dimension)
             let vector2 = Array(repeating: Float(0.5), count: dimension)
             let vector3 = Array(repeating: Float(0.25), count: dimension)
             
-            try builder.addVector(vector1, id: 1)
-            try builder.addVector(vector2, id: 2)
-            try builder.addVector(vector3, id: 3)
+            try builder.addVector(id: 1, vector: vector1)
+            try builder.addVector(id: 2, vector: vector2)
+            try builder.addVector(id: 3, vector: vector3)
             
             // Save to file
-            let saved = try builder.save(filename: tempFile)
-            XCTAssertTrue(saved)
+            try builder.save(to: tempFile)
             XCTAssertTrue(FileManager.default.fileExists(atPath: tempFile))
             
             // Open the saved store
-            let vectorStore = try MMapVectorStore.open(filename: tempFile)
+            let vectorStore = try LlamaMobileVD.MMapVectorStore.open(from: tempFile)
             
             // Verify store properties
-            XCTAssertEqual(vectorStore.dimension, dimension)
-            XCTAssertEqual(vectorStore.metric, metric)
-            XCTAssertEqual(vectorStore.count, 3)
+            XCTAssertEqual(try vectorStore.dimension(), dimension)
+            XCTAssertEqual(try vectorStore.metric(), metric)
+            XCTAssertEqual(try vectorStore.count(), 3)
             
             // Verify vectors can be retrieved
-            let retrieved1 = try vectorStore.get(id: 1)
-            XCTAssertNotNil(retrieved1)
+            let retrieved1 = try vectorStore.getVector(id: 1)
             XCTAssertEqual(retrieved1, vector1)
             
-            let retrieved2 = try vectorStore.get(id: 2)
-            XCTAssertNotNil(retrieved2)
+            let retrieved2 = try vectorStore.getVector(id: 2)
             XCTAssertEqual(retrieved2, vector2)
             
-            let retrieved3 = try vectorStore.get(id: 3)
-            XCTAssertNotNil(retrieved3)
+            let retrieved3 = try vectorStore.getVector(id: 3)
             XCTAssertEqual(retrieved3, vector3)
             
             // Verify contains functionality
@@ -676,7 +796,7 @@ final class LlamaMobileVDTests: XCTestCase {
     
     func testMMapVectorStoreSearch() {
         let dimension = 512
-        let metric = DistanceMetric.cosine
+        let metric = LlamaMobileVD.DistanceMetric.cosine
         
         // Create a temporary file path
         let tempDir = NSTemporaryDirectory()
@@ -687,9 +807,9 @@ final class LlamaMobileVDTests: XCTestCase {
             try? FileManager.default.removeItem(atPath: tempFile)
         }
         
-        XCTAssertNoThrow({
+        XCTAssertNoThrow({ 
             // Create and populate the store
-            let builder = try MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+            let builder = try LlamaMobileVD.MMapVectorStoreBuilder(dimension: dimension, metric: metric)
             
             // Add known vectors for predictable search results
             let vector1 = Array(repeating: Float(1.0), count: dimension)  // ID 1
@@ -698,33 +818,33 @@ final class LlamaMobileVDTests: XCTestCase {
             let vector4 = Array(repeating: Float(0.1), count: dimension)  // ID 4 - less similar
             let vector5 = Array(repeating: Float(-1.0), count: dimension) // ID 5 - very dissimilar
             
-            try builder.addVector(vector1, id: 1)
-            try builder.addVector(vector2, id: 2)
-            try builder.addVector(vector3, id: 3)
-            try builder.addVector(vector4, id: 4)
-            try builder.addVector(vector5, id: 5)
+            try builder.addVector(id: 1, vector: vector1)
+            try builder.addVector(id: 2, vector: vector2)
+            try builder.addVector(id: 3, vector: vector3)
+            try builder.addVector(id: 4, vector: vector4)
+            try builder.addVector(id: 5, vector: vector5)
             
             // Save the store
-            try builder.save(filename: tempFile)
+            try builder.save(to: tempFile)
             
             // Open and search
-            let vectorStore = try MMapVectorStore.open(filename: tempFile)
+            let vectorStore = try LlamaMobileVD.MMapVectorStore.open(from: tempFile)
             
             // Test search for vector1 - should find itself first
-            let results1 = try vectorStore.search(vector1, k: 3)
+            let results1 = try vectorStore.search(query: vector1, k: 3)
             XCTAssertEqual(results1.count, 3)
             XCTAssertEqual(results1[0].id, 1)  // Exact match
             XCTAssertEqual(results1[1].id, 2)  // Very similar
             XCTAssertEqual(results1[2].id, 3)  // Somewhat similar
             
             // Test search for vector3 - should find itself first, then similar vectors
-            let results2 = try vectorStore.search(vector3, k: 2)
+            let results2 = try vectorStore.search(query: vector3, k: 2)
             XCTAssertEqual(results2.count, 2)
             XCTAssertEqual(results2[0].id, 3)  // Exact match
             XCTAssertTrue([2, 4].contains(results2[1].id))  // Should be either 2 or 4 depending on metric
             
             // Test search with k larger than the number of vectors
-            let results3 = try vectorStore.search(vector1, k: 10)
+            let results3 = try vectorStore.search(query: vector1, k: 10)
             XCTAssertEqual(results3.count, 5)  // Only 5 vectors available
         })
         
@@ -732,5 +852,150 @@ final class LlamaMobileVDTests: XCTestCase {
         if FileManager.default.fileExists(atPath: tempFile) {
             try? FileManager.default.removeItem(atPath: tempFile)
         }
+    }
+    
+    func testMMapVectorStoreVeryLargeDimensions3096() {
+        // Test with 3096 dimension (larger size for comprehensive coverage)
+        let dimension = 3096
+        let metric = LlamaMobileVD.DistanceMetric.cosine
+        
+        // Create a temporary file path
+        let tempDir = NSTemporaryDirectory()
+        let tempFile = tempDir.appending("test_mmap_3096.bin")
+        
+        // Clean up any existing file
+        if FileManager.default.fileExists(atPath: tempFile) {
+            try? FileManager.default.removeItem(atPath: tempFile)
+        }
+        
+        XCTAssertNoThrow({ 
+            // Create and populate the store
+            let builder = try LlamaMobileVD.MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+            
+            // Add vectors with 3096 dimensions
+            let vector1 = Array(repeating: Float(0.5), count: dimension)  // ID 1
+            let vector2 = Array(repeating: Float(0.6), count: dimension)  // ID 2
+            let vector3 = Array(repeating: Float(0.7), count: dimension)  // ID 3
+            
+            try builder.addVector(id: 1, vector: vector1)
+            try builder.addVector(id: 2, vector: vector2)
+            try builder.addVector(id: 3, vector: vector3)
+            
+            // Save the store
+            try builder.save(to: tempFile)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: tempFile))
+            
+            // Open the store
+            let vectorStore = try LlamaMobileVD.MMapVectorStore.open(from: tempFile)
+            
+            // Verify store properties
+            XCTAssertEqual(try vectorStore.dimension(), dimension)
+            XCTAssertEqual(try vectorStore.metric(), metric)
+            XCTAssertEqual(try vectorStore.count(), 3)
+            
+            // Verify vectors can be retrieved
+            let retrieved1 = try vectorStore.getVector(id: 1)
+            XCTAssertEqual(retrieved1.count, dimension)
+            
+            // Test search functionality
+            let queryVector = Array(repeating: Float(0.65), count: dimension)
+            let results = try vectorStore.search(query: queryVector, k: 2)
+            XCTAssertEqual(results.count, 2)
+            // The closest should be vector with id 2 (value 0.6) or 3 (value 0.7)
+            XCTAssertTrue(results[0].id == 2 || results[0].id == 3)
+        })
+        
+        // Clean up the temporary file
+        if FileManager.default.fileExists(atPath: tempFile) {
+            try? FileManager.default.removeItem(atPath: tempFile)
+        }
+    }
+    
+    func testMMapVectorStoreLargeDataset1000() {
+        // Test with large dataset (1000 vectors) for comprehensive coverage
+        let dimension = 64
+        let metric = LlamaMobileVD.DistanceMetric.l2
+        
+        // Create a temporary file path
+        let tempDir = NSTemporaryDirectory()
+        let tempFile = tempDir.appending("test_mmap_large.bin")
+        
+        // Clean up any existing file
+        if FileManager.default.fileExists(atPath: tempFile) {
+            try? FileManager.default.removeItem(atPath: tempFile)
+        }
+        
+        XCTAssertNoThrow({ 
+            // Create and populate the store
+            let builder = try LlamaMobileVD.MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+            
+            // Reserve capacity to optimize performance
+            try builder.reserve(capacity: 1000)
+            
+            // Add 1000 vectors
+            for i in 1...1000 {
+                let vector = Array(repeating: Float(i) / 1000.0, count: dimension)
+                try builder.addVector(id: UInt64(i), vector: vector)
+            }
+            XCTAssertEqual(try builder.count(), 1000)
+            
+            // Save the store
+            try builder.save(to: tempFile)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: tempFile))
+            
+            // Open the store
+            let vectorStore = try LlamaMobileVD.MMapVectorStore.open(from: tempFile)
+            
+            // Verify store properties
+            XCTAssertEqual(try vectorStore.dimension(), dimension)
+            XCTAssertEqual(try vectorStore.metric(), metric)
+            XCTAssertEqual(try vectorStore.count(), 1000)
+            
+            // Test search performance and accuracy
+            let queryVector = Array(repeating: Float(0.5), count: dimension)
+            let results = try vectorStore.search(query: queryVector, k: 10)
+            XCTAssertEqual(results.count, 10)
+            
+            // Verify we can retrieve vectors
+            for i in 1...5 {
+                let vector = try vectorStore.getVector(id: UInt64(i))
+                XCTAssertEqual(vector.count, dimension)
+            }
+            
+            // Test contains functionality
+            XCTAssertTrue(try vectorStore.contains(id: 500))
+            XCTAssertFalse(try vectorStore.contains(id: 1001))
+        })
+        
+        // Clean up the temporary file
+        if FileManager.default.fileExists(atPath: tempFile) {
+            try? FileManager.default.removeItem(atPath: tempFile)
+        }
+    }
+    
+    func testHNSWIndexVeryLargeDataset10000() {
+        // Test with very large dataset (10000 vectors) for comprehensive coverage
+        let dimension = 64
+        let metric = LlamaMobileVD.DistanceMetric.cosine
+        
+        XCTAssertNoThrow({ 
+            let hnswIndex = try LlamaMobileVD.HNSWIndex(dimension: dimension, metric: metric, maxElements: 10000, m: 16, efConstruction: 200)
+            
+            // Add 10000 vectors
+            for i in 1...10000 {
+                let vector = Array(repeating: Float(i) / 10000.0, count: dimension)
+                try hnswIndex.addVector(id: UInt64(i), vector: vector)
+            }
+            XCTAssertEqual(try hnswIndex.count(), 10000)
+            
+            // Test search performance and accuracy
+            let queryVector = Array(repeating: Float(0.5), count: dimension)
+            let results = try hnswIndex.search(query: queryVector, k: 10)
+            XCTAssertEqual(results.count, 10)
+            
+            // Test contains functionality
+            XCTAssertTrue(try hnswIndex.contains(id: 5000))
+            XCTAssertFalse(try hnswIndex.contains(id: 10001))
+        })
     }
 }

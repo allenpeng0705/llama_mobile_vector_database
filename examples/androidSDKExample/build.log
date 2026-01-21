@@ -1,0 +1,255 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:dataBindingMergeDependencyArtifactsDebug UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:dataBindingGenBaseClassesDebug UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:dexBuilderDebug UP-TO-DATE
+> Task :app:mergeProjectDexDebug UP-TO-DATE
+
+> Task :app:configureCMakeDebug[arm64-v8a]
+C/C++: CMake Warning at /Users/shileipeng/Library/Android/sdk/ndk/25.1.8937393/build/cmake/android-legacy.toolchain.cmake:415 (message):
+C/C++:   An old version of CMake is being used that cannot automatically detect
+C/C++:   compiler attributes.  Compiler identification is being bypassed.  Some
+C/C++:   values may be wrong or missing.  Update to CMake 3.19 or newer to use
+C/C++:   CMake's built-in compiler identification.
+C/C++: Call Stack (most recent call first):
+C/C++:   /Users/shileipeng/Library/Android/sdk/ndk/25.1.8937393/build/cmake/android.toolchain.cmake:54 (include)
+C/C++:   /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/examples/androidSDKExample/app/.cxx/Debug/2o1t2y5i/arm64-v8a/CMakeFiles/3.18.1-g262b901/CMakeSystem.cmake:6 (include)
+C/C++:   CMakeLists.txt:3 (project)
+
+> Task :app:buildCMakeDebug[arm64-v8a] FAILED
+C/C++: ninja: Entering directory `/Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/examples/androidSDKExample/app/.cxx/Debug/2o1t2y5i/arm64-v8a'
+C/C++: : && /Users/shileipeng/Library/Android/sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++ --target=aarch64-none-linux-android21 --sysroot=/Users/shileipeng/Library/Android/sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/darwin-x86_64/sysroot -fPIC -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -fno-limit-debug-info  -static-libstdc++ -Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--fatal-warnings -Wl,--gc-sections -Wl,--no-undefined -Qunused-arguments -shared -Wl,-soname,libllama_mobile_vd_jni.so -o /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/examples/androidSDKExample/app/build/intermediates/cxx/Debug/2o1t2y5i/obj/arm64-v8a/libllama_mobile_vd_jni.so CMakeFiles/llama_mobile_vd_jni.dir/llama_mobile_vd_jni.cpp.o  /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a  -llog  -latomic -lm && :
+C/C++: ld: error: undefined symbol: std::__ndk1::basic_filebuf<char, std::__ndk1::char_traits<char> >::close()
+C/C++: >>> referenced by fstream:1406 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1406)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by fstream:1406 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1406)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::MMapVectorStoreBuilder::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by fstream:1406 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1406)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ofstream<char, std::__ndk1::char_traits<char> >::close()) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: ld: error: undefined symbol: VTT for std::__ndk1::basic_stringstream<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >
+C/C++: >>> referenced by sstream:1280 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1280)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by sstream:1280 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1280)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by sstream:1280 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1280)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::load(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced 7 more times
+C/C++: ld: error: undefined symbol: vtable for std::__ndk1::basic_stringbuf<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >
+C/C++: >>> referenced by sstream:1279 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1279)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by sstream:1279 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1279)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by sstream:1279 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1279)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::load(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced 7 more times
+C/C++: >>> the vtable symbol may be undefined because the class is missing its key function (see https://lld.llvm.org/missingkeyfunction)
+C/C++: ld: error: undefined symbol: VTT for std::__ndk1::basic_ofstream<char, std::__ndk1::char_traits<char> >
+C/C++: >>> referenced by fstream:1567 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1567)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by fstream:1567 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1567)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by fstream:1567 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1567)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::MMapVectorStoreBuilder::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced 5 more times
+C/C++: ld: error: undefined symbol: std::__ndk1::basic_filebuf<char, std::__ndk1::char_traits<char> >::~basic_filebuf()
+C/C++: >>> referenced by fstream:1567 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1567)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by fstream:1566 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1566)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::load(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by fstream:1566 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1566)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::load(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced 4 more times
+C/C++: ld: error: undefined symbol: VTT for std::__ndk1::basic_ifstream<char, std::__ndk1::char_traits<char> >
+C/C++: >>> referenced by fstream:1566 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1566)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::load(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by fstream:1566 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1566)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::load(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by fstream:1566 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1566)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::load(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced 3 more times
+C/C++: ld: error: undefined symbol: vtable for std::__ndk1::basic_ofstream<char, std::__ndk1::char_traits<char> >
+C/C++: >>> referenced by fstream:1331 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1331)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ofstream<char, std::__ndk1::char_traits<char> >::basic_ofstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by fstream:1331 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1331)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ofstream<char, std::__ndk1::char_traits<char> >::basic_ofstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> the vtable symbol may be undefined because the class is missing its key function (see https://lld.llvm.org/missingkeyfunction)
+C/C++: ld: error: undefined symbol: std::__ndk1::basic_filebuf<char, std::__ndk1::char_traits<char> >::basic_filebuf()
+C/C++: >>> referenced by fstream:1330 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1330)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ofstream<char, std::__ndk1::char_traits<char> >::basic_ofstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by fstream:1171 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1171)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ifstream<char, std::__ndk1::char_traits<char> >::basic_ifstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: ld: error: undefined symbol: std::__ndk1::basic_filebuf<char, std::__ndk1::char_traits<char> >::open(char const*, unsigned int)
+C/C++: >>> referenced by fstream:730 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:730)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ofstream<char, std::__ndk1::char_traits<char> >::basic_ofstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by fstream:730 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:730)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ifstream<char, std::__ndk1::char_traits<char> >::basic_ifstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: ld: error: undefined symbol: vtable for std::__ndk1::basic_stringstream<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >
+C/C++: >>> referenced by sstream:1158 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1158)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_stringstream<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >::basic_stringstream[abi:ne210000]()) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by sstream:1158 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1158)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_stringstream<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >::basic_stringstream[abi:ne210000]()) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by sstream:1165 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1165)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_stringstream<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >::basic_stringstream[abi:ne210000](std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced 1 more times
+C/C++: >>> the vtable symbol may be undefined because the class is missing its key function (see https://lld.llvm.org/missingkeyfunction)
+C/C++: ld: error: undefined symbol: vtable for std::__ndk1::basic_ifstream<char, std::__ndk1::char_traits<char> >
+C/C++: >>> referenced by fstream:1172 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1172)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ifstream<char, std::__ndk1::char_traits<char> >::basic_ifstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> referenced by fstream:1172 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1172)
+C/C++: >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ifstream<char, std::__ndk1::char_traits<char> >::basic_ifstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+C/C++: >>> the vtable symbol may be undefined because the class is missing its key function (see https://lld.llvm.org/missingkeyfunction)
+C/C++: clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+C/C++: ninja: build stopped: subcommand failed.
+
+[Incubating] Problems report is available at: file:///Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/examples/androidSDKExample/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:buildCMakeDebug[arm64-v8a]'.
+> com.android.ide.common.process.ProcessException: ninja: Entering directory `/Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/examples/androidSDKExample/app/.cxx/Debug/2o1t2y5i/arm64-v8a'
+  [1/2] Building CXX object CMakeFiles/llama_mobile_vd_jni.dir/llama_mobile_vd_jni.cpp.o
+  [2/2] Linking CXX shared library /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/examples/androidSDKExample/app/build/intermediates/cxx/Debug/2o1t2y5i/obj/arm64-v8a/libllama_mobile_vd_jni.so
+  FAILED: /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/examples/androidSDKExample/app/build/intermediates/cxx/Debug/2o1t2y5i/obj/arm64-v8a/libllama_mobile_vd_jni.so 
+  : && /Users/shileipeng/Library/Android/sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++ --target=aarch64-none-linux-android21 --sysroot=/Users/shileipeng/Library/Android/sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/darwin-x86_64/sysroot -fPIC -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -fno-limit-debug-info  -static-libstdc++ -Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--fatal-warnings -Wl,--gc-sections -Wl,--no-undefined -Qunused-arguments -shared -Wl,-soname,libllama_mobile_vd_jni.so -o /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/examples/androidSDKExample/app/build/intermediates/cxx/Debug/2o1t2y5i/obj/arm64-v8a/libllama_mobile_vd_jni.so CMakeFiles/llama_mobile_vd_jni.dir/llama_mobile_vd_jni.cpp.o  /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a  -llog  -latomic -lm && :
+  ld: error: undefined symbol: std::__ndk1::basic_filebuf<char, std::__ndk1::char_traits<char> >::close()
+  >>> referenced by fstream:1406 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1406)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by fstream:1406 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1406)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::MMapVectorStoreBuilder::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by fstream:1406 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1406)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ofstream<char, std::__ndk1::char_traits<char> >::close()) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  
+  ld: error: undefined symbol: VTT for std::__ndk1::basic_stringstream<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >
+  >>> referenced by sstream:1280 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1280)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by sstream:1280 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1280)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by sstream:1280 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1280)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::load(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced 7 more times
+  
+  ld: error: undefined symbol: vtable for std::__ndk1::basic_stringbuf<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >
+  >>> referenced by sstream:1279 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1279)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by sstream:1279 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1279)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by sstream:1279 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1279)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::load(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced 7 more times
+  >>> the vtable symbol may be undefined because the class is missing its key function (see https://lld.llvm.org/missingkeyfunction)
+  
+  ld: error: undefined symbol: VTT for std::__ndk1::basic_ofstream<char, std::__ndk1::char_traits<char> >
+  >>> referenced by fstream:1567 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1567)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by fstream:1567 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1567)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by fstream:1567 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1567)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::MMapVectorStoreBuilder::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced 5 more times
+  
+  ld: error: undefined symbol: std::__ndk1::basic_filebuf<char, std::__ndk1::char_traits<char> >::~basic_filebuf()
+  >>> referenced by fstream:1567 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1567)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::save(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&) const) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by fstream:1566 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1566)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::load(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by fstream:1566 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1566)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::load(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced 4 more times
+  
+  ld: error: undefined symbol: VTT for std::__ndk1::basic_ifstream<char, std::__ndk1::char_traits<char> >
+  >>> referenced by fstream:1566 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1566)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::load(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by fstream:1566 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1566)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::load(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by fstream:1566 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1566)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(quiverdb::HNSWIndex::load(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced 3 more times
+  
+  ld: error: undefined symbol: vtable for std::__ndk1::basic_ofstream<char, std::__ndk1::char_traits<char> >
+  >>> referenced by fstream:1331 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1331)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ofstream<char, std::__ndk1::char_traits<char> >::basic_ofstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by fstream:1331 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1331)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ofstream<char, std::__ndk1::char_traits<char> >::basic_ofstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> the vtable symbol may be undefined because the class is missing its key function (see https://lld.llvm.org/missingkeyfunction)
+  
+  ld: error: undefined symbol: std::__ndk1::basic_filebuf<char, std::__ndk1::char_traits<char> >::basic_filebuf()
+  >>> referenced by fstream:1330 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1330)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ofstream<char, std::__ndk1::char_traits<char> >::basic_ofstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by fstream:1171 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1171)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ifstream<char, std::__ndk1::char_traits<char> >::basic_ifstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  
+  ld: error: undefined symbol: std::__ndk1::basic_filebuf<char, std::__ndk1::char_traits<char> >::open(char const*, unsigned int)
+  >>> referenced by fstream:730 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:730)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ofstream<char, std::__ndk1::char_traits<char> >::basic_ofstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by fstream:730 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:730)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ifstream<char, std::__ndk1::char_traits<char> >::basic_ifstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  
+  ld: error: undefined symbol: vtable for std::__ndk1::basic_stringstream<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >
+  >>> referenced by sstream:1158 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1158)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_stringstream<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >::basic_stringstream[abi:ne210000]()) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by sstream:1158 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1158)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_stringstream<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >::basic_stringstream[abi:ne210000]()) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by sstream:1165 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/sstream:1165)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_stringstream<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >::basic_stringstream[abi:ne210000](std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced 1 more times
+  >>> the vtable symbol may be undefined because the class is missing its key function (see https://lld.llvm.org/missingkeyfunction)
+  
+  ld: error: undefined symbol: vtable for std::__ndk1::basic_ifstream<char, std::__ndk1::char_traits<char> >
+  >>> referenced by fstream:1172 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1172)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ifstream<char, std::__ndk1::char_traits<char> >::basic_ifstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> referenced by fstream:1172 (/Users/shileipeng/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/fstream:1172)
+  >>>               llama_mobile_vd_wrapper.cpp.o:(std::__ndk1::basic_ifstream<char, std::__ndk1::char_traits<char> >::basic_ifstream(std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&, unsigned int)) in archive /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-SDK/src/main/cpp/../jniLibs/arm64-v8a/libllama_mobile_vd.a
+  >>> the vtable symbol may be undefined because the class is missing its key function (see https://lld.llvm.org/missingkeyfunction)
+  clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+  ninja: build stopped: subcommand failed.
+  
+  C++ build system [build] failed while executing:
+      /Users/shileipeng/Library/Android/sdk/cmake/3.18.1/bin/ninja \
+        -C \
+        /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/examples/androidSDKExample/app/.cxx/Debug/2o1t2y5i/arm64-v8a \
+        llama_mobile_vd_jni
+    from /Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/examples/androidSDKExample/app
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.0-milestone-1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 1s
+30 actionable tasks: 2 executed, 28 up-to-date

@@ -57,6 +57,31 @@ typedef NS_ENUM(NSInteger, LlamaMobileVDDistanceMetric) {
 
 @end
 
+@interface LlamaMobileVDMMapVectorStoreBuilder : NSObject
+
+- (instancetype)initWithDimension:(NSUInteger)dimension metric:(LlamaMobileVDDistanceMetric)metric;
+
+- (BOOL)addIdentifier:(uint64_t)identifier vector:(const float *)vector error:(NSError **)error;
+- (BOOL)reserveCapacity:(NSUInteger)capacity error:(NSError **)error;
+- (BOOL)saveToFile:(NSString *)filename error:(NSError **)error;
+- (NSUInteger)size:(NSError **)error;
+- (NSUInteger)dimension:(NSError **)error;
+
+@end
+
+@interface LlamaMobileVDMMapVectorStore : NSObject
+
+- (BOOL)getVectorForIdentifier:(uint64_t)identifier vector:(float *)vector vectorSize:(NSUInteger)vectorSize error:(NSError **)error;
+- (BOOL)containsIdentifier:(uint64_t)identifier contains:(BOOL *)contains error:(NSError **)error;
+- (nullable NSArray<LlamaMobileVDSearchResult *> *)searchVector:(const float *)query k:(NSUInteger)k error:(NSError **)error;
+- (NSUInteger)size:(NSError **)error;
+- (NSUInteger)dimension:(NSError **)error;
+- (LlamaMobileVDDistanceMetric)metric:(NSError **)error;
+
++ (nullable instancetype)openFromFile:(NSString *)filename error:(NSError **)error;
+
+@end
+
 @interface LlamaMobileVD : NSObject
 
 + (NSString *)version;

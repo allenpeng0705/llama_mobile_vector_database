@@ -13,3 +13,17 @@
 /build-shared
 /build-static
 /llama_mobile_vd-ios-SDK/.build
+/examples/androidSDKExample/app/.cxx
+/build-android-arm64-v8a
+/build-android-x86_64
+/examples/androidSDKExample/.idea
+/examples/androidSDKExample/app/build
+/examples/iOSSDKExample/build
+/llama_mobile_vd-android-java-SDK/.cxx
+/llama_mobile_vd-android-java-SDK/build
+/llama_mobile_vd-android-SDK/.cxx
+/llama_mobile_vd-android-SDK/.gradle
+/llama_mobile_vd-android-SDK/.idea
+/llama_mobile_vd-android-SDK/build
+/llama_mobile_vd-flutter-SDK.bak
+/llama_mobile_vd-ios-SDK/.swiftpm

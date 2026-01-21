@@ -1,0 +1,8 @@
+framework module llama_mobile_vd {
+    umbrella header "llama_mobile_vd_wrapper.h"
+    
+    export *
+    module * { export * }
+    
+    link "llama_mobile_vd"
+}

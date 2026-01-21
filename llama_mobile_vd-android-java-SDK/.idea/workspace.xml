@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="aacd3dbc-75c7-49ae-9dbf-a4a0e5733206" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../examples/androidSDKExample/app/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/../examples/androidSDKExample/app/build.gradle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../examples/androidSDKExample/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../examples/androidSDKExample/app/src/main/AndroidManifest.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../examples/androidSDKExample/app/src/main/java/com/llamamobile/androidsdkexample/MainActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../examples/androidSDKExample/app/src/main/java/com/llamamobile/androidsdkexample/MainActivity.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../examples/androidSDKExample/app/src/main/res/layout/activity_main.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../examples/androidSDKExample/app/src/main/res/layout/activity_main.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../examples/androidSDKExample/app/src/main/res/values/styles.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../examples/androidSDKExample/app/src/main/res/values/styles.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../examples/iOSSDKExample/Info.plist" beforeDir="false" afterPath="$PROJECT_DIR$/../examples/iOSSDKExample/Info.plist" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../examples/iOSSDKExample/Sources/AppDelegate.swift" beforeDir="false" afterPath="$PROJECT_DIR$/../examples/iOSSDKExample/Sources/AppDelegate.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../examples/iOSSDKExample/Sources/MainViewController.swift" beforeDir="false" afterPath="$PROJECT_DIR$/../examples/iOSSDKExample/Sources/MainViewController.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../examples/iOSSDKExample/Sources/SceneDelegate.swift" beforeDir="false" afterPath="$PROJECT_DIR$/../examples/iOSSDKExample/Sources/SceneDelegate.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../examples/iOSSDKExample/iOSSDKExample.xcodeproj/project.pbxproj" beforeDir="false" afterPath="$PROJECT_DIR$/../examples/iOSSDKExample/iOSSDKExample.xcodeproj/project.pbxproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../examples/iOSSDKExample/project.yml" beforeDir="false" afterPath="$PROJECT_DIR$/../examples/iOSSDKExample/project.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fix_ios_module_structure.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/wrapper/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../lib/wrapper/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/wrapper/include/quiverdb_wrapper.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/wrapper/src/quiverdb_wrapper.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/wrapper/tests/test_quiverdb_wrapper.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/include/quiverdb_wrapper.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/jniLibs/arm64-v8a/libquiverdb_wrapper.a" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/jniLibs/armeabi-v7a/libquiverdb_wrapper.a" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/jniLibs/x86/libquiverdb_wrapper.a" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/jniLibs/x86_64/libquiverdb_wrapper.a" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/src/main/cpp/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/src/main/cpp/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/src/main/cpp/llama_mobile_vd_jni.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/src/main/cpp/llama_mobile_vd_jni.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/src/main/java/com/llamamobile/vd/LlamaMobileVD.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/src/main/kotlin/com/llamamobile/vd/JNIInterface.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/src/main/kotlin/com/llamamobile/vd/LlamaMobileVD.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/src/test/java/com/llamamobile/vd/LlamaMobileVDJavaTests.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-android-SDK/src/test/kotlin/com/llamamobile/vd/LlamaMobileVDTests.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-capacitor-plugin/android/src/main/java/com/llamamobile/vd/LlamaMobileVD.java" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-capacitor-plugin/android/src/main/java/com/llamamobile/vd/LlamaMobileVD.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-capacitor-plugin/android/src/main/jniLibs/arm64-v8a/libquiverdb_wrapper.a" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-capacitor-plugin/android/src/main/jniLibs/arm64-v8a/libquiverdb_wrapper.a" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-capacitor-plugin/android/src/main/jniLibs/x86_64/libquiverdb_wrapper.a" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-capacitor-plugin/android/src/main/jniLibs/x86_64/libquiverdb_wrapper.a" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-capacitor-plugin/ios/LlamaMobileVD.framework/Headers/LlamaMobileVD.h" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-capacitor-plugin/ios/LlamaMobileVD.framework/Headers/LlamaMobileVD.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-capacitor-plugin/ios/LlamaMobileVD.framework/LlamaMobileVD" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-capacitor-plugin/ios/LlamaMobileVD.framework/LlamaMobileVD" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-capacitor-plugin/ios/LlamaMobileVD.framework/Modules/module.modulemap" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-capacitor-plugin/ios/LlamaMobileVD.framework/Modules/module.modulemap" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-capacitor-plugin/ios/Sources/LlamaMobileVDPlugin/LlamaMobileVDPlugin.swift" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-capacitor-plugin/ios/Sources/LlamaMobileVDPlugin/LlamaMobileVDPlugin.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/.dart_tool/extension_discovery/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/.dart_tool/extension_discovery/vs_code.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/.dart_tool/package_config.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/.dart_tool/package_graph.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/.dart_tool/version" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/android/src/main/jniLibs/arm64-v8a/libquiverdb_wrapper.a" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/android/src/main/jniLibs/x86_64/libquiverdb_wrapper.a" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/android/src/main/kotlin/com/llamamobile/vd/LlamaMobileVDPlugin.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/ios/LlamaMobileVD.framework/Headers/LlamaMobileVD.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/ios/LlamaMobileVD.framework/Info.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/ios/LlamaMobileVD.framework/LlamaMobileVD" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/ios/LlamaMobileVD.framework/Modules/module.modulemap" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/ios/LlamaMobileVDPlugin.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/ios/llama_mobile_vd.podspec" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/lib/llama_mobile_vd.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/pubspec.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/pubspec.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-flutter-SDK/test/llama_mobile_vd_test.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/Package.swift" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/Package.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/Sources/LlamaMobileVD/Bridging-Header.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/Sources/LlamaMobileVD/Frameworks/LlamaMobileVD.framework/Headers/LlamaMobileVD.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/Sources/LlamaMobileVD/Frameworks/LlamaMobileVD.framework/Info.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/Sources/LlamaMobileVD/Frameworks/LlamaMobileVD.framework/LlamaMobileVD" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/Sources/LlamaMobileVD/LlamaMobileVD.swift" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/Sources/LlamaMobileVD/LlamaMobileVD.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/Tests/LlamaMobileVDTests/LlamaMobileVDTests.swift" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/Tests/LlamaMobileVDTests/LlamaMobileVDTests.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/ios/Frameworks/LlamaMobileVD.framework/Headers/LlamaMobileVD.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/ios/Frameworks/LlamaMobileVD.framework/Info.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/ios/Frameworks/LlamaMobileVD.framework/LlamaMobileVD" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/ios/Frameworks/LlamaMobileVD.framework/LlamaMobileVD.framework/Headers/LlamaMobileVD.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/ios/Frameworks/LlamaMobileVD.framework/LlamaMobileVD.framework/Info.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/ios/Frameworks/LlamaMobileVD.framework/LlamaMobileVD.framework/LlamaMobileVD" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/ios/Frameworks/LlamaMobileVD.framework/Modules/module.modulemap" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/ios/Frameworks/LlamaMobileVD.framework/Resources/libquiverdb_wrapper.a" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/src/LlamaMobileVD.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-ios-SDK/src/LlamaMobileVD.mm" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/android/src/main/java/com/llamamobile/vd/LlamaMobileVD.java" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/android/src/main/java/com/llamamobile/vd/LlamaMobileVD.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/android/src/main/jniLibs/arm64-v8a/libquiverdb_wrapper.a" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/android/src/main/jniLibs/arm64-v8a/libquiverdb_wrapper.a" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/android/src/main/jniLibs/x86_64/libquiverdb_wrapper.a" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/android/src/main/jniLibs/x86_64/libquiverdb_wrapper.a" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/ios/LlamaMobileVD.framework/Headers/LlamaMobileVD.h" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/ios/LlamaMobileVD.framework/Headers/LlamaMobileVD.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/ios/LlamaMobileVD.framework/LlamaMobileVD" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/ios/LlamaMobileVD.framework/LlamaMobileVD" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/ios/LlamaMobileVD.framework/Modules/module.modulemap" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/ios/LlamaMobileVD.framework/Modules/module.modulemap" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/ios/LlamaMobileVD.podspec" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/ios/LlamaMobileVD.podspec" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/ios/LlamaMobileVD.swift" beforeDir="false" afterPath="$PROJECT_DIR$/../llama_mobile_vd-react-native-SDK/ios/LlamaMobileVD.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/build-all.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/build-all.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/build-android.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/build-android.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/build-capacitor-plugin.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/build-capacitor-plugin.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../scripts/build-capacitor-plugin.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/build-flutter-SDK.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/build-flutter-SDK.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../scripts/build-flutter-SDK.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/build-ios.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/build-ios.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/build-lib.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/build-lib.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../scripts/build-lib.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/build-rn-SDK.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/build-rn-SDK.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../scripts/build-rn-SDK.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../scripts/config.env" beforeDir="false" afterPath="$PROJECT_DIR$/../scripts/config.env" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[DeviceId(pluginId=LocalEmulator, isTemplate=false, identifier=path=/Users/shileipeng/.android/avd/Pixel_9_Pro.avd)]" />
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "allenpeng0705"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/allenpeng0705/llama_mobile_vector_database.git",
+    "accountId": "a239dea5-b8f2-495a-aada-5df5a5af373f"
+  }
+}]]></component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 8
+}]]></component>
+  <component name="ProjectId" id="38YcSAdXvs1zb6KUX4fy0mlIFOF" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Android Instrumented Tests.LlamaMobileVDInstrumentedTests.executor": "Run",
+    "Android Instrumented Tests.testWithLargeDimension().executor": "Run",
+    "AndroidTestSuiteView.myPassedToggleButton": "false",
+    "Gradle.llama_mobile_vd-android-java-SDK.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/Users/shileipeng/Documents/mygithub/llama_mobile_vector_database/llama_mobile_vd-android-java-SDK"
+  }
+}]]></component>
+  <component name="RunManager" selected="Android Instrumented Tests.LlamaMobileVDInstrumentedTests">
+    <configuration name="LlamaMobileVDInstrumentedTests" type="AndroidTestRunConfigurationType" factoryName="Android Instrumented Tests" temporary="true" nameIsGenerated="true">
+      <module name="llama_mobile_vd_java" />
+      <option name="ANDROID_TEST_RUN_CONFIGURATION_SCHEMA_VERSION" value="1" />
+      <option name="TESTING_TYPE" value="2" />
+      <option name="METHOD_NAME" value="" />
+      <option name="CLASS_NAME" value="com.llamamobile.vd.LlamaMobileVDInstrumentedTests" />
+      <option name="PACKAGE_NAME" value="" />
+      <option name="TEST_NAME_REGEX" value="" />
+      <option name="INSTRUMENTATION_RUNNER_CLASS" value="" />
+      <option name="EXTRA_OPTIONS" value="" />
+      <option name="CLEAR_LOGCAT" value="false" />
+      <option name="SHOW_LOGCAT_AUTOMATICALLY" value="false" />
+      <option name="TARGET_SELECTION_MODE" value="DEVICE_AND_SNAPSHOT_COMBO_BOX" />
+      <option name="SELECTED_CLOUD_MATRIX_CONFIGURATION_ID" value="-1" />
+      <option name="SELECTED_CLOUD_MATRIX_PROJECT_ID" value="" />
+      <option name="DEBUGGER_TYPE" value="Auto" />
+      <Auto>
+        <option name="USE_JAVA_AWARE_DEBUGGER" value="false" />
+        <option name="SHOW_STATIC_VARS" value="true" />
+        <option name="WORKING_DIR" value="" />
+        <option name="TARGET_LOGGING_CHANNELS" value="lldb process:gdb-remote packets" />
+        <option name="SHOW_OPTIMIZED_WARNING" value="true" />
+        <option name="ATTACH_ON_WAIT_FOR_DEBUGGER" value="false" />
+        <option name="DEBUG_SANDBOX_SDK" value="false" />
+      </Auto>
+      <Hybrid>
+        <option name="USE_JAVA_AWARE_DEBUGGER" value="false" />
+        <option name="SHOW_STATIC_VARS" value="true" />
+        <option name="WORKING_DIR" value="" />
+        <option name="TARGET_LOGGING_CHANNELS" value="lldb process:gdb-remote packets" />
+        <option name="SHOW_OPTIMIZED_WARNING" value="true" />
+        <option name="ATTACH_ON_WAIT_FOR_DEBUGGER" value="false" />
+        <option name="DEBUG_SANDBOX_SDK" value="false" />
+      </Hybrid>
+      <Java>
+        <option name="ATTACH_ON_WAIT_FOR_DEBUGGER" value="false" />
+        <option name="DEBUG_SANDBOX_SDK" value="false" />
+      </Java>
+      <Native>
+        <option name="USE_JAVA_AWARE_DEBUGGER" value="false" />
+        <option name="SHOW_STATIC_VARS" value="true" />
+        <option name="WORKING_DIR" value="" />
+        <option name="TARGET_LOGGING_CHANNELS" value="lldb process:gdb-remote packets" />
+        <option name="SHOW_OPTIMIZED_WARNING" value="true" />
+        <option name="ATTACH_ON_WAIT_FOR_DEBUGGER" value="false" />
+        <option name="DEBUG_SANDBOX_SDK" value="false" />
+      </Native>
+      <Profilers>
+        <option name="ADVANCED_PROFILING_ENABLED" value="false" />
+        <option name="STARTUP_PROFILING_ENABLED" value="false" />
+        <option name="STARTUP_CPU_PROFILING_ENABLED" value="false" />
+        <option name="STARTUP_CPU_PROFILING_CONFIGURATION_NAME" value="Java/Kotlin Method Sample (legacy)" />
+        <option name="STARTUP_NATIVE_MEMORY_PROFILING_ENABLED" value="false" />
+        <option name="NATIVE_MEMORY_SAMPLE_RATE_BYTES" value="2048" />
+      </Profilers>
+      <method v="2">
+        <option name="Android.Gradle.BeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="testWithLargeDimension()" type="AndroidTestRunConfigurationType" factoryName="Android Instrumented Tests" temporary="true" nameIsGenerated="true">
+      <module name="llama_mobile_vd_java" />
+      <option name="ANDROID_TEST_RUN_CONFIGURATION_SCHEMA_VERSION" value="1" />
+      <option name="TESTING_TYPE" value="3" />
+      <option name="METHOD_NAME" value="testWithLargeDimension" />
+      <option name="CLASS_NAME" value="com.llamamobile.vd.LlamaMobileVDInstrumentedTests" />
+      <option name="PACKAGE_NAME" value="" />
+      <option name="TEST_NAME_REGEX" value="" />
+      <option name="INSTRUMENTATION_RUNNER_CLASS" value="" />
+      <option name="EXTRA_OPTIONS" value="" />
+      <option name="CLEAR_LOGCAT" value="false" />
+      <option name="SHOW_LOGCAT_AUTOMATICALLY" value="false" />
+      <option name="TARGET_SELECTION_MODE" value="DEVICE_AND_SNAPSHOT_COMBO_BOX" />
+      <option name="SELECTED_CLOUD_MATRIX_CONFIGURATION_ID" value="-1" />
+      <option name="SELECTED_CLOUD_MATRIX_PROJECT_ID" value="" />
+      <option name="DEBUGGER_TYPE" value="Auto" />
+      <Auto>
+        <option name="USE_JAVA_AWARE_DEBUGGER" value="false" />
+        <option name="SHOW_STATIC_VARS" value="true" />
+        <option name="WORKING_DIR" value="" />
+        <option name="TARGET_LOGGING_CHANNELS" value="lldb process:gdb-remote packets" />
+        <option name="SHOW_OPTIMIZED_WARNING" value="true" />
+        <option name="ATTACH_ON_WAIT_FOR_DEBUGGER" value="false" />
+        <option name="DEBUG_SANDBOX_SDK" value="false" />
+      </Auto>
+      <Hybrid>
+        <option name="USE_JAVA_AWARE_DEBUGGER" value="false" />
+        <option name="SHOW_STATIC_VARS" value="true" />
+        <option name="WORKING_DIR" value="" />
+        <option name="TARGET_LOGGING_CHANNELS" value="lldb process:gdb-remote packets" />
+        <option name="SHOW_OPTIMIZED_WARNING" value="true" />
+        <option name="ATTACH_ON_WAIT_FOR_DEBUGGER" value="false" />
+        <option name="DEBUG_SANDBOX_SDK" value="false" />
+      </Hybrid>
+      <Java>
+        <option name="ATTACH_ON_WAIT_FOR_DEBUGGER" value="false" />
+        <option name="DEBUG_SANDBOX_SDK" value="false" />
+      </Java>
+      <Native>
+        <option name="USE_JAVA_AWARE_DEBUGGER" value="false" />
+        <option name="SHOW_STATIC_VARS" value="true" />
+        <option name="WORKING_DIR" value="" />
+        <option name="TARGET_LOGGING_CHANNELS" value="lldb process:gdb-remote packets" />
+        <option name="SHOW_OPTIMIZED_WARNING" value="true" />
+        <option name="ATTACH_ON_WAIT_FOR_DEBUGGER" value="false" />
+        <option name="DEBUG_SANDBOX_SDK" value="false" />
+      </Native>
+      <Profilers>
+        <option name="ADVANCED_PROFILING_ENABLED" value="false" />
+        <option name="STARTUP_PROFILING_ENABLED" value="false" />
+        <option name="STARTUP_CPU_PROFILING_ENABLED" value="false" />
+        <option name="STARTUP_CPU_PROFILING_CONFIGURATION_NAME" value="Java/Kotlin Method Sample (legacy)" />
+        <option name="STARTUP_NATIVE_MEMORY_PROFILING_ENABLED" value="false" />
+        <option name="NATIVE_MEMORY_SAMPLE_RATE_BYTES" value="2048" />
+      </Profilers>
+      <method v="2">
+        <option name="Android.Gradle.BeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="llama_mobile_vd-android-java-SDK" type="GradleRunConfiguration" factoryName="Gradle" nameIsGenerated="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list />
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <RunAsTest>false</RunAsTest>
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Android Instrumented Tests.LlamaMobileVDInstrumentedTests" />
+      <item itemvalue="Android Instrumented Tests.testWithLargeDimension()" />
+      <item itemvalue="Gradle.llama_mobile_vd-android-java-SDK" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Android Instrumented Tests.LlamaMobileVDInstrumentedTests" />
+        <item itemvalue="Android Instrumented Tests.testWithLargeDimension()" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="aacd3dbc-75c7-49ae-9dbf-a4a0e5733206" name="Changes" comment="" />
+      <created>1768979941808</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1768979941808</updated>
+    </task>
+    <servers />
+  </component>
+</project>

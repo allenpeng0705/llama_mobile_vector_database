@@ -1,641 +1,1371 @@
 #include <jni.h>
 #include <string>
 #include <vector>
-#include <android/log.h>
-#include "quiverdb_wrapper.h"
+#include <memory>
+#include <unordered_map>
+#include "llama_mobile_vd_wrapper.h"
 
-#define TAG "LlamaMobileVD"
-#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
-
-// Convert Java SearchResult array to C++
-static jobjectArray createSearchResultArray(JNIEnv *env, const std::vector<QuiverDBSearchResult> &results) {
-    jclass resultClass = env->FindClass("com/llamamobile/vd/LlamaMobileVD$SearchResult");
-    if (!resultClass) {
-        LOGE("Failed to find SearchResult class");
-        return nullptr;
+// JNI namespace
+namespace {
+    // Helper function to convert Java float array to C++ vector
+    std::vector<float> jfloatArrayToVector(JNIEnv* env, jfloatArray jarray) {
+        std::vector<float> result;
+        if (jarray == nullptr) {
+            return result;
+        }
+        
+        jsize length = env->GetArrayLength(jarray);
+        result.resize(length);
+        
+        jfloat* elements = env->GetFloatArrayElements(jarray, nullptr);
+        if (elements == nullptr) {
+            return result;
+        }
+        
+        for (jsize i = 0; i < length; i++) {
+            result[i] = elements[i];
+        }
+        
+        env->ReleaseFloatArrayElements(jarray, elements, JNI_ABORT);
+        return result;
     }
 
-    jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(JF)V");
-    if (!constructor) {
-        LOGE("Failed to find SearchResult constructor");
-        env->DeleteLocalRef(resultClass);
-        return nullptr;
-    }
-
-    jobjectArray resultArray = env->NewObjectArray(results.size(), resultClass, nullptr);
-    if (!resultArray) {
-        LOGE("Failed to create SearchResult array");
-        env->DeleteLocalRef(resultClass);
-        return nullptr;
-    }
-
-    for (size_t i = 0; i < results.size(); ++i) {
-        jobject result = env->NewObject(resultClass, constructor, results[i].id, results[i].distance);
-        if (!result) {
-            LOGE("Failed to create SearchResult object");
-            env->DeleteLocalRef(resultClass);
-            env->DeleteLocalRef(resultArray);
+    // Helper function to convert C++ vector to Java float array
+    jfloatArray vectorToJfloatArray(JNIEnv* env, const std::vector<float>& vec) {
+        jfloatArray jarray = env->NewFloatArray(vec.size());
+        if (jarray == nullptr) {
             return nullptr;
         }
-        env->SetObjectArrayElement(resultArray, i, result);
-        env->DeleteLocalRef(result);
+        
+        env->SetFloatArrayRegion(jarray, 0, vec.size(), vec.data());
+        return jarray;
     }
 
-    env->DeleteLocalRef(resultClass);
+    // Helper function to throw Java exception
+    void throwLlamaMobileVDException(JNIEnv* env, const char* message, int errorCode) {
+        jclass exceptionClass = env->FindClass("com/llamamobile/vd/LlamaMobileVDException");
+        if (exceptionClass != nullptr) {
+            env->ThrowNew(exceptionClass, message);
+        }
+    }
+
+    // Map to store native pointers
+    std::unordered_map<jlong, void*> nativePointers;
+    jlong nextPointerId = 1;
+
+    // Get native pointer from ID
+    void* getNativePointer(jlong id) {
+        auto it = nativePointers.find(id);
+        if (it != nativePointers.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    // Register native pointer and return ID
+    jlong registerNativePointer(void* ptr) {
+        jlong id = nextPointerId++;
+        nativePointers[id] = ptr;
+        return id;
+    }
+
+    // Remove native pointer
+    void removeNativePointer(jlong id) {
+        nativePointers.erase(id);
+    }
+}
+
+// ==========================
+// DistanceMetric enum mapping
+// ==========================
+static const std::unordered_map<int, LLAMA_MOBILE_VD_DistanceMetric> distanceMetricMap = {
+    {0, LLAMA_MOBILE_VD_DISTANCE_L2},
+    {1, LLAMA_MOBILE_VD_DISTANCE_COSINE},
+    {2, LLAMA_MOBILE_VD_DISTANCE_DOT}
+};
+
+// ==========================
+// VectorStore JNI methods
+// ==========================
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Create VectorStore
+JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreCreate(
+        JNIEnv* env,
+        jclass clazz,
+        jint dimension,
+        jint metric) {
+    
+    auto it = distanceMetricMap.find(metric);
+    if (it == distanceMetricMap.end()) {
+        throwLlamaMobileVDException(env, "Invalid distance metric", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    LLAMA_MOBILE_VD_VectorStore store = nullptr;
+    LLAMA_MOBILE_VD_Error error = LLAMA_MOBILE_VD_ERROR;
+    
+    // Call the C function to create the vector store
+    error = llama_mobile_vd_vector_store_create(static_cast<size_t>(dimension), it->second, &store);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to create vector store", error);
+        return 0;
+    }
+    
+    return registerNativePointer(store);
+}
+
+// Add vector to VectorStore
+JNIEXPORT void JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreAddVector(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId,
+        jlong id,
+        jfloatArray vector) {    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_VectorStore store = static_cast<LLAMA_MOBILE_VD_VectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return;
+    }    
+    // Convert Java float array to C++ vector
+    std::vector<float> vec = jfloatArrayToVector(env, vector);
+    if (vec.empty()) {
+        throwLlamaMobileVDException(env, "Invalid vector", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return;
+    }    
+    // Call the C function to add the vector
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_vector_store_add(store, static_cast<uint64_t>(id), vec.data());    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to add vector", error);
+    }
+}
+
+// Search vectors in VectorStore
+JNIEXPORT jobjectArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreSearch(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId,
+        jfloatArray queryVector,
+        jint k) {    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_VectorStore store = static_cast<LLAMA_MOBILE_VD_VectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return nullptr;
+    }    
+    // Convert Java float array to C++ vector
+    std::vector<float> queryVec = jfloatArrayToVector(env, queryVector);
+    if (queryVec.empty()) {
+        throwLlamaMobileVDException(env, "Invalid query vector", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return nullptr;
+    }    
+    // Allocate memory for search results
+    std::vector<LLAMA_MOBILE_VD_SearchResult> results(static_cast<size_t>(k));    
+    // Call the C function to search vectors
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_vector_store_search(store, queryVec.data(), static_cast<size_t>(k), results.data(), static_cast<size_t>(k));    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Search failed", error);
+        return nullptr;
+    }    
+    // Create Java SearchResult objects
+        jclass resultClass = env->FindClass("com/llamamobile/vd/SearchResult");
+        jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(JF)V");
+        
+        jobjectArray resultArray = env->NewObjectArray(static_cast<jsize>(k), resultClass, nullptr);
+        
+        for (size_t i = 0; i < static_cast<size_t>(k); i++) {
+            jobject resultObj = env->NewObject(resultClass, constructor, static_cast<jlong>(results[i].id), static_cast<jfloat>(results[i].distance));
+            env->SetObjectArrayElement(resultArray, static_cast<jsize>(i), resultObj);
+        }    
     return resultArray;
 }
 
-// VectorStore native methods
-
-extern "C" JNIEXPORT jlong JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeCreateVectorStore(JNIEnv *env, jclass clazz, jint dimension, jint metric) {
-    QuiverDBVectorStore store;
-    QuiverDBError result = quiverdb_vector_store_create(dimension, static_cast<QuiverDBDistanceMetric>(metric), &store);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to create vector store: %d", result);
-        return 0;
-    }
-    return reinterpret_cast<jlong>(store);
+// Get vector by ID from VectorStore
+JNIEXPORT jfloatArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreGetVector(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId,
+        jlong id) {    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_VectorStore store = static_cast<LLAMA_MOBILE_VD_VectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return nullptr;
+    }    
+    // Get vector dimension
+    size_t dimension;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_vector_store_dimension(store, &dimension);
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get vector dimension", error);
+        return nullptr;
+    }    
+    // Allocate memory for vector
+    float* vector = new float[dimension];
+    if (vector == nullptr) {
+        throwLlamaMobileVDException(env, "Memory allocation failed", LLAMA_MOBILE_VD_OUT_OF_MEMORY);
+        return nullptr;
+    }    
+    // Call the C function to get the vector
+    error = llama_mobile_vd_vector_store_get(store, static_cast<uint64_t>(id), vector, dimension);    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        delete[] vector;
+        throwLlamaMobileVDException(env, "Failed to get vector", error);
+        return nullptr;
+    }    
+    // Convert C++ vector to Java float array
+    jfloatArray result = env->NewFloatArray(static_cast<jsize>(dimension));
+    if (result == nullptr) {
+        delete[] vector;
+        throwLlamaMobileVDException(env, "Failed to create Java array", LLAMA_MOBILE_VD_OUT_OF_MEMORY);
+        return nullptr;
+    }    
+    env->SetFloatArrayRegion(result, 0, static_cast<jsize>(dimension), vector);    
+    // Free the native vector
+    delete[] vector;    
+    return result;
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeDestroyVectorStore(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBVectorStore store = reinterpret_cast<QuiverDBVectorStore>(handle);
-    quiverdb_vector_store_destroy(store);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeAddVector(JNIEnv *env, jclass clazz, jlong handle, jlong id, jfloatArray vector) {
-    QuiverDBVectorStore store = reinterpret_cast<QuiverDBVectorStore>(handle);
-    jfloat *vectorData = env->GetFloatArrayElements(vector, nullptr);
-    if (!vectorData) {
-        LOGE("Failed to get vector data");
-        return;
-    }
-
-    QuiverDBError result = quiverdb_vector_store_add(store, static_cast<uint64_t>(id), vectorData);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to add vector: %d", result);
-    }
-
-    env->ReleaseFloatArrayElements(vector, vectorData, JNI_ABORT);
-}
-
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeRemoveVector(JNIEnv *env, jclass clazz, jlong handle, jlong id) {
-    QuiverDBVectorStore store = reinterpret_cast<QuiverDBVectorStore>(handle);
+// Remove vector from VectorStore
+JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreRemoveVector(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId,
+        jlong id) {    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_VectorStore store = static_cast<LLAMA_MOBILE_VD_VectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }    
+    // Call the C function to remove the vector
     int removed = 0;
-    QuiverDBError result = quiverdb_vector_store_remove(store, static_cast<uint64_t>(id), &removed);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to remove vector: %d", result);
-        return false;
-    }
-    return static_cast<jboolean>(removed);
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_vector_store_remove(store, static_cast<uint64_t>(id), &removed);    
+    if (error != LLAMA_MOBILE_VD_OK && error != LLAMA_MOBILE_VD_ID_NOT_FOUND) {
+        return JNI_FALSE;
+    }    
+    return removed != 0 ? JNI_TRUE : JNI_FALSE;
 }
 
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeGetVector(JNIEnv *env, jclass clazz, jlong handle, jlong id, jfloatArray vector) {
-    QuiverDBVectorStore store = reinterpret_cast<QuiverDBVectorStore>(handle);
-    jfloat *vectorData = env->GetFloatArrayElements(vector, nullptr);
-    if (!vectorData) {
-        LOGE("Failed to get vector data");
-        return false;
+// Contains vector in VectorStore
+JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreContains(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId,
+        jlong id) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_VectorStore store = static_cast<LLAMA_MOBILE_VD_VectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
     }
-
-    size_t vectorSize = env->GetArrayLength(vector);
-    QuiverDBError result = quiverdb_vector_store_get(store, static_cast<uint64_t>(id), vectorData, vectorSize);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to get vector: %d", result);
-        env->ReleaseFloatArrayElements(vector, vectorData, JNI_ABORT);
-        return false;
+    
+    // Call the C function to check if vector exists
+    int exists = 0;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_vector_store_contains(store, static_cast<uint64_t>(id), &exists);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        return JNI_FALSE;
     }
-
-    env->ReleaseFloatArrayElements(vector, vectorData, 0);
-    return true;
+    
+    return exists ? JNI_TRUE : JNI_FALSE;
 }
 
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeUpdateVector(JNIEnv *env, jclass clazz, jlong handle, jlong id, jfloatArray vector) {
-    QuiverDBVectorStore store = reinterpret_cast<QuiverDBVectorStore>(handle);
-    jfloat *vectorData = env->GetFloatArrayElements(vector, nullptr);
-    if (!vectorData) {
-        LOGE("Failed to get vector data");
-        return false;
-    }
-
-    QuiverDBError result = quiverdb_vector_store_update(store, static_cast<uint64_t>(id), vectorData);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to update vector: %d", result);
-        env->ReleaseFloatArrayElements(vector, vectorData, JNI_ABORT);
-        return false;
-    }
-
-    env->ReleaseFloatArrayElements(vector, vectorData, JNI_ABORT);
-    return true;
-}
-
-extern "C" JNIEXPORT jobjectArray JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeSearchVectors(JNIEnv *env, jclass clazz, jlong handle, jfloatArray query, jint k) {
-    QuiverDBVectorStore store = reinterpret_cast<QuiverDBVectorStore>(handle);
-    jfloat *queryData = env->GetFloatArrayElements(query, nullptr);
-    if (!queryData) {
-        LOGE("Failed to get query data");
-        return nullptr;
-    }
-
-    std::vector<QuiverDBSearchResult> results(k);
-    QuiverDBError result = quiverdb_vector_store_search(store, queryData, k, results.data(), results.size());
-    env->ReleaseFloatArrayElements(query, queryData, JNI_ABORT);
-
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to search vectors: %d", result);
-        return nullptr;
-    }
-
-    return createSearchResultArray(env, results);
-}
-
-extern "C" JNIEXPORT jint JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreSize(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBVectorStore store = reinterpret_cast<QuiverDBVectorStore>(handle);
-    size_t size;
-    QuiverDBError result = quiverdb_vector_store_size(store, &size);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to get vector store size: %d", result);
+// Get VectorStore size
+JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreGetSize(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_VectorStore store = static_cast<LLAMA_MOBILE_VD_VectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
         return 0;
     }
-    return static_cast<jint>(size);
-}
-
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreContains(JNIEnv *env, jclass clazz, jlong handle, jlong id) {
-    QuiverDBVectorStore store = reinterpret_cast<QuiverDBVectorStore>(handle);
-    int contains = 0;
-    QuiverDBError result = quiverdb_vector_store_contains(store, static_cast<uint64_t>(id), &contains);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to check if ID exists: %d", result);
-        return false;
-    }
-    return static_cast<jboolean>(contains);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreReserve(JNIEnv *env, jclass clazz, jlong handle, jint capacity) {
-    QuiverDBVectorStore store = reinterpret_cast<QuiverDBVectorStore>(handle);
-    QuiverDBError result = quiverdb_vector_store_reserve(store, capacity);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to reserve capacity: %d", result);
-    }
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreClear(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBVectorStore store = reinterpret_cast<QuiverDBVectorStore>(handle);
-    QuiverDBError result = quiverdb_vector_store_clear(store);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to clear vector store: %d", result);
-    }
-}
-
-// HNSWIndex native methods
-
-extern "C" JNIEXPORT jlong JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeCreateHNSWIndex(JNIEnv *env, jclass clazz, jint dimension, jint metric, jint maxElements, jint M, jint efConstruction, jint seed) {
-    QuiverDBHNSWIndex index;
-    QuiverDBError result = quiverdb_hnsw_index_create_with_params(
-        dimension, static_cast<QuiverDBDistanceMetric>(metric), maxElements, M, efConstruction, seed, &index);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to create HNSW index: %d", result);
+    
+    // Call the C function to get the size
+    size_t size = 0;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_vector_store_size(store, &size);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get vector store size", error);
         return 0;
     }
-    return reinterpret_cast<jlong>(index);
+    
+    return static_cast<jlong>(size);
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeDestroyHNSWIndex(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBHNSWIndex index = reinterpret_cast<QuiverDBHNSWIndex>(handle);
-    quiverdb_hnsw_index_destroy(index);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeAddToHNSWIndex(JNIEnv *env, jclass clazz, jlong handle, jlong id, jfloatArray vector) {
-    QuiverDBHNSWIndex index = reinterpret_cast<QuiverDBHNSWIndex>(handle);
-    jfloat *vectorData = env->GetFloatArrayElements(vector, nullptr);
-    if (!vectorData) {
-        LOGE("Failed to get vector data");
-        return;
-    }
-
-    QuiverDBError result = quiverdb_hnsw_index_add(index, static_cast<uint64_t>(id), vectorData);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to add vector to HNSW index: %d", result);
-    }
-
-    env->ReleaseFloatArrayElements(vector, vectorData, JNI_ABORT);
-}
-
-extern "C" JNIEXPORT jobjectArray JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeSearchHNSWIndex(JNIEnv *env, jclass clazz, jlong handle, jfloatArray query, jint k) {
-    QuiverDBHNSWIndex index = reinterpret_cast<QuiverDBHNSWIndex>(handle);
-    jfloat *queryData = env->GetFloatArrayElements(query, nullptr);
-    if (!queryData) {
-        LOGE("Failed to get query data");
-        return nullptr;
-    }
-
-    std::vector<QuiverDBSearchResult> results(k);
-    QuiverDBError result = quiverdb_hnsw_index_search(index, queryData, k, results.data(), results.size());
-    env->ReleaseFloatArrayElements(query, queryData, JNI_ABORT);
-
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to search HNSW index: %d", result);
-        return nullptr;
-    }
-
-    return createSearchResultArray(env, results);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeSetEfSearch(JNIEnv *env, jclass clazz, jlong handle, jint ef) {
-    QuiverDBHNSWIndex index = reinterpret_cast<QuiverDBHNSWIndex>(handle);
-    QuiverDBError result = quiverdb_hnsw_index_set_ef_search(index, ef);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to set ef_search: %d", result);
-    }
-}
-
-extern "C" JNIEXPORT jint JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeGetEfSearch(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBHNSWIndex index = reinterpret_cast<QuiverDBHNSWIndex>(handle);
-    size_t efSearch;
-    QuiverDBError result = quiverdb_hnsw_index_get_ef_search(index, &efSearch);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to get ef_search: %d", result);
+// Get VectorStore dimension
+JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreGetDimension(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_VectorStore store = static_cast<LLAMA_MOBILE_VD_VectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
         return 0;
     }
-    return static_cast<jint>(efSearch);
-}
-
-extern "C" JNIEXPORT jint JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexSize(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBHNSWIndex index = reinterpret_cast<QuiverDBHNSWIndex>(handle);
-    size_t size;
-    QuiverDBError result = quiverdb_hnsw_index_size(index, &size);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to get HNSW index size: %d", result);
+    
+    // Call the C function to get the dimension
+    size_t dimension = 0;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_vector_store_dimension(store, &dimension);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get vector store dimension", error);
         return 0;
     }
-    return static_cast<jint>(size);
-}
-
-extern "C" JNIEXPORT jint JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexDimension(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBHNSWIndex index = reinterpret_cast<QuiverDBHNSWIndex>(handle);
-    size_t dimension;
-    QuiverDBError result = quiverdb_hnsw_index_dimension(index, &dimension);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to get HNSW index dimension: %d", result);
-        return 0;
-    }
+    
     return static_cast<jint>(dimension);
 }
 
-extern "C" JNIEXPORT jint JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexCapacity(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBHNSWIndex index = reinterpret_cast<QuiverDBHNSWIndex>(handle);
-    size_t capacity;
-    QuiverDBError result = quiverdb_hnsw_index_capacity(index, &capacity);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to get HNSW index capacity: %d", result);
+// Get VectorStore metric
+JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreGetMetric(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_VectorStore store = static_cast<LLAMA_MOBILE_VD_VectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
         return 0;
     }
-    return static_cast<jint>(capacity);
-}
-
-extern "C" JNIEXPORT jint JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexMetric(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBHNSWIndex index = reinterpret_cast<QuiverDBHNSWIndex>(handle);
-    // We need to get the metric from the index
-    // Since there's no direct API for this, we'll return 0 (L2) as default
-    // This is a limitation of the current wrapper API
-    return 0;
-}
-
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexContains(JNIEnv *env, jclass clazz, jlong handle, jlong id) {
-    QuiverDBHNSWIndex index = reinterpret_cast<QuiverDBHNSWIndex>(handle);
-    int contains = 0;
-    QuiverDBError result = quiverdb_hnsw_index_contains(index, static_cast<uint64_t>(id), &contains);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to check if ID exists in HNSW index: %d", result);
-        return false;
-    }
-    return static_cast<jboolean>(contains);
-}
-
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeGetVectorFromHNSWIndex(JNIEnv *env, jclass clazz, jlong handle, jlong id, jfloatArray vector) {
-    QuiverDBHNSWIndex index = reinterpret_cast<QuiverDBHNSWIndex>(handle);
-    jfloat *vectorData = env->GetFloatArrayElements(vector, nullptr);
-    if (!vectorData) {
-        LOGE("Failed to get vector data");
-        return false;
-    }
-
-    size_t vectorSize = env->GetArrayLength(vector);
-    QuiverDBError result = quiverdb_hnsw_index_get_vector(index, static_cast<uint64_t>(id), vectorData, vectorSize);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to get vector from HNSW index: %d", result);
-        env->ReleaseFloatArrayElements(vector, vectorData, JNI_ABORT);
-        return false;
-    }
-
-    env->ReleaseFloatArrayElements(vector, vectorData, 0);
-    return true;
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeSaveHNSWIndex(JNIEnv *env, jclass clazz, jlong handle, jstring filename) {
-    QuiverDBHNSWIndex index = reinterpret_cast<QuiverDBHNSWIndex>(handle);
-    const char *cFilename = env->GetStringUTFChars(filename, nullptr);
-    if (!cFilename) {
-        LOGE("Failed to get filename string");
-        return;
-    }
-
-    QuiverDBError result = quiverdb_hnsw_index_save(index, cFilename);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to save HNSW index: %d", result);
-    }
-
-    env->ReleaseStringUTFChars(filename, cFilename);
-}
-
-extern "C" JNIEXPORT jlong JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeLoadHNSWIndex(JNIEnv *env, jclass clazz, jstring filename) {
-    const char *cFilename = env->GetStringUTFChars(filename, nullptr);
-    if (!cFilename) {
-        LOGE("Failed to get filename string");
+    
+    // Call the C function to get the metric
+    LLAMA_MOBILE_VD_DistanceMetric metric;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_vector_store_metric(store, &metric);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get vector store metric", error);
         return 0;
     }
-
-    QuiverDBHNSWIndex index;
-    QuiverDBError result = quiverdb_hnsw_index_load(cFilename, &index);
-    env->ReleaseStringUTFChars(filename, cFilename);
-
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to load HNSW index: %d", result);
-        return 0;
-    }
-    return reinterpret_cast<jlong>(index);
-}
-
-extern "C" JNIEXPORT jstring JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_nativeGetVersion(JNIEnv *env, jclass clazz) {
-    const char *version = quiverdb_version();
-    return env->NewStringUTF(version);
-}
-
-// MMapVectorStoreBuilder native methods
-
-extern "C" JNIEXPORT jlong JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStoreBuilder_createBuilder(JNIEnv *env, jclass clazz, jint dimension, jint metric) {
-    QuiverDBMMapVectorStoreBuilder builder;
-    QuiverDBError result = quiverdb_mmap_vector_store_builder_create(dimension, static_cast<QuiverDBDistanceMetric>(metric), &builder);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to create MMap vector store builder: %d", result);
-        return 0;
-    }
-    return reinterpret_cast<jlong>(builder);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStoreBuilder_destroyBuilder(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBMMapVectorStoreBuilder builder = reinterpret_cast<QuiverDBMMapVectorStoreBuilder>(handle);
-    quiverdb_mmap_vector_store_builder_destroy(builder);
-}
-
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStoreBuilder_addVector(JNIEnv *env, jclass clazz, jlong handle, jfloatArray vector, jint vectorSize, jint id) {
-    QuiverDBMMapVectorStoreBuilder builder = reinterpret_cast<QuiverDBMMapVectorStoreBuilder>(handle);
-    jfloat *vectorData = env->GetFloatArrayElements(vector, nullptr);
-    if (!vectorData) {
-        LOGE("Failed to get vector data");
-        return false;
-    }
-
-    QuiverDBError result = quiverdb_mmap_vector_store_builder_add(builder, static_cast<uint64_t>(id), vectorData);
-    env->ReleaseFloatArrayElements(vector, vectorData, JNI_ABORT);
-
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to add vector to MMap vector store builder: %d", result);
-        return false;
-    }
-    return true;
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStoreBuilder_reserve(JNIEnv *env, jclass clazz, jlong handle, jint capacity) {
-    QuiverDBMMapVectorStoreBuilder builder = reinterpret_cast<QuiverDBMMapVectorStoreBuilder>(handle);
-    QuiverDBError result = quiverdb_mmap_vector_store_builder_reserve(builder, capacity);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to reserve capacity in MMap vector store builder: %d", result);
-    }
-}
-
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStoreBuilder_save(JNIEnv *env, jclass clazz, jlong handle, jstring filename) {
-    QuiverDBMMapVectorStoreBuilder builder = reinterpret_cast<QuiverDBMMapVectorStoreBuilder>(handle);
-    const char *cFilename = env->GetStringUTFChars(filename, nullptr);
-    if (!cFilename) {
-        LOGE("Failed to get filename string");
-        return false;
-    }
-
-    QuiverDBError result = quiverdb_mmap_vector_store_builder_save(builder, cFilename);
-    env->ReleaseStringUTFChars(filename, cFilename);
-
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to save MMap vector store: %d", result);
-        return false;
-    }
-    return true;
-}
-
-extern "C" JNIEXPORT jint JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStoreBuilder_getCount(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBMMapVectorStoreBuilder builder = reinterpret_cast<QuiverDBMMapVectorStoreBuilder>(handle);
-    size_t size;
-    QuiverDBError result = quiverdb_mmap_vector_store_builder_size(builder, &size);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to get MMap vector store builder size: %d", result);
-        return 0;
-    }
-    return static_cast<jint>(size);
-}
-
-extern "C" JNIEXPORT jint JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStoreBuilder_dimension(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBMMapVectorStoreBuilder builder = reinterpret_cast<QuiverDBMMapVectorStoreBuilder>(handle);
-    size_t dimension;
-    QuiverDBError result = quiverdb_mmap_vector_store_builder_dimension(builder, &dimension);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to get MMap vector store builder dimension: %d", result);
-        return 0;
-    }
-    return static_cast<jint>(dimension);
-}
-
-// MMapVectorStore native methods
-
-extern "C" JNIEXPORT jlong JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_open(JNIEnv *env, jclass clazz, jstring filename) {
-    const char *cFilename = env->GetStringUTFChars(filename, nullptr);
-    if (!cFilename) {
-        LOGE("Failed to get filename string");
-        return 0;
-    }
-
-    QuiverDBMMapVectorStore store;
-    QuiverDBError result = quiverdb_mmap_vector_store_open(cFilename, &store);
-    env->ReleaseStringUTFChars(filename, cFilename);
-
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to open MMap vector store: %d", result);
-        return 0;
-    }
-    return reinterpret_cast<jlong>(store);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_close(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBMMapVectorStore store = reinterpret_cast<QuiverDBMMapVectorStore>(handle);
-    quiverdb_mmap_vector_store_close(store);
-}
-
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_get(JNIEnv *env, jclass clazz, jlong handle, jint id, jfloatArray vector) {
-    QuiverDBMMapVectorStore store = reinterpret_cast<QuiverDBMMapVectorStore>(handle);
-    jfloat *vectorData = env->GetFloatArrayElements(vector, nullptr);
-    if (!vectorData) {
-        LOGE("Failed to get vector data");
-        return false;
-    }
-
-    size_t vectorSize = env->GetArrayLength(vector);
-    QuiverDBError result = quiverdb_mmap_vector_store_get(store, static_cast<uint64_t>(id), vectorData, vectorSize);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to get vector from MMap vector store: %d", result);
-        env->ReleaseFloatArrayElements(vector, vectorData, JNI_ABORT);
-        return false;
-    }
-
-    env->ReleaseFloatArrayElements(vector, vectorData, 0);
-    return true;
-}
-
-extern "C" JNIEXPORT jobjectArray JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_search(JNIEnv *env, jclass clazz, jlong handle, jfloatArray query, jint vectorSize, jint k, jintArray resultCount) {
-    QuiverDBMMapVectorStore store = reinterpret_cast<QuiverDBMMapVectorStore>(handle);
-    jfloat *queryData = env->GetFloatArrayElements(query, nullptr);
-    if (!queryData) {
-        LOGE("Failed to get query data");
-        return nullptr;
-    }
-
-    std::vector<QuiverDBSearchResult> results(k);
-    QuiverDBError result = quiverdb_mmap_vector_store_search(store, queryData, k, results.data(), results.size());
-    env->ReleaseFloatArrayElements(query, queryData, JNI_ABORT);
-
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to search vectors in MMap vector store: %d", result);
-        return nullptr;
-    }
-
-    // Update result count
-    jint *countPtr = env->GetIntArrayElements(resultCount, nullptr);
-    if (countPtr) {
-        countPtr[0] = static_cast<jint>(results.size());
-        env->ReleaseIntArrayElements(resultCount, countPtr, 0);
-    }
-
-    return createSearchResultArray(env, results);
-}
-
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_contains(JNIEnv *env, jclass clazz, jlong handle, jint id, jintArray contains) {
-    QuiverDBMMapVectorStore store = reinterpret_cast<QuiverDBMMapVectorStore>(handle);
-    int containsResult = 0;
-    QuiverDBError result = quiverdb_mmap_vector_store_contains(store, static_cast<uint64_t>(id), &containsResult);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to check if ID exists in MMap vector store: %d", result);
-        return false;
-    }
-
-    // Update contains array
-    jint *containsPtr = env->GetIntArrayElements(contains, nullptr);
-    if (containsPtr) {
-        containsPtr[0] = containsResult;
-        env->ReleaseIntArrayElements(contains, containsPtr, 0);
-    }
-
-    return true;
-}
-
-extern "C" JNIEXPORT jint JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_getCount(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBMMapVectorStore store = reinterpret_cast<QuiverDBMMapVectorStore>(handle);
-    size_t size;
-    QuiverDBError result = quiverdb_mmap_vector_store_size(store, &size);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to get MMap vector store size: %d", result);
-        return 0;
-    }
-    return static_cast<jint>(size);
-}
-
-extern "C" JNIEXPORT jint JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_dimension(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBMMapVectorStore store = reinterpret_cast<QuiverDBMMapVectorStore>(handle);
-    size_t dimension;
-    QuiverDBError result = quiverdb_mmap_vector_store_dimension(store, &dimension);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to get MMap vector store dimension: %d", result);
-        return 0;
-    }
-    return static_cast<jint>(dimension);
-}
-
-extern "C" JNIEXPORT jint JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_metric(JNIEnv *env, jclass clazz, jlong handle) {
-    QuiverDBMMapVectorStore store = reinterpret_cast<QuiverDBMMapVectorStore>(handle);
-    QuiverDBDistanceMetric metric;
-    QuiverDBError result = quiverdb_mmap_vector_store_metric(store, &metric);
-    if (result != QUIVERDB_OK) {
-        LOGE("Failed to get MMap vector store metric: %d", result);
-        return 0;
-    }
+    
     return static_cast<jint>(metric);
 }
 
-// Reuse existing search result helper methods
-extern "C" JNIEXPORT jlong JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_freeSearchResults(JNIEnv *env, jclass clazz, jlong results) {
-    // This is a no-op since we don't use the same result allocation pattern as VectorStore and HNSWIndex
-    return 0;
+// Update vector in VectorStore
+JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreUpdateVector(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId,
+        jlong id,
+        jfloatArray vector) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_VectorStore store = static_cast<LLAMA_MOBILE_VD_VectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }
+    
+    // Convert Java float array to C++ vector
+    std::vector<float> vec = jfloatArrayToVector(env, vector);
+    if (vec.empty()) {
+        throwLlamaMobileVDException(env, "Invalid vector", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }
+    
+    // Call the C function to update the vector
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_vector_store_update(store, static_cast<uint64_t>(id), vec.data());
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        return JNI_FALSE;
+    }
+    
+    return JNI_TRUE;
 }
 
-extern "C" JNIEXPORT jint JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_getResultId(JNIEnv *env, jclass clazz, jlong results, jint index) {
-    // This is a placeholder - in reality, the search method returns a direct array of results
-    LOGE("getResultId should not be called directly for MMapVectorStore");
-    return 0;
+// Reserve capacity in VectorStore
+JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreReserve(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId,
+        jlong capacity) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_VectorStore store = static_cast<LLAMA_MOBILE_VD_VectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }
+    
+    // Call the C function to reserve capacity
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_vector_store_reserve(store, static_cast<size_t>(capacity));
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        return JNI_FALSE;
+    }
+    
+    return JNI_TRUE;
 }
 
-extern "C" JNIEXPORT jfloat JNICALL
-Java_com_llamamobile_vd_LlamaMobileVD_MMapVectorStore_getResultDistance(JNIEnv *env, jclass clazz, jlong results, jint index) {
-    // This is a placeholder - in reality, the search method returns a direct array of results
-    LOGE("getResultDistance should not be called directly for MMapVectorStore");
-    return 0.0f;
+// Clear VectorStore
+JNIEXPORT void JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreClear(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_VectorStore store = static_cast<LLAMA_MOBILE_VD_VectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return;
+    }
+    
+    // Call the C function to clear the vector store
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_vector_store_clear(store);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to clear vector store", error);
+    }
 }
+
+// Destroy VectorStore
+JNIEXPORT void JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreDestroy(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_VectorStore store = static_cast<LLAMA_MOBILE_VD_VectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        return;
+    }
+    
+    // Call the C function to destroy the vector store
+    // Destroy is void-returning, no error to check
+    llama_mobile_vd_vector_store_destroy(store);
+    
+    // Remove the native pointer from the map
+    removeNativePointer(storeId);
+}
+
+// ==========================
+// HNSWIndex JNI methods
+// ==========================
+
+// Create HNSWIndex
+JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexCreate(
+        JNIEnv* env,
+        jclass clazz,
+        jint dimension,
+        jint metric,
+        jlong maxElements) {
+    
+    auto it = distanceMetricMap.find(metric);
+    if (it == distanceMetricMap.end()) {
+        throwLlamaMobileVDException(env, "Invalid distance metric", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    LLAMA_MOBILE_VD_HNSWIndex index = nullptr;
+    LLAMA_MOBILE_VD_Error error = LLAMA_MOBILE_VD_ERROR;
+    
+    // Call the C function to create the HNSW index
+    error = llama_mobile_vd_hnsw_index_create(static_cast<size_t>(dimension), it->second, static_cast<size_t>(maxElements), &index);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to create HNSW index", error);
+        return 0;
+    }
+    
+    return registerNativePointer(index);
+}
+
+// Create HNSWIndex with parameters
+JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexCreateWithParams(
+        JNIEnv* env,
+        jclass clazz,
+        jint dimension,
+        jint metric,
+        jlong maxElements,
+        jint M,
+        jint efConstruction,
+        jint seed) {
+    
+    auto it = distanceMetricMap.find(metric);
+    if (it == distanceMetricMap.end()) {
+        throwLlamaMobileVDException(env, "Invalid distance metric", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    LLAMA_MOBILE_VD_HNSWIndex index = nullptr;
+    LLAMA_MOBILE_VD_Error error = LLAMA_MOBILE_VD_ERROR;
+    
+    // Call the C function to create the HNSW index with parameters
+    error = llama_mobile_vd_hnsw_index_create_with_params(
+        static_cast<size_t>(dimension),
+        it->second,
+        static_cast<size_t>(maxElements),
+        static_cast<size_t>(M),
+        static_cast<size_t>(efConstruction),
+        static_cast<uint32_t>(seed),
+        &index);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to create HNSW index", error);
+        return 0;
+    }
+    
+    return registerNativePointer(index);
+}
+
+// Add vector to HNSWIndex
+JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexAddVector(
+        JNIEnv* env,
+        jclass clazz,
+        jlong indexId,
+        jlong id,
+        jfloatArray vector) {
+    
+    // Get the native HNSW index pointer
+    LLAMA_MOBILE_VD_HNSWIndex index = static_cast<LLAMA_MOBILE_VD_HNSWIndex>(getNativePointer(indexId));
+    if (index == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid HNSW index", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }
+    
+    // Convert Java float array to C++ vector
+    std::vector<float> vec = jfloatArrayToVector(env, vector);
+    if (vec.empty()) {
+        throwLlamaMobileVDException(env, "Invalid vector", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }
+    
+    // Call the C function to add the vector
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_hnsw_index_add(index, static_cast<uint64_t>(id), vec.data());
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        return JNI_FALSE;
+    }
+    
+    return JNI_TRUE;
+}
+
+// Search vectors in HNSWIndex
+JNIEXPORT jobjectArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexSearch(
+        JNIEnv* env,
+        jclass clazz,
+        jlong indexId,
+        jfloatArray queryVector,
+        jint k) {
+    
+    // Get the native HNSW index pointer
+    LLAMA_MOBILE_VD_HNSWIndex index = static_cast<LLAMA_MOBILE_VD_HNSWIndex>(getNativePointer(indexId));
+    if (index == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid HNSW index", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return nullptr;
+    }
+    
+    // Convert Java float array to C++ vector
+    std::vector<float> queryVec = jfloatArrayToVector(env, queryVector);
+    if (queryVec.empty()) {
+        throwLlamaMobileVDException(env, "Invalid query vector", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return nullptr;
+    }
+    
+    // Allocate memory for search results
+    std::vector<LLAMA_MOBILE_VD_SearchResult> results(static_cast<size_t>(k));
+    
+    // Call the C function to search vectors
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_hnsw_index_search(index, queryVec.data(), static_cast<size_t>(k), results.data(), static_cast<size_t>(k));
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Search failed", error);
+        return nullptr;
+    }
+    
+    // Create Java SearchResult objects
+    jclass resultClass = env->FindClass("com/llamamobile/vd/SearchResult");
+    jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(JF)V");
+    
+    jobjectArray resultArray = env->NewObjectArray(static_cast<jsize>(k), resultClass, nullptr);
+    
+    for (size_t i = 0; i < static_cast<size_t>(k); i++) {
+        jobject resultObj = env->NewObject(resultClass, constructor, static_cast<jlong>(results[i].id), static_cast<jfloat>(results[i].distance));
+        env->SetObjectArrayElement(resultArray, static_cast<jsize>(i), resultObj);
+    }
+    
+    return resultArray;
+}
+
+// Set efSearch for HNSWIndex
+JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexSetEfSearch(
+        JNIEnv* env,
+        jclass clazz,
+        jlong indexId,
+        jint efSearch) {
+    
+    // Get the native HNSW index pointer
+    LLAMA_MOBILE_VD_HNSWIndex index = static_cast<LLAMA_MOBILE_VD_HNSWIndex>(getNativePointer(indexId));
+    if (index == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid HNSW index", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }
+    
+    // Call the C function to set efSearch
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_hnsw_index_set_ef_search(index, static_cast<size_t>(efSearch));
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        return JNI_FALSE;
+    }
+    
+    return JNI_TRUE;
+}
+
+// Get efSearch from HNSWIndex
+JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexGetEfSearch(
+        JNIEnv* env,
+        jclass clazz,
+        jlong indexId) {
+    
+    // Get the native HNSW index pointer
+    LLAMA_MOBILE_VD_HNSWIndex index = static_cast<LLAMA_MOBILE_VD_HNSWIndex>(getNativePointer(indexId));
+    if (index == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid HNSW index", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    // Call the C function to get efSearch
+    size_t efSearch = 0;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_hnsw_index_get_ef_search(index, &efSearch);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get efSearch", error);
+        return 0;
+    }
+    
+    return static_cast<jint>(efSearch);
+}
+
+// Get HNSWIndex size
+JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexGetSize(
+        JNIEnv* env,
+        jclass clazz,
+        jlong indexId) {
+    
+    // Get the native HNSW index pointer
+    LLAMA_MOBILE_VD_HNSWIndex index = static_cast<LLAMA_MOBILE_VD_HNSWIndex>(getNativePointer(indexId));
+    if (index == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid HNSW index", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    // Call the C function to get the size
+    size_t size = 0;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_hnsw_index_size(index, &size);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get HNSW index size", error);
+        return 0;
+    }
+    
+    return static_cast<jlong>(size);
+}
+
+// Get HNSWIndex dimension
+JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexGetDimension(
+        JNIEnv* env,
+        jclass clazz,
+        jlong indexId) {
+    
+    // Get the native HNSW index pointer
+    LLAMA_MOBILE_VD_HNSWIndex index = static_cast<LLAMA_MOBILE_VD_HNSWIndex>(getNativePointer(indexId));
+    if (index == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid HNSW index", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    // Call the C function to get the dimension
+    size_t dimension = 0;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_hnsw_index_dimension(index, &dimension);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get HNSW index dimension", error);
+        return 0;
+    }
+    
+    return static_cast<jint>(dimension);
+}
+
+// Get HNSWIndex capacity
+JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexGetCapacity(
+        JNIEnv* env,
+        jclass clazz,
+        jlong indexId) {
+    
+    // Get the native HNSW index pointer
+    LLAMA_MOBILE_VD_HNSWIndex index = static_cast<LLAMA_MOBILE_VD_HNSWIndex>(getNativePointer(indexId));
+    if (index == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid HNSW index", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    // Call the C function to get the capacity
+    size_t capacity = 0;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_hnsw_index_capacity(index, &capacity);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get HNSW index capacity", error);
+        return 0;
+    }
+    
+    return static_cast<jlong>(capacity);
+}
+
+// Check if HNSWIndex contains vector
+JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexContains(
+        JNIEnv* env,
+        jclass clazz,
+        jlong indexId,
+        jlong id) {
+    
+    // Get the native HNSW index pointer
+    LLAMA_MOBILE_VD_HNSWIndex index = static_cast<LLAMA_MOBILE_VD_HNSWIndex>(getNativePointer(indexId));
+    if (index == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid HNSW index", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }
+    
+    // Call the C function to check if vector exists
+    int exists = 0;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_hnsw_index_contains(index, static_cast<uint64_t>(id), &exists);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        return JNI_FALSE;
+    }
+    
+    return exists != 0 ? JNI_TRUE : JNI_FALSE;
+}
+
+// Get vector by ID from HNSWIndex
+JNIEXPORT jfloatArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexGetVector(
+        JNIEnv* env,
+        jclass clazz,
+        jlong indexId,
+        jlong id) {
+    
+    // Get the native HNSW index pointer
+    LLAMA_MOBILE_VD_HNSWIndex index = static_cast<LLAMA_MOBILE_VD_HNSWIndex>(getNativePointer(indexId));
+    if (index == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid HNSW index", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return nullptr;
+    }
+    
+    // Get vector dimension
+    size_t dimension = 0;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_hnsw_index_dimension(index, &dimension);
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get vector dimension", error);
+        return nullptr;
+    }
+    
+    // Allocate memory for vector
+    float* vector = new float[dimension];
+    if (vector == nullptr) {
+        throwLlamaMobileVDException(env, "Memory allocation failed", LLAMA_MOBILE_VD_OUT_OF_MEMORY);
+        return nullptr;
+    }
+    
+    // Call the C function to get the vector
+    error = llama_mobile_vd_hnsw_index_get_vector(index, static_cast<uint64_t>(id), vector, dimension);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        delete[] vector;
+        throwLlamaMobileVDException(env, "Failed to get vector", error);
+        return nullptr;
+    }
+    
+    // Convert C++ vector to Java float array
+    jfloatArray result = env->NewFloatArray(static_cast<jsize>(dimension));
+    if (result == nullptr) {
+        delete[] vector;
+        throwLlamaMobileVDException(env, "Failed to create Java array", LLAMA_MOBILE_VD_OUT_OF_MEMORY);
+        return nullptr;
+    }
+    
+    env->SetFloatArrayRegion(result, 0, static_cast<jsize>(dimension), vector);
+    
+    // Free the native vector
+    delete[] vector;
+    
+    return result;
+}
+
+// Save HNSWIndex to file
+JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexSave(
+        JNIEnv* env,
+        jclass clazz,
+        jlong indexId,
+        jstring filename) {
+    
+    // Get the native HNSW index pointer
+    LLAMA_MOBILE_VD_HNSWIndex index = static_cast<LLAMA_MOBILE_VD_HNSWIndex>(getNativePointer(indexId));
+    if (index == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid HNSW index", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }
+    
+    // Convert Java string to C++ string
+    const char* filenameStr = env->GetStringUTFChars(filename, nullptr);
+    if (filenameStr == nullptr) {
+        return JNI_FALSE;
+    }
+    
+    // Call the C function to save the HNSW index
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_hnsw_index_save(index, filenameStr);
+    
+    env->ReleaseStringUTFChars(filename, filenameStr);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        return JNI_FALSE;
+    }
+    
+    return JNI_TRUE;
+}
+
+// Load HNSWIndex from file
+JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexLoad(
+        JNIEnv* env,
+        jclass clazz,
+        jstring filename) {
+    
+    // Convert Java string to C++ string
+    const char* filenameStr = env->GetStringUTFChars(filename, nullptr);
+    if (filenameStr == nullptr) {
+        return 0;
+    }
+    
+    LLAMA_MOBILE_VD_HNSWIndex index = nullptr;
+    LLAMA_MOBILE_VD_Error error = LLAMA_MOBILE_VD_ERROR;
+    
+    // Call the C function to load the HNSW index
+    error = llama_mobile_vd_hnsw_index_load(filenameStr, &index);
+    
+    env->ReleaseStringUTFChars(filename, filenameStr);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to load HNSW index", error);
+        return 0;
+    }
+    
+    return registerNativePointer(index);
+}
+
+// Destroy HNSWIndex
+JNIEXPORT void JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexDestroy(
+        JNIEnv* env,
+        jclass clazz,
+        jlong indexId) {
+    
+    // Get the native HNSW index pointer
+    LLAMA_MOBILE_VD_HNSWIndex index = static_cast<LLAMA_MOBILE_VD_HNSWIndex>(getNativePointer(indexId));
+    if (index == nullptr) {
+        return;
+    }
+    
+    // Call the C function to destroy the HNSW index
+    llama_mobile_vd_hnsw_index_destroy(index);
+    
+    // Remove the native pointer from the map
+    removeNativePointer(indexId);
+}
+
+// ==========================
+// MMapVectorStoreBuilder JNI methods
+// ==========================
+
+// Create MMapVectorStoreBuilder
+JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreBuilderCreate(
+        JNIEnv* env,
+        jclass clazz,
+        jint dimension,
+        jint metric) {
+    
+    auto it = distanceMetricMap.find(metric);
+    if (it == distanceMetricMap.end()) {
+        throwLlamaMobileVDException(env, "Invalid distance metric", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    LLAMA_MOBILE_VD_MMapVectorStoreBuilder builder = nullptr;
+    LLAMA_MOBILE_VD_Error error = LLAMA_MOBILE_VD_ERROR;
+    
+    // Call the C function to create the MMap vector store builder
+    error = llama_mobile_vd_mmap_vector_store_builder_create(static_cast<size_t>(dimension), it->second, &builder);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to create MMap vector store builder", error);
+        return 0;
+    }
+    
+    return registerNativePointer(builder);
+}
+
+// Add vector to MMapVectorStoreBuilder
+JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreBuilderAddVector(
+        JNIEnv* env,
+        jclass clazz,
+        jlong builderId,
+        jlong id,
+        jfloatArray vector) {
+    
+    // Get the native MMap vector store builder pointer
+    LLAMA_MOBILE_VD_MMapVectorStoreBuilder builder = static_cast<LLAMA_MOBILE_VD_MMapVectorStoreBuilder>(getNativePointer(builderId));
+    if (builder == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid MMap vector store builder", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }
+    
+    // Convert Java float array to C++ vector
+    std::vector<float> vec = jfloatArrayToVector(env, vector);
+    if (vec.empty()) {
+        throwLlamaMobileVDException(env, "Invalid vector", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }
+    
+    // Call the C function to add the vector
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_builder_add(builder, static_cast<uint64_t>(id), vec.data());
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        return JNI_FALSE;
+    }
+    
+    return JNI_TRUE;
+}
+
+// Reserve capacity in MMapVectorStoreBuilder
+JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreBuilderReserve(
+        JNIEnv* env,
+        jclass clazz,
+        jlong builderId,
+        jlong capacity) {
+    
+    // Get the native MMap vector store builder pointer
+    LLAMA_MOBILE_VD_MMapVectorStoreBuilder builder = static_cast<LLAMA_MOBILE_VD_MMapVectorStoreBuilder>(getNativePointer(builderId));
+    if (builder == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid MMap vector store builder", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }
+    
+    // Call the C function to reserve capacity
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_builder_reserve(builder, static_cast<size_t>(capacity));
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        return JNI_FALSE;
+    }
+    
+    return JNI_TRUE;
+}
+
+// Save MMapVectorStoreBuilder to file
+JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreBuilderSave(
+        JNIEnv* env,
+        jclass clazz,
+        jlong builderId,
+        jstring filename) {
+    
+    // Get the native MMap vector store builder pointer
+    LLAMA_MOBILE_VD_MMapVectorStoreBuilder builder = static_cast<LLAMA_MOBILE_VD_MMapVectorStoreBuilder>(getNativePointer(builderId));
+    if (builder == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid MMap vector store builder", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }
+    
+    // Convert Java string to C++ string
+    const char* filenameStr = env->GetStringUTFChars(filename, nullptr);
+    if (filenameStr == nullptr) {
+        return JNI_FALSE;
+    }
+    
+    // Call the C function to save the MMap vector store
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_builder_save(builder, filenameStr);
+    
+    env->ReleaseStringUTFChars(filename, filenameStr);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        return JNI_FALSE;
+    }
+    
+    return JNI_TRUE;
+}
+
+// Get MMapVectorStoreBuilder size
+JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreBuilderGetSize(
+        JNIEnv* env,
+        jclass clazz,
+        jlong builderId) {
+    
+    // Get the native MMap vector store builder pointer
+    LLAMA_MOBILE_VD_MMapVectorStoreBuilder builder = static_cast<LLAMA_MOBILE_VD_MMapVectorStoreBuilder>(getNativePointer(builderId));
+    if (builder == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid MMap vector store builder", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    // Call the C function to get the size
+    size_t size = 0;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_builder_size(builder, &size);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get MMap vector store builder size", error);
+        return 0;
+    }
+    
+    return static_cast<jlong>(size);
+}
+
+// Get MMapVectorStoreBuilder dimension
+JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreBuilderGetDimension(
+        JNIEnv* env,
+        jclass clazz,
+        jlong builderId) {
+    
+    // Get the native MMap vector store builder pointer
+    LLAMA_MOBILE_VD_MMapVectorStoreBuilder builder = static_cast<LLAMA_MOBILE_VD_MMapVectorStoreBuilder>(getNativePointer(builderId));
+    if (builder == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid MMap vector store builder", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    // Call the C function to get the dimension
+    size_t dimension = 0;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_builder_dimension(builder, &dimension);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get MMap vector store builder dimension", error);
+        return 0;
+    }
+    
+    return static_cast<jint>(dimension);
+}
+
+// Destroy MMapVectorStoreBuilder
+JNIEXPORT void JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreBuilderDestroy(
+        JNIEnv* env,
+        jclass clazz,
+        jlong builderId) {
+    
+    // Get the native MMap vector store builder pointer
+    LLAMA_MOBILE_VD_MMapVectorStoreBuilder builder = static_cast<LLAMA_MOBILE_VD_MMapVectorStoreBuilder>(getNativePointer(builderId));
+    if (builder == nullptr) {
+        return;
+    }
+    
+    // Call the C function to destroy the MMap vector store builder
+    llama_mobile_vd_mmap_vector_store_builder_destroy(builder);
+    
+    // Remove the native pointer from the map
+    removeNativePointer(builderId);
+}
+
+// ==========================
+// MMapVectorStore JNI methods
+// ==========================
+
+// Open MMapVectorStore
+JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreOpen(
+        JNIEnv* env,
+        jclass clazz,
+        jstring filePath) {
+    
+    // Convert Java string to C++ string
+    const char* filePathStr = env->GetStringUTFChars(filePath, nullptr);
+    if (filePathStr == nullptr) {
+        return 0;
+    }
+    
+    LLAMA_MOBILE_VD_MMapVectorStore store = nullptr;
+    LLAMA_MOBILE_VD_Error error = LLAMA_MOBILE_VD_ERROR;
+    
+    // Call the C function to open the MMap vector store
+    error = llama_mobile_vd_mmap_vector_store_open(
+        filePathStr,
+        &store);
+    
+    env->ReleaseStringUTFChars(filePath, filePathStr);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to open MMap vector store", error);
+        return 0;
+    }
+    
+    return registerNativePointer(store);
+}
+
+// Search vectors in MMapVectorStore
+JNIEXPORT jobjectArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreSearch(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId,
+        jfloatArray queryVector,
+        jint k) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return nullptr;
+    }
+    
+    // Convert Java float array to C++ vector
+    std::vector<float> queryVec = jfloatArrayToVector(env, queryVector);
+    if (queryVec.empty()) {
+        throwLlamaMobileVDException(env, "Invalid query vector", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return nullptr;
+    }
+    
+    // Allocate memory for search results
+    std::vector<LLAMA_MOBILE_VD_SearchResult> results(static_cast<size_t>(k));
+    
+    // Call the C function to search vectors
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_search(store, queryVec.data(), static_cast<size_t>(k), results.data(), static_cast<size_t>(k));
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Search failed", error);
+        return nullptr;
+    }
+    
+    // Create Java SearchResult objects
+    jclass resultClass = env->FindClass("com/llamamobile/vd/SearchResult");
+    jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(JF)V");
+    
+    jobjectArray resultArray = env->NewObjectArray(static_cast<jsize>(k), resultClass, nullptr);
+    
+    for (size_t i = 0; i < static_cast<size_t>(k); i++) {
+        jobject resultObj = env->NewObject(resultClass, constructor, static_cast<jlong>(results[i].id), static_cast<jfloat>(results[i].distance));
+        env->SetObjectArrayElement(resultArray, static_cast<jsize>(i), resultObj);
+    }
+    
+    return resultArray;
+}
+
+// Get vector by ID from MMapVectorStore
+JNIEXPORT jfloatArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreGetVector(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId,
+        jlong id) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return nullptr;
+    }
+    
+    // Get vector dimension
+    size_t dimension;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_dimension(store, &dimension);
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get vector dimension", error);
+        return nullptr;
+    }
+    
+    // Allocate memory for vector
+    float* vector = new float[dimension];
+    if (vector == nullptr) {
+        throwLlamaMobileVDException(env, "Memory allocation failed", LLAMA_MOBILE_VD_OUT_OF_MEMORY);
+        return nullptr;
+    }
+    
+    // Call the C function to get the vector
+    error = llama_mobile_vd_mmap_vector_store_get(store, static_cast<uint64_t>(id), vector, dimension);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        delete[] vector;
+        throwLlamaMobileVDException(env, "Failed to get vector", error);
+        return nullptr;
+    }
+    
+    // Convert C++ vector to Java float array
+    jfloatArray result = env->NewFloatArray(static_cast<jsize>(dimension));
+    if (result == nullptr) {
+        delete[] vector;
+        throwLlamaMobileVDException(env, "Failed to create Java array", LLAMA_MOBILE_VD_OUT_OF_MEMORY);
+        return nullptr;
+    }
+    
+    env->SetFloatArrayRegion(result, 0, static_cast<jsize>(dimension), vector);
+    
+    // Free the native vector
+    delete[] vector;
+    
+    return result;
+}
+
+// Contains vector in MMapVectorStore
+JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreContains(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId,
+        jlong id) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }
+    
+    // Call the C function to check if vector exists
+    int exists;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_contains(store, static_cast<uint64_t>(id), &exists);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to check vector existence", error);
+        return JNI_FALSE;
+    }
+    
+    return exists ? JNI_TRUE : JNI_FALSE;
+}
+
+// Get MMapVectorStore size
+JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreGetSize(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    // Call the C function to get the size
+    size_t size;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_size(store, &size);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get vector store size", error);
+        return 0;
+    }
+    
+    return static_cast<jlong>(size);
+}
+
+// Get MMapVectorStore dimension
+JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreGetDimension(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    // Call the C function to get the dimension
+    size_t dimension;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_dimension(store, &dimension);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get vector store dimension", error);
+        return 0;
+    }
+    
+    return static_cast<jint>(dimension);
+}
+
+// Get MMapVectorStore metric
+JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreGetMetric(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    // Call the C function to get the metric
+    LLAMA_MOBILE_VD_DistanceMetric metric;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_metric(store, &metric);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get vector store metric", error);
+        return 0;
+    }
+    
+    return static_cast<jint>(metric);
+}
+
+// Close MMapVectorStore
+JNIEXPORT void JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreClose(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        return;
+    }
+    
+    // Call the C function to close the MMap vector store
+    // Close is void-returning, no error to check
+    llama_mobile_vd_mmap_vector_store_close(store);
+    
+    // Remove the native pointer from the map
+    removeNativePointer(storeId);
+}
+
+// ==========================
+// Version information JNI methods
+// ==========================
+
+// Get version string
+JNIEXPORT jstring JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeGetVersion(
+        JNIEnv* env,
+        jclass clazz) {
+    
+    // Call the C function to get the version string
+    const char* version = llama_mobile_vd_version();
+    
+    // Convert C string to Java string
+    return env->NewStringUTF(version);
+}
+
+// Get version major
+JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeGetVersionMajor(
+        JNIEnv* env,
+        jclass clazz) {
+    
+    // Call the C function to get the version major
+    return static_cast<jint>(llama_mobile_vd_version_major());
+}
+
+// Get version minor
+JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeGetVersionMinor(
+        JNIEnv* env,
+        jclass clazz) {
+    
+    // Call the C function to get the version minor
+    return static_cast<jint>(llama_mobile_vd_version_minor());
+}
+
+// Get version patch
+JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeGetVersionPatch(
+        JNIEnv* env,
+        jclass clazz) {
+    
+    // Call the C function to get the version patch
+    return static_cast<jint>(llama_mobile_vd_version_patch());
+}
+
+#ifdef __cplusplus
+}
+#endif

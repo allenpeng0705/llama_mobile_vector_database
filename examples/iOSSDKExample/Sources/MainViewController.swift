@@ -1,32 +1,46 @@
 import UIKit
-import LlamaMobileVD
 
 class MainViewController: UIViewController {
     // Vector Store state
-    private var vectorStore: VectorStore?
+    private var vectorStore: LlamaMobileVD.VectorStore?
     private var vectorStoreCount: Int = 0
-    private var vectorStoreResults: [SearchResult] = []
+    private var vectorStoreResults: [(id: UInt64, distance: Float)] = []
     
     // HNSW Index state
-    private var hnswIndex: HNSWIndex?
+    private var hnswIndex: LlamaMobileVD.HNSWIndex?
     private var hnswIndexCount: Int = 0
-    private var hnswIndexResults: [SearchResult] = []
+    private var hnswIndexResults: [(id: UInt64, distance: Float)] = []
     
     // MMapVectorStore state
-    private var mmapVectorStore: MMapVectorStore?
+    private var mmapVectorStore: LlamaMobileVD.MMapVectorStore?
     private var mmapVectorStoreCount: Int = 0
     private var mmapVectorStoreDimension: Int = 0
     private var mmapVectorStoreMetric: String = ""
-    private var mmapVectorStoreResults: [SearchResult] = []
-    private var mmapFilePath: String = "/tmp/vectorstore.mmap"
+    private var mmapVectorStoreResults: [(id: UInt64, distance: Float)] = []
     
     // Configuration state
     private var dimension: Int = 128
-    private var selectedMetric: DistanceMetric = .l2
+    private var selectedMetric: LlamaMobileVD.DistanceMetric = .l2
     private var hnswM: Int = 16
     private var hnswEfConstruction: Int = 200
     private var searchK: Int = 5
     private var efSearch: Int = 50
+    
+    // MMap file path
+    private var mmapFilePath: String
+    
+    // Initialize the file path in the init methods
+    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+        let documentDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
+        mmapFilePath = documentDirectory + "/vector_store.mmap"
+        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
+    }
+    
+    required init?(coder: NSCoder) {
+        let documentDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
+        mmapFilePath = documentDirectory + "/vector_store.mmap"
+        super.init(coder: coder)
+    }
     
     // UI elements
     private let statusLabel = UILabel()
@@ -102,7 +116,6 @@ class MainViewController: UIViewController {
         var currentY: CGFloat = 16.0
         let horizontalPadding: CGFloat = 16.0
         let sectionSpacing: CGFloat = 24.0
-        let elementSpacing: CGFloat = 8.0
         
         // Status label
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -113,13 +126,13 @@ class MainViewController: UIViewController {
         statusLabel.textAlignment = .center
         statusLabel.font = UIFont.systemFont(ofSize: 16)
         statusLabel.textColor = .darkText
-        statusLabel.contentEdgeInsets = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
         
         contentView.addSubview(statusLabel)
         NSLayoutConstraint.activate([
             statusLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
             statusLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
-            statusLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding)
+            statusLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
+            statusLabel.heightAnchor.constraint(greaterThanOrEqualToConstant: 48)
         ])
         
         currentY += 60
@@ -551,6 +564,25 @@ class MainViewController: UIViewController {
         
         currentY += 50
         
+        // MMapVectorStore create button row
+        let createMMapVectorStoreButton = UIButton(type: .system)
+        createMMapVectorStoreButton.setTitle("Create MMapVectorStore", for: .normal)
+        createMMapVectorStoreButton.addTarget(self, action: #selector(createMMapVectorStoreButtonTapped), for: .touchUpInside)
+        createMMapVectorStoreButton.backgroundColor = .systemGreen
+        createMMapVectorStoreButton.setTitleColor(.white, for: .normal)
+        createMMapVectorStoreButton.layer.cornerRadius = 8
+        createMMapVectorStoreButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        contentView.addSubview(createMMapVectorStoreButton)
+        NSLayoutConstraint.activate([
+            createMMapVectorStoreButton.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
+            createMMapVectorStoreButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
+            createMMapVectorStoreButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
+            createMMapVectorStoreButton.heightAnchor.constraint(equalToConstant: 40)
+        ])
+        
+        currentY += 50
+        
         // MMapVectorStore buttons row
         let mmapVectorStoreButtonsStackView = UIStackView()
         mmapVectorStoreButtonsStackView.axis = .horizontal
@@ -635,8 +667,8 @@ class MainViewController: UIViewController {
         statusLabel.sizeToFit()
     }
     
-    private func createRandomVector(dimension: Int) -> [Double] {
-        return (0..<dimension).map { _ in Double.random(in: -1...1) }
+    private func createRandomVector(dimension: Int) -> [Float] {
+        return (0..<dimension).map { _ in Float.random(in: -1...1) }
     }
     
     private func updateVectorStoreInfo() {
@@ -663,13 +695,13 @@ class MainViewController: UIViewController {
     @objc private func metricSegmentedControlChanged(_ segmentedControl: UISegmentedControl) {
         switch segmentedControl.selectedSegmentIndex {
         case 0:
-            selectedMetric = .l2
+            selectedMetric = LlamaMobileVD.DistanceMetric.l2
         case 1:
-            selectedMetric = .cosine
+            selectedMetric = LlamaMobileVD.DistanceMetric.cosine
         case 2:
-            selectedMetric = .dot
+            selectedMetric = LlamaMobileVD.DistanceMetric.dot
         default:
-            selectedMetric = .l2
+            selectedMetric = LlamaMobileVD.DistanceMetric.l2
         }
     }
     
@@ -697,10 +729,8 @@ class MainViewController: UIViewController {
     @objc private func createVectorStoreButtonTapped() {
         updateStatus(message: "Creating VectorStore...")
         
-        let options = VectorStoreOptions(dimension: dimension, metric: selectedMetric)
-        
         do {
-            let vectorStoreInstance = try VectorStore(options: options)
+            let vectorStoreInstance = try LlamaMobileVD.VectorStore(dimension: dimension, metric: selectedMetric)
             vectorStore = vectorStoreInstance
             vectorStoreCount = 0
             vectorStoreResults.removeAll()
@@ -725,7 +755,7 @@ class MainViewController: UIViewController {
             do {
                 for i in 0..<100 {
                     let vector = self.createRandomVector(dimension: self.dimension)
-                    try vectorStore.addVector(vector: vector, vectorId: i + 1)
+                    try vectorStore.addVector(id: UInt64(i + 1), vector: vector)
                 }
                 
                 let count = try vectorStore.count()
@@ -759,7 +789,7 @@ class MainViewController: UIViewController {
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 let queryVector = self.createRandomVector(dimension: self.dimension)
-                let results = try vectorStore.search(queryVector: queryVector, k: self.searchK)
+                let results = try vectorStore.search(query: queryVector, k: self.searchK)
                 
                 DispatchQueue.main.async {
                     self.vectorStoreResults = results
@@ -798,41 +828,35 @@ class MainViewController: UIViewController {
     }
     
     @objc private func releaseVectorStoreButtonTapped() {
-        guard let vectorStore = vectorStore else {
+        guard vectorStore != nil else {
             updateStatus(message: "Please create a VectorStore first")
             return
         }
         
         updateStatus(message: "Releasing VectorStore...")
         
-        do {
-            try vectorStore.release()
-            
-            self.vectorStore = nil
-            vectorStoreCount = 0
-            vectorStoreResults.removeAll()
-            vectorStoreResultsTableView.reloadData()
-            vectorStoreResultsTableView.isHidden = true
-            updateVectorStoreInfo()
-            updateStatus(message: "VectorStore released successfully")
-        } catch {
-            updateStatus(message: "Error releasing VectorStore: \(error.localizedDescription)")
-        }
+        self.vectorStore = nil
+        vectorStoreCount = 0
+        vectorStoreResults.removeAll()
+        vectorStoreResultsTableView.reloadData()
+        vectorStoreResultsTableView.isHidden = true
+        updateVectorStoreInfo()
+        updateStatus(message: "VectorStore released successfully")
     }
     
     // HNSWIndex operations
     @objc private func createHNSWIndexButtonTapped() {
         updateStatus(message: "Creating HNSWIndex...")
         
-        let options = HNSWIndexOptions(
-            dimension: dimension,
-            metric: selectedMetric,
-            m: hnswM,
-            efConstruction: hnswEfConstruction
-        )
-        
         do {
-            let hnswIndexInstance = try HNSWIndex(options: options)
+            let maxElements = 10000 // Adjust based on needs
+            let hnswIndexInstance = try LlamaMobileVD.HNSWIndex(
+                dimension: dimension,
+                metric: selectedMetric,
+                maxElements: maxElements,
+                m: hnswM,
+                efConstruction: hnswEfConstruction
+            )
             hnswIndex = hnswIndexInstance
             hnswIndexCount = 0
             hnswIndexResults.removeAll()
@@ -857,7 +881,7 @@ class MainViewController: UIViewController {
             do {
                 for i in 0..<100 {
                     let vector = self.createRandomVector(dimension: self.dimension)
-                    try hnswIndex.addVector(vector: vector, vectorId: i + 1)
+                    try hnswIndex.addVector(id: UInt64(i + 1), vector: vector)
                 }
                 
                 let count = try hnswIndex.count()
@@ -891,7 +915,9 @@ class MainViewController: UIViewController {
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 let queryVector = self.createRandomVector(dimension: self.dimension)
-                let results = try hnswIndex.search(queryVector: queryVector, k: self.searchK, efSearch: self.efSearch)
+                // Set efSearch parameter first
+                try hnswIndex.setEfSearch(self.efSearch)
+                let results = try hnswIndex.search(query: queryVector, k: self.searchK)
                 
                 DispatchQueue.main.async {
                     self.hnswIndexResults = results
@@ -908,7 +934,7 @@ class MainViewController: UIViewController {
     }
     
     @objc private func clearHNSWIndexButtonTapped() {
-        guard let hnswIndex = hnswIndex else {
+        guard let _ = hnswIndex else {
             updateStatus(message: "Please create a HNSWIndex first")
             return
         }
@@ -916,7 +942,15 @@ class MainViewController: UIViewController {
         updateStatus(message: "Clearing HNSWIndex...")
         
         do {
-            try hnswIndex.clear()
+            // Since HNSWIndex doesn't have a clear method, we release it and create a new one
+            let maxElements = 10000
+            self.hnswIndex = try LlamaMobileVD.HNSWIndex(
+                dimension: dimension,
+                metric: selectedMetric,
+                maxElements: maxElements,
+                m: hnswM,
+                efConstruction: hnswEfConstruction
+            )
             
             hnswIndexCount = 0
             hnswIndexResults.removeAll()
@@ -930,29 +964,51 @@ class MainViewController: UIViewController {
     }
     
     @objc private func releaseHNSWIndexButtonTapped() {
-        guard let hnswIndex = hnswIndex else {
+        guard hnswIndex != nil else {
             updateStatus(message: "Please create a HNSWIndex first")
             return
         }
         
         updateStatus(message: "Releasing HNSWIndex...")
         
-        do {
-            try hnswIndex.release()
-            
-            self.hnswIndex = nil
-            hnswIndexCount = 0
-            hnswIndexResults.removeAll()
-            hnswIndexResultsTableView.reloadData()
-            hnswIndexResultsTableView.isHidden = true
-            updateHNSWIndexInfo()
-            updateStatus(message: "HNSWIndex released successfully")
-        } catch {
-            updateStatus(message: "Error releasing HNSWIndex: \(error.localizedDescription)")
-        }
+        self.hnswIndex = nil
+        hnswIndexCount = 0
+        hnswIndexResults.removeAll()
+        hnswIndexResultsTableView.reloadData()
+        hnswIndexResultsTableView.isHidden = true
+        updateHNSWIndexInfo()
+        updateStatus(message: "HNSWIndex released successfully")
     }
     
     // MARK: - MMapVectorStore Action Methods
+    @objc private func createMMapVectorStoreButtonTapped() {
+        updateStatus(message: "Creating MMapVectorStore...")
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                // Create a builder with current configuration
+                let builder = try LlamaMobileVD.MMapVectorStoreBuilder(dimension: self.dimension, metric: self.selectedMetric)
+                
+                // Add some sample vectors
+                for i in 0..<100 {
+                    let vector = self.createRandomVector(dimension: self.dimension)
+                    try builder.addVector(id: UInt64(i + 1), vector: vector)
+                }
+                
+                // Save to file
+                try builder.save(to: self.mmapFilePath)
+                
+                DispatchQueue.main.async {
+                    self.updateStatus(message: "MMapVectorStore created successfully with 100 vectors")
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.updateStatus(message: "Error creating MMapVectorStore: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
     @objc private func openMMapVectorStoreButtonTapped() {
         // Update file path from text field
         if let text = mmapFilePathTextField.text, !text.isEmpty {
@@ -962,18 +1018,11 @@ class MainViewController: UIViewController {
         updateStatus(message: "Opening MMapVectorStore from \(mmapFilePath)...")
         
         // Release existing store if any
-        if let existingStore = mmapVectorStore {
-            do {
-                try existingStore.release()
-            } catch {
-                updateStatus(message: "Error releasing existing MMapVectorStore: \(error.localizedDescription)")
-                return
-            }
-        }
+        mmapVectorStore = nil
         
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                let mmapStore = try MMapVectorStore.open(filePath: self.mmapFilePath)
+                let mmapStore = try LlamaMobileVD.MMapVectorStore.open(from: self.mmapFilePath)
                 let count = try mmapStore.count()
                 let dimension = try mmapStore.dimension()
                 let metric = try mmapStore.metric()
@@ -982,7 +1031,18 @@ class MainViewController: UIViewController {
                     self.mmapVectorStore = mmapStore
                     self.mmapVectorStoreCount = count
                     self.mmapVectorStoreDimension = dimension
-                    self.mmapVectorStoreMetric = metric.rawValue
+                    
+                    // Convert DistanceMetric to string representation
+                    let metricString: String
+                    switch metric {
+                    case .l2:
+                        metricString = "L2"
+                    case .cosine:
+                        metricString = "Cosine"
+                    case .dot:
+                        metricString = "Dot"
+                    }
+                    self.mmapVectorStoreMetric = metricString
                     self.mmapVectorStoreResults.removeAll()
                     self.mmapVectorStoreResultsTableView.reloadData()
                     self.mmapVectorStoreResultsTableView.isHidden = true
@@ -1008,7 +1068,7 @@ class MainViewController: UIViewController {
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 let queryVector = self.createRandomVector(dimension: self.mmapVectorStoreDimension)
-                let results = try mmapStore.search(queryVector: queryVector, k: self.searchK)
+                let results = try mmapStore.search(query: queryVector, k: self.searchK)
                 
                 DispatchQueue.main.async {
                     self.mmapVectorStoreResults = results
@@ -1025,28 +1085,22 @@ class MainViewController: UIViewController {
     }
     
     @objc private func releaseMMapVectorStoreButtonTapped() {
-        guard let mmapStore = mmapVectorStore else {
+        guard mmapVectorStore != nil else {
             updateStatus(message: "Please open a MMapVectorStore first")
             return
         }
         
         updateStatus(message: "Releasing MMapVectorStore...")
         
-        do {
-            try mmapStore.release()
-            
-            self.mmapVectorStore = nil
-            self.mmapVectorStoreCount = 0
-            self.mmapVectorStoreDimension = 0
-            self.mmapVectorStoreMetric = ""
-            self.mmapVectorStoreResults.removeAll()
-            self.mmapVectorStoreResultsTableView.reloadData()
-            self.mmapVectorStoreResultsTableView.isHidden = true
-            self.updateMMapVectorStoreInfo()
-            self.updateStatus(message: "MMapVectorStore released successfully")
-        } catch {
-            updateStatus(message: "Error releasing MMapVectorStore: \(error.localizedDescription)")
-        }
+        self.mmapVectorStore = nil
+        self.mmapVectorStoreCount = 0
+        self.mmapVectorStoreDimension = 0
+        self.mmapVectorStoreMetric = ""
+        self.mmapVectorStoreResults.removeAll()
+        self.mmapVectorStoreResultsTableView.reloadData()
+        self.mmapVectorStoreResultsTableView.isHidden = true
+        self.updateMMapVectorStoreInfo()
+        self.updateStatus(message: "MMapVectorStore released successfully")
     }
 }
 
@@ -1066,7 +1120,7 @@ extension MainViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "ResultCell", for: indexPath)
         
-        let results: [SearchResult]
+        let results: [(id: UInt64, distance: Float)]
         if tableView == vectorStoreResultsTableView {
             results = vectorStoreResults
         } else if tableView == hnswIndexResultsTableView {
@@ -1077,7 +1131,7 @@ extension MainViewController: UITableViewDataSource, UITableViewDelegate {
         
         let result = results[indexPath.row]
         
-        cell.textLabel?.text = "Vector \(result.index)"
+        cell.textLabel?.text = "Vector \(result.id)"
         cell.detailTextLabel?.text = "Distance: \(String(format: "%.6f", result.distance))"
         cell.detailTextLabel?.textColor = .gray
         

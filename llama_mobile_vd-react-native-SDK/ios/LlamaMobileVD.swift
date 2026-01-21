@@ -42,6 +42,16 @@ class LlamaMobileVD: NSObject, RCTBridgeModule {
   private var hnswIndexes: [String: HNSWIndex] = [:]
 
   /**
+   * Map of MMapVectorStore instances by ID
+   */
+  private var mmapVectorStores: [String: MMapVectorStore] = [:]
+
+  /**
+   * Map of MMapVectorStoreBuilder instances by ID
+   */
+  private var mmapBuilders: [String: MMapVectorStoreBuilder] = [:]
+
+  /**
    * Generate a unique ID for a VectorStore or HNSWIndex
    * @returns A unique string ID
    */
@@ -135,6 +145,38 @@ class LlamaMobileVD: NSObject, RCTBridgeModule {
   }
 
   /**
+   * Create a new MMapVectorStoreBuilder
+   * @param options Options for creating the MMapVectorStoreBuilder
+   * @param resolve Completion handler for successful creation
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    createMMapVectorStoreBuilder: 
+    resolver: 
+    rejecter:)
+  func createMMapVectorStoreBuilder(
+    _ options: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let dimension = options["dimension"] as? Int,
+            let metricStr = options["metric"] as? String else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
+      }
+
+      let metric = try stringToDistanceMetric(metricStr)
+      let builder = try MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+      let id = generateUniqueId()
+      mmapBuilders[id] = builder
+
+      resolve(["id": id])
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
    * Add a vector to a VectorStore
    * @param params Parameters for adding the vector
    * @param resolve Completion handler for successful addition
@@ -205,6 +247,104 @@ class LlamaMobileVD: NSObject, RCTBridgeModule {
   }
 
   /**
+   * Add a vector to an MMapVectorStoreBuilder
+   * @param params Parameters for adding the vector
+   * @param resolve Completion handler for successful addition
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    addVectorToMMapBuilder: 
+    resolver: 
+    rejecter:)
+  func addVectorToMMapBuilder(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String,
+            let vectorArray = params["vector"] as? [NSNumber],
+            let vectorId = params["vectorId"] as? Int else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
+      }
+
+      guard let builder = mmapBuilders[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "MMapVectorStoreBuilder not found for id: \(id)"])
+      }
+
+      let vector = vectorArray.map { Float($0.doubleValue) }
+      try builder.addVector(vector, id: vectorId)
+
+      resolve(nil)
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Save an MMapVectorStoreBuilder to a file
+   * @param params Parameters for saving the builder
+   * @param resolve Completion handler for successful saving
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    saveMMapBuilder: 
+    resolver: 
+    rejecter:)
+  func saveMMapBuilder(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String,
+            let path = params["path"] as? String else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
+      }
+
+      guard let builder = mmapBuilders[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "MMapVectorStoreBuilder not found for id: \(id)"])
+      }
+
+      try builder.save(path)
+
+      resolve(nil)
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Open an existing MMapVectorStore from a file
+   * @param params Parameters for opening the vector store
+   * @param resolve Completion handler for successful opening
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    openMMapVectorStore: 
+    resolver: 
+    rejecter:)
+  func openMMapVectorStore(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let path = params["path"] as? String else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameter: path"])
+      }
+
+      let store = try MMapVectorStore.open(path)
+      let id = generateUniqueId()
+      mmapVectorStores[id] = store
+
+      resolve(["id": id])
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
    * Search for vectors in a VectorStore
    * @param params Parameters for searching the VectorStore
    * @param resolve Completion handler for successful search
@@ -231,6 +371,49 @@ class LlamaMobileVD: NSObject, RCTBridgeModule {
       }
 
       let queryVector = queryVectorArray.map { $0.doubleValue }
+      let results = try store.search(queryVector, k: k)
+
+      // Convert results to JSON compatible format
+      let jsonResults = results.map { result in
+        return [
+          "index": result.index,
+          "distance": result.distance
+        ] as [String: Any]
+      }
+
+      resolve(jsonResults)
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Search for vectors in an MMapVectorStore
+   * @param params Parameters for searching the MMapVectorStore
+   * @param resolve Completion handler for successful search
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    searchMMapVectorStore: 
+    resolver: 
+    rejecter:) 
+  func searchMMapVectorStore(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String,
+            let queryVectorArray = params["queryVector"] as? [NSNumber],
+            let k = params["k"] as? Int else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters"])
+      }
+
+      guard let store = mmapVectorStores[id] else {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "MMapVectorStore not found for id: \(id)"])
+      }
+
+      let queryVector = queryVectorArray.map { Float($0.doubleValue) }
       let results = try store.search(queryVector, k: k)
 
       // Convert results to JSON compatible format
@@ -466,6 +649,66 @@ class LlamaMobileVD: NSObject, RCTBridgeModule {
 
       if hnswIndexes.removeValue(forKey: id) == nil {
         throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "HNSWIndex not found for id: \(id)"])
+      }
+
+      resolve(nil)
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Release resources associated with an MMapVectorStoreBuilder
+   * @param params Parameters for releasing the builder
+   * @param resolve Completion handler for successful release
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    releaseMMapBuilder: 
+    resolver: 
+    rejecter:) 
+  func releaseMMapBuilder(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String else { 
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameter: id"]) 
+      }
+
+      if mmapBuilders.removeValue(forKey: id) == nil {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "MMapVectorStoreBuilder not found for id: \(id)"])
+      }
+
+      resolve(nil)
+    } catch {
+      reject("ERROR", error.localizedDescription, error)
+    }
+  }
+
+  /**
+   * Release resources associated with an MMapVectorStore
+   * @param params Parameters for releasing the vector store
+   * @param resolve Completion handler for successful release
+   * @param reject Completion handler for errors
+   */
+  @objc(
+    releaseMMapVectorStore: 
+    resolver: 
+    rejecter:) 
+  func releaseMMapVectorStore(
+    _ params: NSDictionary,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    do {
+      guard let id = params["id"] as? String else { 
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing required parameter: id"]) 
+      }
+
+      if mmapVectorStores.removeValue(forKey: id) == nil {
+        throw NSError(domain: "LlamaMobileVD", code: 0, userInfo: [NSLocalizedDescriptionKey: "MMapVectorStore not found for id: \(id)"])
       }
 
       resolve(nil)

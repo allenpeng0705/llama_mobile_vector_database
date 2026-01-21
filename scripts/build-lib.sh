@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Desktop build script for QuiverDB wrapper corelib
+# Desktop build script for LlamaMobileVD wrapper corelib
 # Enhanced for cross-platform compatibility and user configurability
 
 # Set the working directory to the project root
@@ -130,7 +130,7 @@ warning() {
 usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
-    echo "Build the QuiverDB wrapper core library"
+    echo "Build the LlamaMobileVD wrapper core library"
     echo ""
     echo "Options:"
     echo "  -g, --generator <generator>  CMake generator to use (default: $DEFAULT_GENERATOR)"
@@ -201,7 +201,7 @@ if ! command_exists cmake; then
 fi
 
 # Display build configuration
-echo "=== QuiverDB Core Library Build Configuration ==="
+echo "=== LlamaMobileVD Core Library Build Configuration ==="
 echo "Operating System: $OS"
 echo "Generator: $GENERATOR"
 echo "Build Type: $BUILD_TYPE"
@@ -237,6 +237,7 @@ build_library() {
     # Build CMake command
     CMAKE_CMD="cmake -B '$LIB_BUILD_DIR' -G '$GENERATOR' -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=$SHARED_OPTION \
         -DQUIVERDB_BUILD_TESTS=ON \
+        -DLLAMA_MOBILE_VD_BUILD_TESTS=ON \
         -DQUIVERDB_BUILD_BENCHMARKS=OFF \
         -DQUIVERDB_BUILD_EXAMPLES=OFF \
         -DQUIVERDB_BUILD_PYTHON=OFF \
@@ -305,18 +306,18 @@ build_library() {
     # Determine the path to the built library
     case "$GENERATOR" in
         "Xcode")
-            LIB_PATH="$LIB_BUILD_DIR/$BUILD_TYPE/libquiverdb_wrapper$LIB_EXT"
-            TEST_PATH="$LIB_BUILD_DIR/$BUILD_TYPE/quiverdb_wrapper_test"
+            LIB_PATH="$LIB_BUILD_DIR/$BUILD_TYPE/libllama_mobile_vd$LIB_EXT"
+            TEST_PATH="$LIB_BUILD_DIR/$BUILD_TYPE/llama_mobile_vd_wrapper_test"
             ;;
         "Visual Studio*")
             # Visual Studio puts binaries in architecture-specific subdirectories
-            LIB_PATH="$LIB_BUILD_DIR/$BUILD_TYPE/libquiverdb_wrapper$LIB_EXT"
-            TEST_PATH="$LIB_BUILD_DIR/$BUILD_TYPE/quiverdb_wrapper_test.exe"
+            LIB_PATH="$LIB_BUILD_DIR/$BUILD_TYPE/libllama_mobile_vd_wrapper$LIB_EXT"
+            TEST_PATH="$LIB_BUILD_DIR/$BUILD_TYPE/llama_mobile_vd_wrapper_test.exe"
             ;;
         *)
             # Most other generators use this structure
-            LIB_PATH="$LIB_BUILD_DIR/libquiverdb_wrapper$LIB_EXT"
-            TEST_PATH="$LIB_BUILD_DIR/quiverdb_wrapper_test"
+            LIB_PATH="$LIB_BUILD_DIR/libllama_mobile_vd$LIB_EXT"
+            TEST_PATH="$LIB_BUILD_DIR/llama_mobile_vd_wrapper_test"
             ;;
     esac
     
@@ -330,8 +331,8 @@ build_library() {
 }
 
 # Build both static and shared libraries
-STATIC_BUILD_DIR=$(build_library "static" "OFF")
-SHARED_BUILD_DIR=$(build_library "shared" "ON")
+STATIC_BUILD_DIR=$(build_library "static" "OFF" | tail -n 1)
+SHARED_BUILD_DIR=$(build_library "shared" "ON" | tail -n 1)
 
 # Use static build for testing (more reliable for testing)
 TEST_BUILD_DIR=$STATIC_BUILD_DIR
@@ -340,6 +341,9 @@ TEST_BUILD_DIR=$STATIC_BUILD_DIR
 run_tests_ctest() {
     echo ""
     echo "=== Running tests using CTest ==="
+    
+    # Preserve current directory
+    local CURRENT_DIR="$(pwd)"
     cd "$TEST_BUILD_DIR"
     
     CTEST_CMD="ctest -C $BUILD_TYPE"
@@ -348,6 +352,9 @@ run_tests_ctest() {
     fi
     
     eval $CTEST_CMD
+    
+    # Change back to original directory
+    cd "$CURRENT_DIR"
     
     if [ $? -eq 0 ]; then
         echo ""
@@ -365,13 +372,13 @@ run_tests_direct() {
     # Determine test executable path based on generator
     case "$GENERATOR" in
         "Xcode")
-            TEST_EXECUTABLE="$TEST_BUILD_DIR/$BUILD_TYPE/quiverdb_wrapper_test"
+            TEST_EXECUTABLE="$TEST_BUILD_DIR/$BUILD_TYPE/llama_mobile_vd_wrapper_test"
             ;;
         "Visual Studio*")
-            TEST_EXECUTABLE="$TEST_BUILD_DIR/$BUILD_TYPE/quiverdb_wrapper_test.exe"
+            TEST_EXECUTABLE="$TEST_BUILD_DIR/$BUILD_TYPE/llama_mobile_vd_wrapper_test.exe"
             ;;
         *)
-            TEST_EXECUTABLE="$TEST_BUILD_DIR/quiverdb_wrapper_test"
+            TEST_EXECUTABLE="$TEST_BUILD_DIR/llama_mobile_vd_wrapper_test"
             ;;
     esac
     
@@ -397,13 +404,13 @@ if [ "$SKIP_TESTS" != true ]; then
     # Check if tests were built
     case "$GENERATOR" in
         "Xcode")
-            TEST_EXECUTABLE="$TEST_BUILD_DIR/$BUILD_TYPE/quiverdb_wrapper_test"
+            TEST_EXECUTABLE="$TEST_BUILD_DIR/$BUILD_TYPE/llama_mobile_vd_wrapper_test"
             ;;
         "Visual Studio*")
-            TEST_EXECUTABLE="$TEST_BUILD_DIR/$BUILD_TYPE/quiverdb_wrapper_test.exe"
+            TEST_EXECUTABLE="$TEST_BUILD_DIR/$BUILD_TYPE/llama_mobile_vd_wrapper_test.exe"
             ;;
         *)
-            TEST_EXECUTABLE="$TEST_BUILD_DIR/quiverdb_wrapper_test"
+            TEST_EXECUTABLE="$TEST_BUILD_DIR/llama_mobile_vd_wrapper_test"
             ;;
     esac
     
@@ -436,12 +443,12 @@ esac
 # Determine library paths based on generator
 case "$GENERATOR" in
     "Xcode"|"Visual Studio*")
-        STATIC_LIB_PATH="$STATIC_BUILD_DIR/$BUILD_TYPE/libquiverdb_wrapper$STATIC_EXT"
-        SHARED_LIB_PATH="$SHARED_BUILD_DIR/$BUILD_TYPE/libquiverdb_wrapper$SHARED_EXT"
+        STATIC_LIB_PATH="$STATIC_BUILD_DIR/$BUILD_TYPE/libllama_mobile_vd$STATIC_EXT"
+        SHARED_LIB_PATH="$SHARED_BUILD_DIR/$BUILD_TYPE/libllama_mobile_vd$SHARED_EXT"
         ;;
     *)
-        STATIC_LIB_PATH="$STATIC_BUILD_DIR/libquiverdb_wrapper$STATIC_EXT"
-        SHARED_LIB_PATH="$SHARED_BUILD_DIR/libquiverdb_wrapper$SHARED_EXT"
+        STATIC_LIB_PATH="$STATIC_BUILD_DIR/libllama_mobile_vd$STATIC_EXT"
+        SHARED_LIB_PATH="$SHARED_BUILD_DIR/libllama_mobile_vd$SHARED_EXT"
         ;;
 esac
 

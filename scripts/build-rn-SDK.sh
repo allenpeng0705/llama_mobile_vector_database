@@ -78,7 +78,7 @@ echo -e "\n${YELLOW}Step 1: Copying iOS framework...${NC}"
 
 # Source directory for iOS framework
 ios_SDK_DIR="$PROJECT_ROOT/llama_mobile_vd-ios-SDK"
-ios_FRAMEWORK_SRC="$ios_SDK_DIR/Frameworks/LlamaMobileVD.framework"
+ios_FRAMEWORK_SRC="$ios_SDK_DIR/ios/Frameworks/LlamaMobileVD.framework"
 
 if [ -d "$ios_FRAMEWORK_SRC" ]; then
     # Remove existing framework if it exists
@@ -94,7 +94,23 @@ if [ -d "$ios_FRAMEWORK_SRC" ]; then
     echo "Copying iOS framework to React Native SDK..."
     cp -R "$ios_FRAMEWORK_SRC" "$ios_FRAMEWORK_DEST"
     
-    echo -e "${GREEN}✓ iOS framework copied to React Native SDK${NC}"
+    # Verify and add module structure if needed
+    echo "Verifying module structure in copied framework..."
+    modules_dir="$ios_FRAMEWORK_DEST/Modules"
+    modulemap_file="$modules_dir/module.modulemap"
+    
+    if [ ! -d "$modules_dir" ] || [ ! -f "$modulemap_file" ]; then
+        echo "Adding missing module structure..."
+        mkdir -p "$modules_dir"
+        cat > "$modulemap_file" << 'MODULE_EOF'
+framework module LlamaMobileVD {
+    header "../Headers/LlamaMobileVD.h"
+    export *
+}
+MODULE_EOF
+    fi
+    
+    echo -e "${GREEN}✓ iOS framework copied to React Native SDK with proper module structure${NC}"
 else
     echo -e "${RED}Error: iOS framework not found at $ios_FRAMEWORK_SRC${NC}"
     exit 1

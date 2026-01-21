@@ -43,23 +43,39 @@ A high-performance vector database SDK for iOS applications, built on top of the
 import LlamaMobileVD
 
 // Create a vector store with 512-dimensional vectors and cosine distance metric
-let vectorStore = try VectorStore(dimension: 512, metric: .cosine)
+let vectorStore = try LlamaMobileVD.VectorStore(dimension: 512, metric: .cosine)
 
 // Add vectors to the store
 let vector1 = Array(repeating: 0.5, count: 512)
-try vectorStore.addVector(vector1, id: 1)
+try vectorStore.addVector(id: 1, vector: vector1)
 
 let vector2 = Array(repeating: 0.8, count: 512)
-try vectorStore.addVector(vector2, id: 2)
+try vectorStore.addVector(id: 2, vector: vector2)
 
 // Search for nearest neighbors
 let queryVector = Array(repeating: 0.6, count: 512)
-let results = try vectorStore.search(queryVector, k: 2)
+let results = try vectorStore.search(query: queryVector, k: 2)
 
 // Process the results
 for result in results {
     print("Vector ID: \(result.id), Distance: \(result.distance)")
 }
+
+// Get vector by ID
+let retrievedVector = try vectorStore.getVector(id: 1)
+print("Retrieved vector: \(retrievedVector.prefix(5))...")
+
+// Update vector
+let updatedVector = Array(repeating: 0.9, count: 512)
+try vectorStore.updateVector(id: 1, vector: updatedVector)
+
+// Check if vector exists
+let exists = try vectorStore.containsVector(id: 1)
+print("Vector 1 exists: \(exists)")
+
+// Remove vector
+let removed = try vectorStore.removeVector(id: 1)
+print("Vector 1 removed: \(removed)")
 
 // Clear all vectors from the store
 try vectorStore.clear()
@@ -71,9 +87,10 @@ try vectorStore.clear()
 import LlamaMobileVD
 
 // Create an HNSW index with custom parameters
-let hnswIndex = try HNSWIndex(
+let hnswIndex = try LlamaMobileVD.HNSWIndex(
     dimension: 768,
     metric: .l2,
+    maxElements: 1000, // Maximum number of vectors the index can hold
     m: 16, // Number of connections per node
     efConstruction: 200 // Size of dynamic list for construction
 )
@@ -81,21 +98,34 @@ let hnswIndex = try HNSWIndex(
 // Add vectors to the index
 for i in 0..<100 {
     let vector = Array(repeating: Float(i) / 100.0, count: 768)
-    try hnswIndex.addVector(vector, id: i + 1)
+    try hnswIndex.addVector(id: UInt64(i + 1), vector: vector)
 }
 
-// Search for nearest neighbors with custom efSearch
+// Set custom efSearch for better search quality
+
+try hnswIndex.setEfSearch(100)
+
+// Search for nearest neighbors
 let queryVector = Array(repeating: 0.5, count: 768)
-let results = try hnswIndex.search(queryVector, k: 5, efSearch: 100)
+let results = try hnswIndex.search(query: queryVector, k: 5)
 
 // Process the results
 results.forEach { result in
     print("Vector ID: \(result.id), Distance: \(result.distance)")
 }
 
-// Get the number of vectors in the index
-let count = hnswIndex.count
+// Get index properties
+let count = try hnswIndex.count()
+let dimension = try hnswIndex.dimension()
+let capacity = try hnswIndex.capacity()
+
 print("Total vectors in index: \(count)")
+print("Index dimension: \(dimension)")
+print("Index capacity: \(capacity)")
+
+// Check if a vector exists
+let exists = try hnswIndex.contains(id: 42)
+print("Vector 42 exists: \(exists)")
 ```
 
 ### MMapVectorStore Example
@@ -109,36 +139,46 @@ let vectorStorePath = tempDir.appending("my_mmap_store.bin")
 
 // Build the MMapVectorStore using the builder
 let dimension = 1024
-let metric = DistanceMetric.cosine
+let metric = LlamaMobileVD.DistanceMetric.cosine
 
 // Create a builder
-let builder = try MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+let builder = try LlamaMobileVD.MMapVectorStoreBuilder(dimension: dimension, metric: metric)
 
 // Add vectors to the builder
 for i in 0..<1000 {
     let vector = Array(repeating: Float.random(in: -1.0...1.0), count: dimension)
-    try builder.addVector(vector, id: i + 1)
+    try builder.addVector(id: UInt64(i + 1), vector: vector)
 }
 
 // Save the builder to file, creating an MMapVectorStore
-try builder.save(filename: vectorStorePath)
+try builder.save(to: vectorStorePath)
 
 // Open the MMapVectorStore from file
-let vectorStore = try MMapVectorStore.open(filename: vectorStorePath)
+let vectorStore = try LlamaMobileVD.MMapVectorStore.open(from: vectorStorePath)
 
 // Get a vector by ID
-if let vector = try vectorStore.get(id: 42) {
-    print("Vector 42: \(vector.prefix(5))...")
-}
+let vector = try vectorStore.getVector(id: 42)
+print("Vector 42: \(vector.prefix(5))...")
 
 // Search for nearest neighbors
 let queryVector = Array(repeating: 0.0, count: dimension)
-try vectorStore.search(queryVector, k: 5)
+let results = try vectorStore.search(query: queryVector, k: 5)
+
+// Process search results
+for result in results {
+    print("Vector ID: \(result.id), Distance: \(result.distance)")
+}
 
 // Check store properties
-print("Store dimension: \(vectorStore.dimension)")
-print("Store metric: \(vectorStore.metric)")
-print("Total vectors: \(vectorStore.count)")
+let storeCount = try vectorStore.count()
+let storeDimension = try vectorStore.dimension()
+let storeMetric = try vectorStore.metric()
+let containsVector = try vectorStore.contains(id: 42)
+
+print("Store dimension: \(storeDimension)")
+print("Store metric: \(storeMetric)")
+print("Total vectors: \(storeCount)")
+print("Store contains vector 42: \(containsVector)")
 
 // Clean up
 let fileManager = FileManager.default
@@ -159,13 +199,10 @@ Enum representing the distance metrics supported by LlamaMobileVD:
 
 ### SearchResult
 
-Structure representing a result from a vector search:
+Tuple representing a result from a vector search:
 
 ```swift
-public struct SearchResult {
-    public let id: Int
-    public let distance: Float
-}
+(id: UInt64, distance: Float)
 ```
 
 ### VectorStore
@@ -174,35 +211,59 @@ Class for storing and searching vectors with exact nearest neighbor search:
 
 ```swift
 public class VectorStore {
-    // Initializer
-    public init(dimension: Int, metric: DistanceMetric) throws
+    // Initializer with default L2 distance metric
+    public init(dimension: Int, metric: DistanceMetric = .l2) throws
     
-    // Methods
-    public func addVector(_ vector: [Float], id: Int) throws
-    public func search(_ queryVector: [Float], k: Int) throws -> [SearchResult]
+    // Core operations
+    public func addVector(id: UInt64, vector: [Float]) throws
+    public func search(query: [Float], k: Int) throws -> [(id: UInt64, distance: Float)]
+    public func removeVector(id: UInt64) throws -> Bool
+    public func getVector(id: UInt64) throws -> [Float]
+    public func updateVector(id: UInt64, vector: [Float]) throws
     public func clear() throws
     
-    // Properties
-    public var count: Int
+    // Metadata operations
+    public func count() throws -> UInt64
+    public func dimension() throws -> UInt64
+    public func metric() throws -> DistanceMetric
+    public func containsVector(id: UInt64) throws -> Bool
+    public func reserveCapacity(capacity: UInt64) throws
 }
 ```
 
 ### HNSWIndex
 
-Class for high-performance approximate nearest neighbor search:
+Class for high-performance approximate nearest neighbor search using the Hierarchical Navigable Small World algorithm:
 
 ```swift
 public class HNSWIndex {
     // Initializers
-    public init(dimension: Int, metric: DistanceMetric, m: Int = 16, efConstruction: Int = 200) throws
+    public init(dimension: Int, metric: DistanceMetric, maxElements: Int) throws
+    public init(
+        dimension: Int,
+        metric: DistanceMetric,
+        maxElements: Int,
+        m: Int,
+        efConstruction: Int,
+        seed: UInt32 = 0
+    ) throws
     
-    // Methods
-    public func addVector(_ vector: [Float], id: Int) throws
-    public func search(_ queryVector: [Float], k: Int, efSearch: Int = 50) throws -> [SearchResult]
-    public func clear() throws
+    // Core operations
+    public func addVector(id: UInt64, vector: [Float]) throws
+    public func search(query: [Float], k: Int) throws -> [(id: UInt64, distance: Float)]
+    public func getVector(id: UInt64) throws -> [Float]
+    public func save(to filename: String) throws
     
-    // Properties
-    public var count: Int
+    // Static load method
+    public static func load(from filename: String) throws -> HNSWIndex
+    
+    // Configuration and metadata
+    public func setEfSearch(_ efSearch: Int) throws
+    public func getEfSearch() throws -> Int
+    public func count() throws -> UInt64
+    public func dimension() throws -> UInt64
+    public func capacity() throws -> UInt64
+    public func contains(id: UInt64) throws -> Bool
 }
 ```
 
@@ -216,13 +277,13 @@ public class MMapVectorStoreBuilder {
     public init(dimension: Int, metric: DistanceMetric) throws
     
     // Methods
-    public func addVector(_ vector: [Float], id: Int) throws
-    public func reserve(capacity: Int) throws
-    public func save(filename: String) throws -> Bool
+    public func addVector(id: UInt64, vector: [Float]) throws
+    public func reserve(capacity: UInt64) throws
+    public func save(to filename: String) throws
     
-    // Properties
-    public var count: Int
-    public var dimension: Int
+    // Metadata
+    public func count() throws -> UInt64
+    public func dimension() throws -> UInt64
 }
 ```
 
@@ -233,17 +294,17 @@ Memory-mapped vector store optimized for large datasets that may exceed RAM capa
 ```swift
 public class MMapVectorStore {
     // Static methods
-    public static func open(filename: String) throws -> MMapVectorStore
+    public static func open(from filename: String) throws -> MMapVectorStore
     
     // Methods
-    public func get(id: Int) throws -> [Float]?
-    public func search(_ queryVector: [Float], k: Int) throws -> [SearchResult]
-    public func contains(id: Int) throws -> Bool
+    public func getVector(id: UInt64) throws -> [Float]
+    public func search(query: [Float], k: Int) throws -> [(id: UInt64, distance: Float)]
+    public func contains(id: UInt64) throws -> Bool
     
-    // Properties
-    public var count: Int
-    public var dimension: Int
-    public var metric: DistanceMetric
+    // Metadata
+    public func count() throws -> UInt64
+    public func dimension() throws -> UInt64
+    public func metric() throws -> DistanceMetric
 }
 ```
 
