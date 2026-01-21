@@ -40,6 +40,60 @@ implementation project(':llama_mobile_vd-android-SDK')
 import com.llamamobile.vd.LlamaMobileVD
 ```
 
+## Integration Guide
+
+To ensure proper integration of the LlamaMobileVD SDK, follow these steps:
+
+### 1. Configure app's build.gradle file
+
+```groovy
+android {
+    defaultConfig {
+        ndk {
+            abiFilters "arm64-v8a", "x86_64"
+            stl "c++_shared"
+            version "29.0.14206865"  // Ensure matches SDK version
+        }
+    }
+}
+```
+
+### 2. Copy libc++_shared.so from correct NDK version
+
+- Create jniLibs directory structure:
+  ```bash
+  mkdir -p app/src/main/jniLibs/arm64-v8a app/src/main/jniLibs/x86_64
+  ```
+
+- Copy files:
+  ```bash
+  # For arm64-v8a
+  cp /Users/your_username/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so app/src/main/jniLibs/arm64-v8a/
+  
+  # For x86_64
+  cp /Users/your_username/Library/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/lib/x86_64-linux-android/libc++_shared.so app/src/main/jniLibs/x86_64/
+  ```
+
+### 3. Verify integration
+
+- Build app: `./gradlew build`
+- Check build output:
+  ```bash
+  ls -la app/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a/
+  ```
+  Ensure output includes `libc++_shared.so` file
+
+### Notes
+
+- Ensure using same NDK version as SDK
+- If app uses multiple native libraries, ensure they all use same C++ standard library version
+- Before releasing app, verify all architecture library files are correctly included
+
+### Troubleshooting
+
+- If encountering symbol resolution errors, check NDK version match
+- If encountering library conflicts, check for multiple versions of `libc++_shared.so`
+
 ## Usage
 
 ### VectorStore Example

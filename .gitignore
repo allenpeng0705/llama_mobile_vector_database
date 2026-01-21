@@ -27,3 +27,5 @@
 /llama_mobile_vd-android-SDK/build
 /llama_mobile_vd-flutter-SDK.bak
 /llama_mobile_vd-ios-SDK/.swiftpm
+/examples/androidJavaSDKExample/app/build
+/examples/androidJavaSDKExample/.idea

@@ -110,7 +110,10 @@ public class LlamaMobileVD {
     }
     
     public static void saveMMapVectorStoreBuilder(long builderId, String filename) {
-        nativeMMapVectorStoreBuilderSave(builderId, filename);
+        boolean result = nativeMMapVectorStoreBuilderSave(builderId, filename);
+        if (!result) {
+            throw new RuntimeException("Failed to save MMapVectorStoreBuilder");
+        }
     }
     
     // Convenience methods for MMapVectorStore

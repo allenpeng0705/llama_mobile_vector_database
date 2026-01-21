@@ -9,26 +9,27 @@ android {
 
     defaultConfig {
         applicationId "com.llamamobile.androidsdkexample"
-        minSdk 21
-        targetSdk 34
+        minSdk 24
+        targetSdk 36
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         
         ndk {
-            abiFilters 'arm64-v8a', 'x86_64'
+            abiFilters "arm64-v8a", "x86_64"
             stl "c++_shared"
-        }
-    }
-    
-    externalNativeBuild {
-        cmake {
-            path '../../../llama_mobile_vd-android-SDK/src/main/cpp/CMakeLists.txt'
-            version "3.18.1"
+            version "29.0.14206865"
         }
     }
 
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version "3.18.1"
+        }
+    }
+    
     buildTypes {
         release {
             minifyEnabled false
@@ -48,20 +49,11 @@ android {
 
     sourceSets {
         main {
-            java {
-                srcDirs += ['../../llama_mobile_vd-android-SDK/src/main/java']
-            }
-            
             kotlin {
                 srcDirs += ['../../llama_mobile_vd-android-SDK/src/main/java']
             }
-            
-            // Add native libraries
-            jniLibs {
-                srcDirs += ['../../llama_mobile_vd-android-SDK/src/main/jniLibs']
-            }
         }
-    }    
+    }
 
 }
 
@@ -70,6 +62,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation project(':llama_mobile_vd-android-SDK')
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'

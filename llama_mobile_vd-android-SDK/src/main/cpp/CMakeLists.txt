@@ -20,8 +20,14 @@ add_library(llama_mobile_vd_jni SHARED
     llama_mobile_vd_jni.cpp
 )
 
+# Set linker flags for 16KB alignment
+set_target_properties(llama_mobile_vd_jni PROPERTIES
+    LINK_FLAGS "-Wl,-z,max-page-size=0x4000"
+)
+
 target_link_libraries(llama_mobile_vd_jni
     llama_mobile_vd
     log
+    -lstdc++
 )
 
