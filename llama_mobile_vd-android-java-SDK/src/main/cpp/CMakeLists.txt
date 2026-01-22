@@ -23,5 +23,6 @@ add_library(llama_mobile_vd_jni SHARED
 target_link_libraries(llama_mobile_vd_jni
     llama_mobile_vd
     log
+    -lc++_shared
 )
 

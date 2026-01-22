@@ -38,8 +38,20 @@
       "languageVersion": "3.3"
     },
     {
+      "name": "file",
+      "rootUri": "file:///Users/shileipeng/.pub-cache/hosted/pub.dev/file-7.0.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "flutter",
       "rootUri": "file:///Users/shileipeng/Documents/flutter/packages/flutter",
+      "packageUri": "lib/",
+      "languageVersion": "3.8"
+    },
+    {
+      "name": "flutter_driver",
+      "rootUri": "file:///Users/shileipeng/Documents/flutter/packages/flutter_driver",
       "packageUri": "lib/",
       "languageVersion": "3.8"
     },
@@ -52,6 +64,18 @@
     {
       "name": "flutter_test",
       "rootUri": "file:///Users/shileipeng/Documents/flutter/packages/flutter_test",
+      "packageUri": "lib/",
+      "languageVersion": "3.8"
+    },
+    {
+      "name": "fuchsia_remote_debug_protocol",
+      "rootUri": "file:///Users/shileipeng/Documents/flutter/packages/fuchsia_remote_debug_protocol",
+      "packageUri": "lib/",
+      "languageVersion": "3.8"
+    },
+    {
+      "name": "integration_test",
+      "rootUri": "file:///Users/shileipeng/Documents/flutter/packages/integration_test",
       "packageUri": "lib/",
       "languageVersion": "3.8"
     },
@@ -104,10 +128,16 @@
       "languageVersion": "3.4"
     },
     {
-      "name": "plugin_platform_interface",
-      "rootUri": "file:///Users/shileipeng/.pub-cache/hosted/pub.dev/plugin_platform_interface-2.1.8",
+      "name": "platform",
+      "rootUri": "file:///Users/shileipeng/.pub-cache/hosted/pub.dev/platform-3.1.6",
       "packageUri": "lib/",
-      "languageVersion": "3.0"
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "process",
+      "rootUri": "file:///Users/shileipeng/.pub-cache/hosted/pub.dev/process-5.0.5",
+      "packageUri": "lib/",
+      "languageVersion": "3.5"
     },
     {
       "name": "sky_engine",
@@ -140,6 +170,12 @@
       "languageVersion": "3.1"
     },
     {
+      "name": "sync_http",
+      "rootUri": "file:///Users/shileipeng/.pub-cache/hosted/pub.dev/sync_http-0.3.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "term_glyph",
       "rootUri": "file:///Users/shileipeng/.pub-cache/hosted/pub.dev/term_glyph-1.2.2",
       "packageUri": "lib/",
@@ -164,7 +200,13 @@
       "languageVersion": "3.5"
     },
     {
-      "name": "llama_mobile_vd",
+      "name": "webdriver",
+      "rootUri": "file:///Users/shileipeng/.pub-cache/hosted/pub.dev/webdriver-3.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
+    },
+    {
+      "name": "llama_mobile_vd_flutter_sdk",
       "rootUri": "../",
       "packageUri": "lib/",
       "languageVersion": "3.0"

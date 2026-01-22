@@ -174,10 +174,26 @@ JNIEXPORT jobjectArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVecto
     }    
     // Create Java SearchResult objects
     jclass resultClass = env->FindClass("com/llamamobile/vd/LlamaMobileVD$SearchResult");
-    jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(JF)V");    
-    jobjectArray resultArray = env->NewObjectArray(static_cast<jsize>(k), resultClass, nullptr);    
+    if (resultClass == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to find SearchResult class", LLAMA_MOBILE_VD_INTERNAL_ERROR);
+        return nullptr;
+    }
+    jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(JF)V");
+    if (constructor == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to find SearchResult constructor", LLAMA_MOBILE_VD_INTERNAL_ERROR);
+        return nullptr;
+    }    
+    jobjectArray resultArray = env->NewObjectArray(static_cast<jsize>(k), resultClass, nullptr);
+    if (resultArray == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to create result array", LLAMA_MOBILE_VD_INTERNAL_ERROR);
+        return nullptr;
+    }    
     for (size_t i = 0; i < static_cast<size_t>(k); i++) {
         jobject resultObj = env->NewObject(resultClass, constructor, static_cast<jlong>(results[i].id), static_cast<jfloat>(results[i].distance));
+        if (resultObj == nullptr) {
+            throwLlamaMobileVDException(env, "Failed to create SearchResult object", LLAMA_MOBILE_VD_INTERNAL_ERROR);
+            return nullptr;
+        }
         env->SetObjectArrayElement(resultArray, static_cast<jsize>(i), resultObj);
     }    
     return resultArray;
@@ -509,12 +525,28 @@ JNIEXPORT jobjectArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapV
     
     // Create Java SearchResult objects
     jclass resultClass = env->FindClass("com/llamamobile/vd/LlamaMobileVD$SearchResult");
+    if (resultClass == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to find SearchResult class", LLAMA_MOBILE_VD_INTERNAL_ERROR);
+        return nullptr;
+    }
     jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(JF)V");
+    if (constructor == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to find SearchResult constructor", LLAMA_MOBILE_VD_INTERNAL_ERROR);
+        return nullptr;
+    }
     
     jobjectArray resultArray = env->NewObjectArray(static_cast<jsize>(k), resultClass, nullptr);
+    if (resultArray == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to create result array", LLAMA_MOBILE_VD_INTERNAL_ERROR);
+        return nullptr;
+    }
     
     for (size_t i = 0; i < static_cast<size_t>(k); i++) {
         jobject resultObj = env->NewObject(resultClass, constructor, static_cast<jlong>(results[i].id), static_cast<jfloat>(results[i].distance));
+        if (resultObj == nullptr) {
+            throwLlamaMobileVDException(env, "Failed to create SearchResult object", LLAMA_MOBILE_VD_INTERNAL_ERROR);
+            return nullptr;
+        }
         env->SetObjectArrayElement(resultArray, static_cast<jsize>(i), resultObj);
     }
     
@@ -831,12 +863,28 @@ JNIEXPORT jobjectArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWI
     
     // Create Java SearchResult objects
     jclass resultClass = env->FindClass("com/llamamobile/vd/LlamaMobileVD$SearchResult");
+    if (resultClass == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to find SearchResult class", LLAMA_MOBILE_VD_INTERNAL_ERROR);
+        return nullptr;
+    }
     jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(JF)V");
+    if (constructor == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to find SearchResult constructor", LLAMA_MOBILE_VD_INTERNAL_ERROR);
+        return nullptr;
+    }
     
     jobjectArray resultArray = env->NewObjectArray(static_cast<jsize>(k), resultClass, nullptr);
+    if (resultArray == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to create result array", LLAMA_MOBILE_VD_INTERNAL_ERROR);
+        return nullptr;
+    }
     
     for (size_t i = 0; i < static_cast<size_t>(k); i++) {
         jobject resultObj = env->NewObject(resultClass, constructor, static_cast<jlong>(results[i].id), static_cast<jfloat>(results[i].distance));
+        if (resultObj == nullptr) {
+            throwLlamaMobileVDException(env, "Failed to create SearchResult object", LLAMA_MOBILE_VD_INTERNAL_ERROR);
+            return nullptr;
+        }
         env->SetObjectArrayElement(resultArray, static_cast<jsize>(i), resultObj);
     }
     

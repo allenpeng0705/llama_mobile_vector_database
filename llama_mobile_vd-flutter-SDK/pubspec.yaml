@@ -1,29 +1,26 @@
-name: llama_mobile_vd
+name: llama_mobile_vd_flutter_sdk
+description: Flutter SDK for Llama Mobile Vector Database
 version: 0.0.1
-description: A high-performance vector database for Flutter applications.
-homepage: https://github.com/your-username/llama_mobile_vd
+homepage: https://github.com/llama-mobile/llama_mobile_vd
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
   flutter: '>=3.3.0'
 
-dependencies:
-  flutter:
-    sdk: flutter
-  plugin_platform_interface:
-    ^2.1.0
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints:
-    ^2.0.0
-
 flutter:
   plugin:
     platforms:
+      ios:
+        pluginClass: LlamaMobileVDFlutterPlugin
       android:
         package: com.llamamobile.vd
-        pluginClass: LlamaMobileVDPlugin
-      ios:
-        pluginClass: SwiftLlamaMobileVDPlugin
+        pluginClass: LlamaMobileVDFlutterPlugin
+
+dev_dependencies:
+  flutter_lints: ^2.0.0
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_driver:
+    sdk: flutter
