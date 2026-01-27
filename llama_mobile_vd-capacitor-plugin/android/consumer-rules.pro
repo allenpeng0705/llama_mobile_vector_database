@@ -1,0 +1,2 @@
+-keep class com.llamamobile.vd.** { *; }
+-keepclassmembers class com.llamamobile.vd.** { *; }

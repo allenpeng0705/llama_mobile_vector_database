@@ -1,0 +1,79 @@
+{
+  "name": "llama-mobile-vd-capacitor-plugin",
+  "version": "1.0.0",
+  "description": "Capacitor plugin for llama_mobile vector database",
+  "main": "dist/cjs/index.js",
+  "module": "dist/index.js",
+  "types": "dist/types/index.d.ts",
+  "unpkg": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "keywords": [
+    "capacitor",
+    "plugin",
+    "native"
+  ],
+  "scripts": {
+    "test": "jest",
+    "verify": "npm run verify:ios && npm run verify:android",
+    "verify:ios": "cd ios && pod install && xcodebuild -workspace Plugin.xcworkspace -scheme Plugin -destination 'platform=iOS Simulator,name=iPhone 13' build",
+    "verify:android": "cd android && ./gradlew build",
+    "lint": "npm run eslint && npm run prettier -- --check && npm run swiftlint -- lint",
+    "fmt": "npm run eslint -- --fix && npm run prettier -- --write && npm run swiftlint -- autocorrect --format",
+    "eslint": "eslint . --ext ts",
+    "prettier": "prettier \"**/*.{css,html,js,ts,json}\"",
+    "swiftlint": "swiftlint",
+    "docgen": "typedoc --plugin typedoc-plugin-markdown --out docs",
+    "build": "npm run clean && tsc && rollup -c rollup.config.js",
+    "clean": "rimraf ./dist"
+  },
+  "devDependencies": {
+    "@capacitor/android": "latest",
+    "@capacitor/core": "latest",
+    "@capacitor/ios": "latest",
+    "@ionic/eslint-config": "latest",
+    "@ionic/prettier-config": "latest",
+    "@ionic/swiftlint-config": "latest",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@types/jest": "^30.0.0",
+    "eslint": "latest",
+    "jest": "^30.2.0",
+    "prettier": "latest",
+    "rimraf": "latest",
+    "rollup": "latest",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "swiftlint": "latest",
+    "ts-jest": "^29.4.6",
+    "typedoc": "latest",
+    "typedoc-plugin-markdown": "latest",
+    "typescript": "~5.0.0"
+  },
+  "peerDependencies": {
+    "@capacitor/core": "^5.0.0"
+  },
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    },
+    "android": {
+      "src": "android"
+    }
+  },
+  "author": {
+    "name": "Your Name",
+    "url": "https://github.com/llama-mobile"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/llama-mobile/llama_mobile_vd-capacitor-plugin"
+  },
+  "bugs": {
+    "url": "https://github.com/llama-mobile/llama_mobile_vd-capacitor-plugin/issues"
+  }
+}

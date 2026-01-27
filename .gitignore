@@ -33,3 +33,8 @@
 /llama_mobile_vd-flutter-SDK/android/.cxx
 /llama_mobile_vd-react-native-SDK.bak
 /llama_mobile_vd-reactnative-SDK/node_modules
+/llama_mobile_vd-capacitor-plugin/.swiftpm
+/llama_mobile_vd-capacitor-plugin/android/.cxx
+/llama_mobile_vd-capacitor-plugin/android/.gradle
+/llama_mobile_vd-capacitor-plugin/android/build
+/llama_mobile_vd-capacitor-plugin/dist
