@@ -2,16 +2,48 @@ import Capacitor
 import llama_mobile_vd
 
 @objc(LlamaMobileVDPlugin)
-public class LlamaMobileVDPlugin: CAPPlugin {
+public class LlamaMobileVDPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "LlamaMobileVDPlugin"
+    public let jsName = "LlamaMobileVD"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "getVersion", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "createVectorStore", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "destroyVectorStore", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "addVectors", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getVector", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "search", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "removeVectors", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getVectorCount", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearVectors", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "createHNSWIndex", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "destroyHNSWIndex", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "searchHNSW", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "addVectorsToHNSW", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "createMMapVectorStoreBuilder", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "destroyMMapVectorStoreBuilder", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "addVectorsToMMapBuilder", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "buildMMapVectorStore", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "openMMapVectorStore", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "closeMMapVectorStore", returnType: CAPPluginReturnPromise)
+    ]
     
-    private var vectorStores: [Int: LlamaMobileVD.VectorStore] = [:]
-    private var hnswIndexes: [Int: LlamaMobileVD.HNSWIndex] = [:]
-    private var mmapBuilders: [Int: LlamaMobileVD.MMapVectorStoreBuilder] = [:]
-    private var mmapStores: [Int: LlamaMobileVD.MMapVectorStore] = [:]
-    private var nextId: Int = 1
+    // Use static variables to persist across plugin instances
+    static var vectorStores: [Int: LlamaMobileVDSDK.VectorStore] = [:]
+    static var hnswIndexes: [Int: LlamaMobileVDSDK.HNSWIndex] = [:]
+    static var mmapBuilders: [Int: LlamaMobileVDSDK.MMapVectorStoreBuilder] = [:]
+    static var mmapStores: [Int: LlamaMobileVDSDK.MMapVectorStore] = [:]
+    static var nextId: Int = 1
+    
+    override public func load() {
+        print("LlamaMobileVDPlugin loaded successfully!")
+        print("LlamaMobileVDPlugin instance: \(ObjectIdentifier(self))")
+    }
     
     @objc public func getVersion(_ call: CAPPluginCall) {
-        let version = LlamaMobileVD.Version.full
+        print("LlamaMobileVDPlugin: getVersion called - instance: \(ObjectIdentifier(self))")
+        let version = LlamaMobileVDSDK.Version.full
+        print("LlamaMobileVDPlugin: getVersion returned: \(version)")
+        // Add a prefix to make it clear this is from the native iOS plugin
         call.resolve(["version": version])
     }
     
@@ -22,7 +54,7 @@ public class LlamaMobileVDPlugin: CAPPlugin {
         }
         
         let metricStr = call.getString("metric") ?? "cosine"
-        let metric: LlamaMobileVD.DistanceMetric
+        let metric: LlamaMobileVDSDK.DistanceMetric
         
         switch metricStr {
         case "l2":
@@ -37,10 +69,10 @@ public class LlamaMobileVDPlugin: CAPPlugin {
         }
         
         do {
-            let store = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
-            let storeId = nextId
-            nextId += 1
-            vectorStores[storeId] = store
+            let store = try LlamaMobileVDSDK.VectorStore(dimension: dimension, metric: metric)
+            let storeId = LlamaMobileVDPlugin.nextId
+            LlamaMobileVDPlugin.nextId += 1
+            LlamaMobileVDPlugin.vectorStores[storeId] = store
             call.resolve(["storeId": storeId])
         } catch {
             call.reject("Failed to create vector store: \(error.localizedDescription)")
@@ -53,12 +85,12 @@ public class LlamaMobileVDPlugin: CAPPlugin {
             return
         }
         
-        guard vectorStores[storeId] != nil else {
+        guard LlamaMobileVDPlugin.vectorStores[storeId] != nil else {
             call.reject("Invalid storeId: \(storeId)")
             return
         }
         
-        vectorStores.removeValue(forKey: storeId)
+        LlamaMobileVDPlugin.vectorStores.removeValue(forKey: storeId)
         call.resolve()
     }
     
@@ -68,7 +100,7 @@ public class LlamaMobileVDPlugin: CAPPlugin {
             return
         }
         
-        guard let store = vectorStores[storeId] else {
+        guard let store = LlamaMobileVDPlugin.vectorStores[storeId] else {
             call.reject("Invalid storeId: \(storeId)")
             return
         }
@@ -98,7 +130,7 @@ public class LlamaMobileVDPlugin: CAPPlugin {
             return
         }
         
-        guard let store = vectorStores[storeId] else {
+        guard let store = LlamaMobileVDPlugin.vectorStores[storeId] else {
             call.reject("Invalid storeId: \(storeId)")
             return
         }
@@ -110,8 +142,7 @@ public class LlamaMobileVDPlugin: CAPPlugin {
         
         do {
             let vector = try store.getVector(id: UInt64(id))
-            let doubleVector = vector.map { Double($0) }
-            call.resolve(["vector": doubleVector])
+            call.resolve(["vector": vector])
         } catch {
             call.reject("Failed to get vector: \(error.localizedDescription)")
         }
@@ -123,28 +154,35 @@ public class LlamaMobileVDPlugin: CAPPlugin {
             return
         }
         
-        guard let store = vectorStores[storeId] else {
-            call.reject("Invalid storeId: \(storeId)")
-            return
-        }
-        
         guard let queryVector = call.getArray("queryVector") as? [Double] else {
             call.reject("Missing or invalid queryVector parameter")
             return
         }
         
-        guard let k = call.getInt("k") else {
-            call.reject("Missing required parameter: k")
-            return
-        }
+        let k = call.getInt("k") ?? 5
         
         do {
             let floatQueryVector = queryVector.map { Float($0) }
-            let result = try store.search(query: floatQueryVector, k: k)
-            call.resolve([
-                "ids": result.map { Int($0.id) },
-                "distances": result.map { Double($0.distance) }
-            ])
+            
+            // Check if it's a regular vector store
+            if let store = LlamaMobileVDPlugin.vectorStores[storeId] {
+                let result = try store.search(query: floatQueryVector, k: k)
+                // Convert to expected format with separate ids and distances arrays
+                let ids = result.map { $0.id }
+                let distances = result.map { $0.distance }
+                call.resolve(["ids": ids, "distances": distances])
+            }
+            // Check if it's an MMap vector store
+            else if let store = LlamaMobileVDPlugin.mmapStores[storeId] {
+                let result = try store.search(query: floatQueryVector, k: k)
+                // Convert to expected format with separate ids and distances arrays
+                let ids = result.map { $0.id }
+                let distances = result.map { $0.distance }
+                call.resolve(["ids": ids, "distances": distances])
+            }
+            else {
+                call.reject("Invalid storeId: \(storeId)")
+            }
         } catch {
             call.reject("Failed to search: \(error.localizedDescription)")
         }
@@ -156,7 +194,7 @@ public class LlamaMobileVDPlugin: CAPPlugin {
             return
         }
         
-        guard let store = vectorStores[storeId] else {
+        guard let store = LlamaMobileVDPlugin.vectorStores[storeId] else {
             call.reject("Invalid storeId: \(storeId)")
             return
         }
@@ -182,7 +220,7 @@ public class LlamaMobileVDPlugin: CAPPlugin {
             return
         }
         
-        guard let store = vectorStores[storeId] else {
+        guard let store = LlamaMobileVDPlugin.vectorStores[storeId] else {
             call.reject("Invalid storeId: \(storeId)")
             return
         }
@@ -201,7 +239,7 @@ public class LlamaMobileVDPlugin: CAPPlugin {
             return
         }
         
-        guard let store = vectorStores[storeId] else {
+        guard let store = LlamaMobileVDPlugin.vectorStores[storeId] else {
             call.reject("Invalid storeId: \(storeId)")
             return
         }
@@ -215,47 +253,44 @@ public class LlamaMobileVDPlugin: CAPPlugin {
     }
     
     @objc public func createHNSWIndex(_ call: CAPPluginCall) {
-        guard let storeId = call.getInt("storeId") else {
-            call.reject("Missing required parameter: storeId")
+        guard let dimension = call.getInt("dimension") else {
+            call.reject("Missing required parameter: dimension")
             return
         }
         
-        guard let m = call.getInt("m") else {
-            call.reject("Missing required parameter: m")
+        let metricStr = call.getString("metric") ?? "cosine"
+        let metric: LlamaMobileVDSDK.DistanceMetric
+        
+        switch metricStr {
+        case "l2":
+            metric = .l2
+        case "cosine":
+            metric = .cosine
+        case "dot":
+            metric = .dot
+        default:
+            call.reject("Invalid metric: \(metricStr)")
             return
         }
         
-        guard let efConstruction = call.getInt("efConstruction") else {
-            call.reject("Missing required parameter: efConstruction")
-            return
-        }
+        let maxElements = call.getInt("maxElements") ?? 10000
+        let m = call.getInt("m") ?? 16
+        let efConstruction = call.getInt("efConstruction") ?? 200
+        let seed = call.getInt("seed") ?? 42
         
         do {
-            var dimension: Int
-            var metric: LlamaMobileVD.DistanceMetric
-            var index: LlamaMobileVD.HNSWIndex
+            let index = try LlamaMobileVDSDK.HNSWIndex(
+                dimension: dimension,
+                metric: metric,
+                maxElements: maxElements,
+                m: m,
+                efConstruction: efConstruction,
+                seed: UInt32(seed)
+            )
             
-            // Check if it's a regular vector store
-            if let store = vectorStores[storeId] {
-                dimension = try store.dimension()
-                metric = try store.metric()
-                
-                let maxElements = try store.count() + 1000 // Default max elements with buffer
-                index = try LlamaMobileVD.HNSWIndex(
-                    dimension: dimension,
-                    metric: metric,
-                    maxElements: maxElements,
-                    m: m,
-                    efConstruction: efConstruction
-                )
-            } else {
-                call.reject("Invalid storeId: \(storeId)")
-                return
-            }
-            
-            let indexId = nextId
-            nextId += 1
-            hnswIndexes[indexId] = index
+            let indexId = LlamaMobileVDPlugin.nextId
+            LlamaMobileVDPlugin.nextId += 1
+            LlamaMobileVDPlugin.hnswIndexes[indexId] = index
             call.resolve(["indexId": indexId])
         } catch {
             call.reject("Failed to create HNSW index: \(error.localizedDescription)")
@@ -268,12 +303,12 @@ public class LlamaMobileVDPlugin: CAPPlugin {
             return
         }
         
-        guard hnswIndexes[indexId] != nil else {
+        guard LlamaMobileVDPlugin.hnswIndexes[indexId] != nil else {
             call.reject("Invalid indexId: \(indexId)")
             return
         }
         
-        hnswIndexes.removeValue(forKey: indexId)
+        LlamaMobileVDPlugin.hnswIndexes.removeValue(forKey: indexId)
         call.resolve()
     }
     
@@ -283,7 +318,7 @@ public class LlamaMobileVDPlugin: CAPPlugin {
             return
         }
         
-        guard let index = hnswIndexes[indexId] else {
+        guard let index = LlamaMobileVDPlugin.hnswIndexes[indexId] else {
             call.reject("Invalid indexId: \(indexId)")
             return
         }
@@ -293,26 +328,17 @@ public class LlamaMobileVDPlugin: CAPPlugin {
             return
         }
         
-        guard let k = call.getInt("k") else {
-            call.reject("Missing required parameter: k")
-            return
-        }
-        
-        let efSearch = call.getInt("efSearch")
+        let k = call.getInt("k") ?? 5
         
         do {
-            if let efSearch = efSearch {
-                try index.setEfSearch(efSearch)
-            }
-            
             let floatQueryVector = queryVector.map { Float($0) }
             let result = try index.search(query: floatQueryVector, k: k)
-            call.resolve([
-                "ids": result.map { Int($0.id) },
-                "distances": result.map { Double($0.distance) }
-            ])
+            // Convert to expected format with separate ids and distances arrays
+            let ids = result.map { $0.id }
+            let distances = result.map { $0.distance }
+            call.resolve(["ids": ids, "distances": distances])
         } catch {
-            call.reject("Failed to search HNSW: \(error.localizedDescription)")
+            call.reject("Failed to search HNSW index: \(error.localizedDescription)")
         }
     }
     
@@ -322,7 +348,7 @@ public class LlamaMobileVDPlugin: CAPPlugin {
             return
         }
         
-        guard let index = hnswIndexes[indexId] else {
+        guard let index = LlamaMobileVDPlugin.hnswIndexes[indexId] else {
             call.reject("Invalid indexId: \(indexId)")
             return
         }
@@ -335,25 +361,27 @@ public class LlamaMobileVDPlugin: CAPPlugin {
         let ids = call.getArray("ids") as? [Int]
         
         do {
-            for (vectorIndex, vector) in vectors.enumerated() {
+            for (i, vector) in vectors.enumerated() {
                 let floatVector = vector.map { Float($0) }
-                let id = ids?[vectorIndex] ?? vectorIndex + 1
+                let id = ids?[i] ?? i + 1
                 try index.addVector(id: UInt64(id), vector: floatVector)
             }
             call.resolve()
         } catch {
-            call.reject("Failed to add vectors to HNSW: \(error.localizedDescription)")
+            call.reject("Failed to add vectors to HNSW index: \(error.localizedDescription)")
         }
     }
     
     @objc public func createMMapVectorStoreBuilder(_ call: CAPPluginCall) {
+        print("LlamaMobileVDPlugin: createMMapVectorStoreBuilder called - instance: \(ObjectIdentifier(self))")
+        
         guard let dimension = call.getInt("dimension") else {
             call.reject("Missing required parameter: dimension")
             return
         }
         
         let metricStr = call.getString("metric") ?? "cosine"
-        let metric: LlamaMobileVD.DistanceMetric
+        let metric: LlamaMobileVDSDK.DistanceMetric
         
         switch metricStr {
         case "l2":
@@ -368,12 +396,17 @@ public class LlamaMobileVDPlugin: CAPPlugin {
         }
         
         do {
-            let builder = try LlamaMobileVD.MMapVectorStoreBuilder(dimension: dimension, metric: metric)
-            let builderId = nextId
-            nextId += 1
-            mmapBuilders[builderId] = builder
+            print("LlamaMobileVDPlugin: About to create builder with dimension: \(dimension), metric: \(metric)")
+            let builder = try LlamaMobileVDSDK.MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+            print("LlamaMobileVDPlugin: Builder created successfully: \(builder)")
+            let builderId = LlamaMobileVDPlugin.nextId
+            LlamaMobileVDPlugin.nextId += 1
+            print("LlamaMobileVDPlugin: Storing builder with ID: \(builderId)")
+            LlamaMobileVDPlugin.mmapBuilders[builderId] = builder
+            print("LlamaMobileVDPlugin: Created builder with ID: \(builderId), total builders: \(LlamaMobileVDPlugin.mmapBuilders.count)")
             call.resolve(["builderId": builderId])
         } catch {
+            print("LlamaMobileVDPlugin: Error creating builder: \(error.localizedDescription)")
             call.reject("Failed to create MMap vector store builder: \(error.localizedDescription)")
         }
     }
@@ -384,12 +417,12 @@ public class LlamaMobileVDPlugin: CAPPlugin {
             return
         }
         
-        guard mmapBuilders[builderId] != nil else {
+        guard LlamaMobileVDPlugin.mmapBuilders[builderId] != nil else {
             call.reject("Invalid builderId: \(builderId)")
             return
         }
         
-        mmapBuilders.removeValue(forKey: builderId)
+        LlamaMobileVDPlugin.mmapBuilders.removeValue(forKey: builderId)
         call.resolve()
     }
     
@@ -399,7 +432,7 @@ public class LlamaMobileVDPlugin: CAPPlugin {
             return
         }
         
-        guard let builder = mmapBuilders[builderId] else {
+        guard let builder = LlamaMobileVDPlugin.mmapBuilders[builderId] else {
             call.reject("Invalid builderId: \(builderId)")
             return
         }
@@ -424,26 +457,59 @@ public class LlamaMobileVDPlugin: CAPPlugin {
     }
     
     @objc public func buildMMapVectorStore(_ call: CAPPluginCall) {
+        print("LlamaMobileVDPlugin: buildMMapVectorStore called - instance: \(ObjectIdentifier(self))")
+        
         guard let builderId = call.getInt("builderId") else {
             call.reject("Missing required parameter: builderId")
             return
         }
         
-        guard let builder = mmapBuilders[builderId] else {
+        print("LlamaMobileVDPlugin: builderId: \(builderId)")
+        print("LlamaMobileVDPlugin: mmapBuilders keys: \(LlamaMobileVDPlugin.mmapBuilders.keys)")
+        print("LlamaMobileVDPlugin: mmapBuilders count: \(LlamaMobileVDPlugin.mmapBuilders.count)")
+        
+        guard let builder = LlamaMobileVDPlugin.mmapBuilders[builderId] else {
+            print("LlamaMobileVDPlugin: ERROR - Builder not found for ID: \(builderId)")
             call.reject("Invalid builderId: \(builderId)")
             return
         }
         
-        // Get the path from the builder's context or from the call
+        print("LlamaMobileVDPlugin: builder found, type: \(type(of: builder))")
+        
         guard let path = call.getString("path") else {
             call.reject("Missing required parameter: path")
             return
         }
         
+        print("LlamaMobileVDPlugin: buildMMapVectorStore called with path: \(path)")
+        
         do {
-            try builder.save(to: path)
+            let fullPath: String
+            if path.hasPrefix("/") {
+                fullPath = path
+            } else {
+                let documentDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
+                fullPath = documentDirectory + "/" + path
+            }
+            
+            print("LlamaMobileVDPlugin: Original path: \(path)")
+            print("LlamaMobileVDPlugin: Full path: \(fullPath)")
+            print("LlamaMobileVDPlugin: File exists: \(FileManager.default.fileExists(atPath: fullPath))")
+            print("LlamaMobileVDPlugin: Directory exists: \(FileManager.default.fileExists(atPath: (fullPath as NSString).deletingLastPathComponent))")
+            
+            let directoryPath = (fullPath as NSString).deletingLastPathComponent
+            if !FileManager.default.fileExists(atPath: directoryPath) {
+                print("LlamaMobileVDPlugin: Creating directory: \(directoryPath)")
+                try FileManager.default.createDirectory(atPath: directoryPath, withIntermediateDirectories: true, attributes: nil)
+            }
+            
+            print("LlamaMobileVDPlugin: About to call builder.save()")
+            try builder.save(to: fullPath)
+            print("LlamaMobileVDPlugin: builder.save() completed successfully")
             call.resolve()
         } catch {
+            print("LlamaMobileVDPlugin: Error in buildMMapVectorStore: \(error.localizedDescription)")
+            print("LlamaMobileVDPlugin: Error type: \(type(of: error))")
             call.reject("Failed to build MMap vector store: \(error.localizedDescription)")
         }
     }
@@ -455,10 +521,19 @@ public class LlamaMobileVDPlugin: CAPPlugin {
         }
         
         do {
-            let store = try LlamaMobileVD.MMapVectorStore.open(from: path)
-            let storeId = nextId
-            nextId += 1
-            mmapStores[storeId] = store
+            let fullPath: String
+            if path.hasPrefix("/") {
+                fullPath = path
+            } else {
+                let documentDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
+                fullPath = documentDirectory + "/" + path
+            }
+            
+            print("LlamaMobileVDPlugin: Opening MMap vector store from: \(fullPath)")
+            let store = try LlamaMobileVDSDK.MMapVectorStore.open(from: fullPath)
+            let storeId = LlamaMobileVDPlugin.nextId
+            LlamaMobileVDPlugin.nextId += 1
+            LlamaMobileVDPlugin.mmapStores[storeId] = store
             call.resolve(["storeId": storeId])
         } catch {
             call.reject("Failed to open MMap vector store: \(error.localizedDescription)")
@@ -471,12 +546,12 @@ public class LlamaMobileVDPlugin: CAPPlugin {
             return
         }
         
-        guard mmapStores[storeId] != nil else {
+        guard LlamaMobileVDPlugin.mmapStores[storeId] != nil else {
             call.reject("Invalid storeId: \(storeId)")
             return
         }
         
-        mmapStores.removeValue(forKey: storeId)
+        LlamaMobileVDPlugin.mmapStores.removeValue(forKey: storeId)
         call.resolve()
     }
 }

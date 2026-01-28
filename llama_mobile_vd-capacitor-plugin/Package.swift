@@ -3,15 +3,15 @@ import PackageDescription
 
 let package = Package(
     name: "LlamaMobileVdCapacitorPlugin",
-    platforms: [.iOS(.v15)],
+    platforms: [.iOS(.v13)] ,
     products: [
         .library(
             name: "LlamaMobileVdCapacitorPlugin",
             targets: ["LlamaMobileVdCapacitorPlugin"]
-        )
+        ),
     ],
     dependencies: [
-        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.0.1")
+        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.0.1"),
     ],
     targets: [
         .binaryTarget(
@@ -22,9 +22,11 @@ let package = Package(
             name: "LlamaMobileVdCapacitorPlugin",
             dependencies: [
                 .product(name: "Capacitor", package: "capacitor-swift-pm"),
+                .product(name: "Cordova", package: "capacitor-swift-pm"),
                 "llama_mobile_vd"
             ],
-            path: "ios/Plugin"
-        )
+            path: "ios/Plugin",
+            sources: ["LlamaMobileVD.swift", "LlamaMobileVDPlugin.swift"]
+        ),
     ]
 )

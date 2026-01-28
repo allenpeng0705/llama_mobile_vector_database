@@ -88,9 +88,7 @@ export interface LlamaMobileVDPlugin {
   closeMMapVectorStore(options: { storeId: number }): Promise<void>;
 }
 
-const LlamaMobileVD = registerPlugin<LlamaMobileVDPlugin>('LlamaMobileVD', {
-  web: () => import('./web').then(m => new m.LlamaMobileVDWeb()),
-});
+const LlamaMobileVD = registerPlugin<LlamaMobileVDPlugin>('LlamaMobileVD');
 
 export * from './definitions';
 export { LlamaMobileVD };

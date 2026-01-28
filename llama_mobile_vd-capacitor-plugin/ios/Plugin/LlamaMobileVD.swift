@@ -11,7 +11,7 @@ import Foundation
 import llama_mobile_vd
 
 /// Swift wrapper for the llama_mobile_vd vector database
-public class LlamaMobileVD {
+public class LlamaMobileVDSDK {
     
     /// Error types for vector database operations
     public enum Error: Swift.Error {
@@ -521,10 +521,24 @@ public class LlamaMobileVD {
         /// Save the builder to a file, creating an MMapVectorStore
         /// - Parameter filename: Path to the file where the vector store should be saved
         public func save(to filename: String) throws {
-            guard let builder = builder else { throw Error.operationFailed("Builder not initialized") }
+            print("LlamaMobileVDSDK: save() called with filename: \(filename)")
+            print("LlamaMobileVDSDK: builder pointer: \(builder)")
+            print("LlamaMobileVDSDK: builder is nil: \(builder == nil)")
             
+            guard let builder = builder else { 
+                print("LlamaMobileVDSDK: ERROR - Builder is nil!")
+                throw Error.operationFailed("Builder not initialized") 
+            }
+            
+            print("LlamaMobileVDSDK: About to call C function")
             let error = llama_mobile_vd_mmap_vector_store_builder_save(builder, filename)
+            
+            print("LlamaMobileVDSDK: save() returned error code: \(error)")
+            print("LlamaMobileVDSDK: LLAMA_MOBILE_VD_OK = \(LLAMA_MOBILE_VD_OK)")
+            print("LlamaMobileVDSDK: error == LLAMA_MOBILE_VD_OK ? \(error == LLAMA_MOBILE_VD_OK)")
+            
             if error != LLAMA_MOBILE_VD_OK {
+                print("LlamaMobileVDSDK: Throwing error for code: \(error)")
                 throw mapError(error, message: "Failed to save vector store")
             }
         }
@@ -572,9 +586,17 @@ public class LlamaMobileVD {
         /// - Returns: An instance of MMapVectorStore opened from the file
         public static func open(from filename: String) throws -> MMapVectorStore {
             var storePtr: LLAMA_MOBILE_VD_MMapVectorStore?
+            
+            print("LlamaMobileVDSDK: open() called with filename: \(filename)")
+            
             let error = llama_mobile_vd_mmap_vector_store_open(filename, &storePtr)
             
+            print("LlamaMobileVDSDK: open() returned error code: \(error)")
+            print("LlamaMobileVDSDK: LLAMA_MOBILE_VD_OK = \(LLAMA_MOBILE_VD_OK)")
+            print("LlamaMobileVDSDK: error == LLAMA_MOBILE_VD_OK ? \(error == LLAMA_MOBILE_VD_OK)")
+            
             if error != LLAMA_MOBILE_VD_OK {
+                print("LlamaMobileVDSDK: Throwing error for code: \(error)")
                 throw Error.operationFailed("Failed to open vector store")
             }
             

@@ -49,7 +49,7 @@ The llama_mobile_vd SDKs wrap QuiverDB's core functionality and provide native l
 | Dependencies | Zero | Many | Few | Cloud |
 | Binary size | <100KB | 200MB+ | ~1MB | N/A |
 | GPU (Metal) | Yes | No | No | N/A |
-| Cross-platform SDKs | iOS, Android, Flutter, React Native, Capacitor | No | No | No |
+| Cross-platform SDKs | iOS, Android, Flutter, Capacitor | No | No | No |
 
 **Perfect for**: Mobile AI apps, edge devices, offline-first applications, and cross-platform development.
 
@@ -57,11 +57,12 @@ The llama_mobile_vd SDKs wrap QuiverDB's core functionality and provide native l
 
 llama_mobile_vd provides SDKs for all major mobile and web platforms:
 
-- **iOS SDK** (`llama_mobile_vd-ios-SDK`): Native Swift SDK for iOS applications (consolidated)
+- **iOS SDK** (`llama_mobile_vd-ios-SDK`): Native Swift SDK for iOS applications with Metal GPU support
 - **Android SDK** (`llama_mobile_vd-android-SDK`): Native Kotlin and Java SDK for Android applications (consolidated)
-- **Flutter SDK** (`llama_mobile_vd-flutter-SDK`): Cross-platform Flutter/Dart SDK
-- **React Native SDK** (`llama_mobile_vd-react-native-SDK`): Cross-platform React Native SDK with TypeScript support
-- **Capacitor Plugin** (`llama_mobile_vd-capacitor-plugin`): Cross-platform Capacitor plugin for web/hybrid applications
+- **Flutter SDK** (`llama_mobile_vd-flutter-SDK`): Cross-platform Flutter/Dart SDK with unified API
+- **Capacitor Plugin** (`llama_mobile_vd-capacitor-plugin`): Cross-platform Capacitor plugin for web/hybrid applications with TypeScript support
+
+**Note**: React Native SDK is not currently implemented. Support for other platforms may be added in future releases.
 
 ## Core Features
 
@@ -161,7 +162,6 @@ Built on QuiverDB's high-performance foundation, all SDKs provide consistent API
 - Xcode (13.0+) for iOS builds (macOS only)
 - Android Studio (2022.3+) for Android builds
 - Flutter SDK (3.0+) for Flutter builds
-- React Native CLI (0.70+) for React Native builds
 - Capacitor CLI (4.0+) for Capacitor plugin builds
 
 ### Required Environment Variables
@@ -199,7 +199,6 @@ These variables can be set to override values in `config.env`:
 - `MAKE_PATH`: Path to make executable
 - `NINJA_PATH`: Path to Ninja executable
 - `FLUTTER_PATH`: Path to Flutter SDK
-- `REACT_NATIVE_PATH`: Path to React Native CLI
 - `CAPACITOR_PATH`: Path to Capacitor CLI
 
 ### Building All SDKs
@@ -234,17 +233,26 @@ cd scripts
 bash build-flutter-SDK.sh
 ```
 
-#### React Native SDK
-```bash
-cd scripts
-bash build-react-native-SDK.sh
-```
-
 #### Capacitor Plugin
 ```bash
 cd scripts
 bash build-capacitor-plugin.sh
 ```
+
+### Capacitor Plugin Development
+
+The Capacitor plugin provides a cross-platform solution for web, iOS, and Android applications. It includes:
+
+- **TypeScript definitions** for type-safe usage
+- **Native implementations** for iOS and Android
+- **Web fallback** for browser environments
+- **Comprehensive API** matching all other SDKs
+
+#### Key Features:
+- Uses the same native libraries as the iOS and Android SDKs
+- Provides consistent API across all platforms
+- Supports all three index types: VectorStore, HNSWIndex, and MMapVectorStore
+- Includes memory management optimizations for hybrid apps
 
 ## Running Tests
 
@@ -458,51 +466,98 @@ print('Search results: $searchResult');
 await LlamaMobileVD.releaseVectorStore(storeId);
 ```
 
-### React Native SDK
-
-```typescript
-import { LlamaMobileVD, DistanceMetric } from 'llama_mobile_vd-react-native-SDK';
-
-// Create a vector store
-const options = { dimension: 128, metric: DistanceMetric.COSINE };
-const result = await LlamaMobileVD.createVectorStore(options);
-const storeId = result.id;
-
-// Add vectors
-const vector = Array(128).fill(0.0);
-await LlamaMobileVD.addVectorToStore(storeId, vector, "1");
-
-// Search
-const query = Array(128).fill(0.0);
-const searchResult = await LlamaMobileVD.searchVectorStore(storeId, query, 5);
-console.log('Search results:', searchResult);
-
-// Release
-await LlamaMobileVD.releaseVectorStore(storeId);
-```
-
 ### Capacitor Plugin
 
 ```typescript
-import { Plugins } from '@capacitor/core';
-const { LlamaMobileVDPlugin } = Plugins;
+import { LlamaMobileVD } from 'llama-mobile-vd-capacitor-plugin';
 
 // Create a vector store
-const options = { dimension: 128, metric: 'cosine' };
-const result = await LlamaMobileVDPlugin.createVectorStore(options);
-const storeId = result.id;
+const { storeId } = await LlamaMobileVD.createVectorStore({
+  dimension: 128,
+  metric: 'cosine'
+});
 
 // Add vectors
-const vector = Array(128).fill(0.0);
-await LlamaMobileVDPlugin.addVectorToStore({ id: storeId, vector, vectorId: "1" });
+await LlamaMobileVD.addVectors({
+  storeId,
+  vectors: [Array(128).fill(0.0)],
+  ids: [1]
+});
 
 // Search
-const query = Array(128).fill(0.0);
-const searchResult = await LlamaMobileVDPlugin.searchVectorStore({ id: storeId, query, k: 5 });
-console.log('Search results:', searchResult);
+const queryVector = Array(128).fill(0.0);
+const { ids, distances } = await LlamaMobileVD.search({
+  storeId,
+  queryVector,
+  k: 5
+});
+console.log('Search results:', {
+  ids,
+  distances
+});
 
-// Release
-await LlamaMobileVDPlugin.releaseVectorStore({ id: storeId });
+// Get vector count
+const { count } = await LlamaMobileVD.getVectorCount({ storeId });
+console.log('Vector count:', count);
+
+// Clean up
+await LlamaMobileVD.destroyVectorStore({ storeId });
+```
+
+#### Capacitor Plugin MMap Example
+
+```typescript
+import { LlamaMobileVD } from 'llama-mobile-vd-capacitor-plugin';
+
+// Create builder
+const { builderId } = await LlamaMobileVD.createMMapVectorStoreBuilder({
+  dimension: 128,
+  metric: 'cosine'
+});
+
+// Add vectors
+const vectors = [];
+for (let i = 0; i < 100; i++) {
+  vectors.push(Array(128).fill(Math.random()));
+}
+
+await LlamaMobileVD.addVectorsToMMapBuilder({
+  builderId,
+  vectors
+});
+
+// Build and save
+const mmapPath = 'vectorstore.mmap';
+await LlamaMobileVD.buildMMapVectorStore({
+  builderId,
+  path: mmapPath
+});
+
+// Clean up builder
+await LlamaMobileVD.destroyMMapVectorStoreBuilder({
+  builderId
+});
+
+// Later, open the saved vector store
+const { storeId } = await LlamaMobileVD.openMMapVectorStore({
+  path: mmapPath
+});
+
+// Search
+const queryVector = Array(128).fill(Math.random());
+const { ids, distances } = await LlamaMobileVD.search({
+  storeId,
+  queryVector,
+  k: 5
+});
+
+console.log('MMap search results:', {
+  ids,
+  distances
+});
+
+// Clean up
+await LlamaMobileVD.closeMMapVectorStore({ storeId });
 ```
 
 ## Examples
@@ -513,7 +568,6 @@ The repository includes example applications for all SDKs in the `examples` dire
 - **androidSDKExample**: Example Android application using the Android Kotlin SDK
 - **androidJavaSDKExample**: Example Android application using the Android Java interface from the consolidated SDK
 - **flutterSDKExample**: Example Flutter application using the Flutter SDK
-- **rnSDKExample**: Example React Native application using the React Native SDK
 - **capacitorPluginExample**: Example web application using the Capacitor plugin
 
 All examples demonstrate the full functionality of the SDKs with a consistent UI across all platforms.
@@ -533,15 +587,6 @@ flutter pub get
 flutter run
 ```
 
-#### React Native Example
-```bash
-cd examples/rnSDKExample/rnSDKExample
-npm install
-npx react-native run-ios
-# or
-npx react-native run-android
-```
-
 #### Capacitor Example
 ```bash
 cd examples/capacitorPluginExample
@@ -550,6 +595,35 @@ npx cap run ios
 # or
 npx cap run android
 ```
+
+### Capacitor Plugin Example
+
+The `capacitorPluginExample` demonstrates the full capabilities of the Capacitor plugin, including:
+
+- **VectorStore operations**: Create, add vectors, search, clear, and destroy
+- **HNSWIndex operations**: Create, add vectors, search, and destroy
+- **MMapVectorStore operations**: Create builder, add vectors, build, open, search, and close
+- **Performance comparisons**: Side-by-side performance metrics
+- **Cross-platform compatibility**: Works on web, iOS, and Android
+
+#### Key Features:
+- **Unified API**: Same code works across web, iOS, and Android
+- **Real-time updates**: Live performance metrics
+- **Error handling**: Comprehensive error messages
+- **Responsive design**: Adapts to different screen sizes
+
+### MMapVectorStore Example
+
+The Capacitor plugin example includes a comprehensive MMapVectorStore demonstration that shows:
+
+1. **Builder creation**: Setting up the MMapVectorStoreBuilder
+2. **Vector addition**: Adding multiple vectors efficiently
+3. **Building process**: Creating the memory-mapped file
+4. **Opening the store**: Loading the persisted vector store
+5. **Search functionality**: Performing similarity search
+6. **Resource management**: Properly closing resources
+
+This example highlights the power of memory-mapped storage for large datasets.
 
 ## API Reference
 

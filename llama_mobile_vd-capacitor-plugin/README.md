@@ -13,9 +13,66 @@ High-performance vector storage and similarity search for Capacitor mobile appli
 
 ## Installation
 
+### From NPM (Published Version)
+
 ```bash
 npm install llama-mobile-vd-capacitor-plugin
 npx cap sync
+```
+
+### Local Development (For Contributors)
+
+To use the plugin locally during development:
+
+1. **Clone the Repository**
+
+```bash
+git clone https://github.com/your-org/llama_mobile_vector_database.git
+cd llama_mobile_vector_database
+```
+
+2. **Install Dependencies**
+
+```bash
+cd llama_mobile_vd-capacitor-plugin
+npm install
+```
+
+3. **Link the Plugin to Your Test App**
+
+```bash
+# In your test app directory
+npm link /path/to/llama_mobile_vector_database/llama_mobile_vd-capacitor-plugin
+npx cap sync
+```
+
+4. **iOS Specific Setup**
+
+```bash
+# In your test app directory
+npx cap open ios
+# Build and run from Xcode
+```
+
+5. **Android Specific Setup**
+
+```bash
+# In your test app directory
+npx cap open android
+# Build and run from Android Studio
+```
+
+6. **Testing Changes**
+
+After making changes to the plugin:
+
+```bash
+# In the plugin directory
+npm run build
+
+# In your test app directory
+npx cap sync
+# Re-run the app
 ```
 
 ## iOS Setup
@@ -191,8 +248,7 @@ For large datasets that need to be persisted to disk:
 ```typescript
 const { builderId } = await LlamaMobileVD.createMMapVectorStoreBuilder({
   dimension: 128,
-  metric: 'cosine',
-  path: '/path/to/vectorstore.mmap'
+  metric: 'cosine'
 });
 ```
 
@@ -213,7 +269,8 @@ await LlamaMobileVD.addVectorsToMMapBuilder({
 
 ```typescript
 await LlamaMobileVD.buildMMapVectorStore({
-  builderId
+  builderId,
+  path: '/path/to/vectorstore.mmap'
 });
 ```
 
@@ -231,6 +288,65 @@ const { storeId } = await LlamaMobileVD.openMMapVectorStore({
 await LlamaMobileVD.closeMMapVectorStore({
   storeId
 });
+```
+
+### MMap Vector Store Complete Example
+
+```typescript
+import { LlamaMobileVD } from 'llama-mobile-vd-capacitor-plugin';
+
+async function mmapVectorStoreExample() {
+  // Create builder
+  const { builderId } = await LlamaMobileVD.createMMapVectorStoreBuilder({
+    dimension: 128,
+    metric: 'cosine'
+  });
+
+  // Add vectors
+  const vectors = [];
+  for (let i = 0; i < 1000; i++) {
+    vectors.push(Array.from({ length: 128 }, () => Math.random()));
+  }
+
+  await LlamaMobileVD.addVectorsToMMapBuilder({
+    builderId,
+    vectors
+  });
+
+  // Build and save
+  const mmapPath = '/path/to/vectorstore.mmap';
+  await LlamaMobileVD.buildMMapVectorStore({
+    builderId,
+    path: mmapPath
+  });
+
+  // Clean up builder
+  await LlamaMobileVD.destroyMMapVectorStoreBuilder({
+    builderId
+  });
+
+  // Later, open the saved vector store
+  const { storeId } = await LlamaMobileVD.openMMapVectorStore({
+    path: mmapPath
+  });
+
+  // Search
+  const queryVector = Array.from({ length: 128 }, () => Math.random());
+  const { ids, distances } = await LlamaMobileVD.search({
+    storeId,
+    queryVector,
+    k: 5
+  });
+
+  console.log('MMap search results:', ids);
+
+  // Clean up
+  await LlamaMobileVD.closeMMapVectorStore({
+    storeId
+  });
+}
+
+mmapVectorStoreExample();
 ```
 
 ## Distance Metrics
@@ -327,6 +443,74 @@ exampleUsage();
    - Higher `efConstruction` values improve index quality but take longer to build
    - Higher `efSearch` values improve search accuracy but are slower
 5. **Use MMap for large datasets**: Memory-mapped stores allow efficient access to large datasets
+
+## Local Development Tips
+
+### For Plugin Developers
+
+1. **Use npm link**: Develop the plugin locally and link it to your test app
+2. **Watch mode**: Use `npm run watch` in the plugin directory for automatic rebuilds
+3. **Debugging**:
+   - iOS: Use Xcode's debugger
+   - Android: Use Android Studio's debugger
+4. **Test thoroughly**: Test on both iOS and Android to ensure cross-platform compatibility
+5. **Follow Capacitor conventions**: Keep the plugin structure consistent with Capacitor best practices
+
+### For App Developers Using Local Plugin
+
+1. **Path considerations**:
+   - iOS: Use relative paths or documents directory
+   - Android: Use app-specific storage paths
+2. **Version management**: Keep track of plugin versions when using local development
+3. **Sync frequently**: Run `npx cap sync` after making changes to the plugin
+4. **Backup your work**: Local development can be unstable, so backup important data
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Plugin not found**:
+   - Ensure the plugin is installed: `npm install`
+   - Run `npx cap sync` to update native projects
+
+2. **Search returns empty results**:
+   - Ensure vectors have been added to the store
+   - Verify the query vector has the correct dimension
+   - Check that the store is properly initialized
+
+3. **MMapVectorStore errors**:
+   - Ensure the path is writable
+   - Check that you have storage permissions
+   - Verify the file path format for your platform
+
+4. **Android-specific issues**:
+   - Ensure minSdkVersion is at least 24
+   - Check for native library compatibility
+   - Verify storage permissions in manifest
+
+5. **iOS-specific issues**:
+   - Ensure deployment target is at least iOS 14.0
+   - Check for framework signing issues
+   - Verify file access permissions
+
+### Debugging Tips
+
+1. **Enable verbose logging**:
+   ```typescript
+   // Add this before using the plugin
+   console.log('LlamaMobileVD debug mode enabled');
+   ```
+
+2. **Check plugin version**:
+   ```typescript
+   const { version } = await LlamaMobileVD.getVersion();
+   console.log('Plugin version:', version);
+   ```
+
+3. **Validate input parameters**:
+   - Check vector dimensions match store configuration
+   - Verify metric is one of: 'l2', 'cosine', 'dot'
+   - Ensure paths are valid for the target platform
 
 ## Platform Support
 

@@ -39,28 +39,49 @@ function App() {
   // Status
   const [status, setStatus] = useState('Ready')
 
-  // Set default MMap file path
+  // Set default MMap file path and check plugin version
   useEffect(() => {
     const setupMmapFilePath = async () => {
       try {
-        // On Android, we can use the app's data directory
-        if (typeof window !== 'undefined' && (window as any).Capacitor?.getPlatform() === 'android') {
-          // Use a safe path for Android
+        const platform = typeof window !== 'undefined' ? (window as any).Capacitor?.getPlatform() : 'unknown'
+        if (platform === 'android') {
           setMmapFilePath('/data/data/com.example.app/files/vector_store.mmap')
           console.log('MMap file path set to Android data directory')
+        } else if (platform === 'ios') {
+          setMmapFilePath('vector_store.mmap')
+          console.log('MMap file path set to iOS relative path (will be resolved to Documents directory)')
         } else {
-          // For web and other platforms, use a relative path
           setMmapFilePath('vector_store.mmap')
           console.log('MMap file path set to relative path')
         }
       } catch (error) {
         console.error('Error setting up MMap file path:', error)
-        // Fallback to a safe path
-        setMmapFilePath('/data/data/com.example.app/files/vector_store.mmap')
+        setMmapFilePath('vector_store.mmap')
+      }
+    }
+    
+    const checkPluginVersion = async () => {
+      try {
+        console.log('Checking plugin version...')
+        const versionResult = await LlamaMobileVD.getVersion()
+        console.log('Plugin version:', versionResult.version)
+        // Log the version number to the console
+        console.log('🚀 Plugin version:', versionResult.version)
+        // Also log the platform
+        console.log('🚀 Platform:', typeof window !== 'undefined' ? (window as any).Capacitor?.getPlatform() : 'unknown')
+        if (versionResult.version === '1.0.0-web') {
+          updateStatus('WARNING: Using web fallback implementation, not native iOS!')
+        } else {
+          updateStatus(`SUCCESS: Using native iOS implementation! Version: ${versionResult.version}`)
+        }
+      } catch (error) {
+        console.error('Error checking plugin version:', error)
+        updateStatus(`Error checking plugin version: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
     }
     
     setupMmapFilePath()
+    checkPluginVersion()
   }, [])
 
   // Helper functions
