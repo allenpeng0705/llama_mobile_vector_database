@@ -30,19 +30,30 @@ This directory contains all the build scripts for the llama_mobile_vd project. T
 
 ## Available Scripts
 
+### Bash Scripts (macOS/Linux)
+
 | Script Name | Description |
 |-------------|-------------|
 | `build-lib.sh` | Builds the core QuiverDB wrapper library |
 | `build-ios.sh` | Builds the iOS SDK |
 | `build-android.sh` | Builds the Android SDK (Kotlin/Java consolidated) |
 | `build-flutter-SDK.sh` | Builds the Flutter SDK |
-| `build-rn-SDK.sh` | Builds the React Native SDK |
 | `build-capacitor-plugin.sh` | Builds the Capacitor plugin |
-| `build-all.sh` | Builds all SDKs and the core library |
+|
+
+### Batch Files (Windows)
+
+| Script Name | Description |
+|-------------|-------------|
+| `build-lib.bat` | Builds the core QuiverDB wrapper library |
+| `build-android-lib.bat` | Builds the Android native libraries |
+| `build-android-SDK.bat` | Builds the Android SDK |
+| `build-flutter-SDK.bat` | Builds the Flutter SDK |
+| `build-capacitor-plugin.bat` | Builds the Capacitor plugin |
 
 ## Core Library Build Scripts
 
-### build-lib.sh
+### build-lib.sh (macOS/Linux)
 
 Builds the core QuiverDB wrapper library with both static and shared library variants.
 
@@ -72,20 +83,47 @@ Builds the core QuiverDB wrapper library with both static and shared library var
 ./build-lib.sh -j 8 --skip-tests
 ```
 
+### build-lib.bat (Windows)
+
+Builds the core QuiverDB wrapper library using Visual Studio or Ninja.
+
+**Usage:**
+```cmd
+build-lib.bat
+```
+
+**Features:**
+- Uses Visual Studio 2022 as default generator
+- Auto-detects number of CPU cores
+- Supports both Debug and Release builds
+- Runs tests if available
+- Loads configuration from config.env
+
+**Examples:**
+```cmd
+REM Build with default settings (Release)
+build-lib.bat
+
+REM Build with Debug configuration
+REM Set BUILD_TYPE=Debug in config.env before running
+```
+
 ### Environment Variables
 
-The build-lib.sh script can be configured using the following environment variables:
+The core library build scripts can be configured using the following environment variables:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `CMAKE_GENERATOR` | CMake generator to use | Xcode (macOS), Ninja (Linux/Windows) |
+| `CMAKE_GENERATOR` | CMake generator to use | Xcode (macOS), Ninja (Linux), Visual Studio 2022 (Windows) |
 | `CMAKE_BUILD_TYPE` | Build type | Release |
 | `BUILD_DIR` | Build directory | `../build-lib` |
 | `NUM_CORES` | Number of parallel jobs | Auto-detected |
 
 ## Platform SDK Build Scripts
 
-### build-ios.sh
+### iOS SDK
+
+#### build-ios.sh (macOS only)
 
 Builds the iOS SDK for iPhone and Simulator targets.
 
@@ -101,7 +139,9 @@ Builds the iOS SDK for iPhone and Simulator targets.
 - `-v, --verbose`: Enable verbose output
 - `-h, --help`: Display this help message
 
-### build-android.sh
+### Android SDK
+
+#### build-android.sh (macOS/Linux)
 
 Builds the Android SDK for both Kotlin and Java variants.
 
@@ -116,7 +156,39 @@ Builds the Android SDK for both Kotlin and Java variants.
 - `-v, --verbose`: Enable verbose output
 - `-h, --help`: Display this help message
 
-### build-flutter-SDK.sh
+#### build-android-lib.bat (Windows)
+
+Builds the Android native libraries for multiple architectures.
+
+**Usage:**
+```cmd
+build-android-lib.bat
+```
+
+**Features:**
+- Auto-detects Android NDK path
+- Builds for arm64-v8a and x86_64
+- Uses Android toolchain for CMake
+- Copies built libraries to android/lib directory
+
+#### build-android-SDK.bat (Windows)
+
+Builds the Android SDK using Gradle.
+
+**Usage:**
+```cmd
+build-android-SDK.bat
+```
+
+**Features:**
+- Builds Android library first
+- Supports both Debug and Release builds
+- Sets up Android SDK and NDK paths
+- Uses Gradle for Android build
+
+### Flutter SDK
+
+#### build-flutter-SDK.sh (macOS/Linux)
 
 Builds the Flutter SDK for all supported platforms.
 
@@ -130,22 +202,26 @@ Builds the Flutter SDK for all supported platforms.
 - `-v, --verbose`: Enable verbose output
 - `-h, --help`: Display this help message
 
-### build-rn-SDK.sh
+#### build-flutter-SDK.bat (Windows)
 
-Builds the React Native SDK for iOS and Android.
+Builds the Flutter SDK for Android.
 
 **Usage:**
-```bash
-./build-rn-SDK.sh [OPTIONS]
+```cmd
+build-flutter-SDK.bat
 ```
 
-**Options:**
-- `-t, --type <build_type>`: Build type: Debug, Release (default: Release)
-- `-p, --platform <platform>`: Specific platform to build for (ios, android, all)
-- `-v, --verbose`: Enable verbose output
-- `-h, --help`: Display this help message
+**Features:**
+- Verifies Flutter SDK installation
+- Builds Android library first
+- Supports clean builds
+- Builds Flutter AAR for Android
 
-### build-capacitor-plugin.sh
+
+
+### Capacitor Plugin
+
+#### build-capacitor-plugin.sh (macOS/Linux)
 
 Builds the Capacitor plugin for web, iOS, and Android.
 
@@ -159,9 +235,25 @@ Builds the Capacitor plugin for web, iOS, and Android.
 - `-v, --verbose`: Enable verbose output
 - `-h, --help`: Display this help message
 
+#### build-capacitor-plugin.bat (Windows)
+
+Builds the Capacitor plugin for iOS and Android.
+
+**Usage:**
+```cmd
+build-capacitor-plugin.bat
+```
+
+**Features:**
+- Verifies and copies iOS framework (multiple sources)
+- Verifies and copies Android JNI libraries
+- Builds TypeScript code
+- Verifies build artifacts
+- Provides detailed build summary
+
 ## Master Build Script
 
-### build-all.sh
+### build-all.sh (macOS/Linux)
 
 Builds all SDKs and the core library in sequence.
 
@@ -175,6 +267,25 @@ Builds all SDKs and the core library in sequence.
 - `-s, --skip-tests`: Skip running tests for all builds
 - `-v, --verbose`: Enable verbose output for all scripts
 - `-h, --help`: Display this help message
+
+### Windows Master Build
+
+On Windows, you can build all components by running the batch files in sequence:
+
+```cmd
+REM Build core library
+scripts\build-lib.bat
+
+REM Build Android library and SDK
+scripts\build-android-lib.bat
+scripts\build-android-SDK.bat
+
+REM Build Flutter SDK
+scripts\build-flutter-SDK.bat
+
+REM Build Capacitor plugin
+scripts\build-capacitor-plugin.bat
+```
 
 ## Centralized Configuration (config.env)
 
@@ -222,12 +333,6 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/adoptopenjdk-11.jdk/Contents/Home
 FLUTTER_SDK_PATH=
 FORCE_REBUILD=false
 CLEAN_BUILD=false
-
-# --- React Native SDK Build Settings ---
-[react-native]
-RN_CLI_PATH=
-RN_ANDROID_VARIANT=release
-RN_IOS_CONFIGURATION=Release
 
 # --- Capacitor Plugin Build Settings ---
 [capacitor]
@@ -286,7 +391,6 @@ Most configuration values can be set either as environment variables or in the `
 | `BUILD_TYPE` | Build type (Debug/Release) | All builds | `[core]` |
 | `CMAKE_PATH` | Path to CMake executable | All builds | `[core]` |
 | `FLUTTER_PATH` | Path to Flutter SDK | Flutter builds | `[flutter]` |
-| `REACT_NATIVE_PATH` | Path to React Native CLI | React Native builds | `[react-native]` |
 | `CAPACITOR_PATH` | Path to Capacitor CLI | Capacitor builds | `[capacitor]` |
 
 ### Environment Variable Reference
@@ -299,7 +403,6 @@ These environment variables can be set to customize the build process, but most 
 | `MAKE_PATH` | Path to make executable | System path |
 | `NINJA_PATH` | Path to Ninja executable | System path |
 | `FLUTTER_PATH` | Path to Flutter SDK | System path |
-| `REACT_NATIVE_PATH` | Path to React Native CLI | System path |
 | `CAPACITOR_PATH` | Path to Capacitor CLI | System path |
 
 ## Platform-Specific Requirements
@@ -314,7 +417,7 @@ To build on macOS, you need to have the following installed:
 - **Ninja** - `brew install ninja`
 - **Android Studio** - For Android builds
 - **Flutter SDK** (optional) - For Flutter SDK builds
-- **Node.js** (optional) - For React Native and Capacitor builds
+- **Node.js** (optional) - For Capacitor builds
 
 ### Windows
 
@@ -322,10 +425,39 @@ To build on Windows, you need to have the following installed:
 
 - **Visual Studio** (2019 or later) with C++ workload - Required for Windows builds
 - **CMake** (3.20 or later) - Download from https://cmake.org/download/
-- **Git Bash** or **WSL** - For running shell scripts
+- **Git Bash** or **WSL** (optional) - For running shell scripts
 - **Android Studio** - For Android builds
 - **Flutter SDK** (optional) - For Flutter SDK builds
-- **Node.js** (optional) - For React Native and Capacitor builds
+- **Node.js** (optional) - For Capacitor builds
+
+#### Using Windows Batch Files
+
+Windows users can now use the native batch files (.bat) instead of shell scripts:
+
+1. **Run batch files directly** from the Command Prompt or PowerShell
+2. **No need for Git Bash/WSL** for basic builds
+3. **Same functionality** as bash scripts
+4. **Leverage config.env** for centralized configuration
+
+**Example:**
+```cmd
+REM Build core library
+scripts\build-lib.bat
+
+REM Build Android SDK
+scripts\build-android-SDK.bat
+
+REM Build Capacitor plugin
+scripts\build-capacitor-plugin.bat
+```
+
+#### Windows-Specific Notes
+
+- **Path Format**: Use backslashes for paths (e.g., `C:\Android\Sdk`)
+- **Environment Variables**: Set in System Properties → Advanced → Environment Variables
+- **Visual Studio**: Must have "Desktop development with C++" workload installed
+- **CMake**: Add to PATH during installation
+- **Android Studio**: Install NDK via SDK Manager
 
 ### Linux
 
@@ -336,7 +468,7 @@ To build on Linux, you need to have the following installed:
 - **Ninja** - `apt install ninja-build` (Debian/Ubuntu)
 - **Android Studio** - For Android builds
 - **Flutter SDK** (optional) - For Flutter SDK builds
-- **Node.js** (optional) - For React Native and Capacitor builds
+- **Node.js** (optional) - For Capacitor builds
 
 ## Troubleshooting
 
@@ -371,10 +503,50 @@ To build on Linux, you need to have the following installed:
 
 When adding new build scripts or modifying existing ones, please follow these guidelines:
 
-1. **Cross-platform compatibility**: Write scripts that work on macOS, Linux, and Windows
-2. **Consistent interface**: Use similar command-line options across all scripts
-3. **Error handling**: Provide clear error messages and exit codes
-4. **Documentation**: Update this README.md file with any changes
-5. **Testing**: Test scripts on all supported platforms
+1. **Cross-platform compatibility**: 
+   - Write bash scripts for macOS/Linux
+   - Create equivalent batch files for Windows
+   - Maintain consistent functionality across platforms
+   - Test scripts on all supported platforms
+
+2. **Consistent interface**: 
+   - Use similar command-line options across all scripts
+   - Maintain consistent configuration through config.env
+   - Provide similar output and error messages
+
+3. **Error handling**: 
+   - Provide clear error messages
+   - Use proper exit codes for failure conditions
+   - Include comprehensive error checking
+
+4. **Documentation**: 
+   - Update this README.md file with any changes
+   - Document both bash scripts and batch files
+   - Include usage examples for all platforms
+
+5. **Testing**: 
+   - Test scripts on macOS, Linux, and Windows
+   - Verify that config.env works correctly
+   - Test both success and failure scenarios
+
+### Adding New Scripts
+
+When adding new build scripts:
+
+1. **Create both bash and batch versions** for cross-platform support
+2. **Use config.env** for configuration instead of hardcoding paths
+3. **Follow existing patterns** from other scripts
+4. **Update README.md** with documentation for the new scripts
+5. **Test thoroughly** on all supported platforms
+
+### Windows Batch File Guidelines
+
+When creating Windows batch files:
+
+1. **Use proper batch file syntax** (`.bat` extension)
+2. **Handle Windows paths correctly** (backslashes)
+3. **Use `setlocal enabledelayedexpansion`** for proper variable handling
+4. **Provide clear error messages** in Windows format
+5. **Test in both Command Prompt and PowerShell**
 
 For more information on contributing to the project, please see the main README.md file in the project root.
