@@ -84,6 +84,75 @@ if [ ! -d "$BUNDLE_DIR/Sources/$FRAMEWORK_NAME" ]; then
     mkdir -p "$BUNDLE_DIR/Sources/$FRAMEWORK_NAME"
 fi
 
+# Copy the Swift wrapper file from the main SDK directory
+if [ -f "$SDK_DIR/Sources/$FRAMEWORK_NAME/$FRAMEWORK_NAME.swift" ]; then
+    log_message "INFO" "Copying Swift wrapper from main SDK directory..."
+    cp "$SDK_DIR/Sources/$FRAMEWORK_NAME/$FRAMEWORK_NAME.swift" "$BUNDLE_DIR/Sources/$FRAMEWORK_NAME/$FRAMEWORK_NAME.swift"
+    log_message "SUCCESS" "Swift wrapper copied successfully"
+else
+    log_message "ERROR" "Swift wrapper not found at $SDK_DIR/Sources/$FRAMEWORK_NAME/$FRAMEWORK_NAME.swift"
+    exit 1
+fi
+
+# Create Package.swift for the Bundle SDK
+log_message "INFO" "Creating Package.swift for Bundle SDK..."
+cat > "$BUNDLE_DIR/Package.swift" << 'EOF'
+// swift-tools-version: 5.7
+// The swift-tools-version declares the minimum version of Swift required to build this package.
+
+import PackageDescription
+
+let package = Package(
+    name: "LlamaMobileVD",
+    platforms: [
+        .iOS(.v13)
+    ],
+    products: [
+        // Products define the executables and libraries a package produces, and make them visible to other packages.
+        .library(
+            name: "LlamaMobileVD",
+            targets: ["LlamaMobileVD"])
+    ],
+    dependencies: [
+        // Dependencies declare other packages that this package depends on.
+        // .package(url: /* package url */, from: "1.0.0"),
+    ],
+    targets: [
+        // Targets are the basic building blocks of a package. A target can define a module or a test suite.
+        // Targets can depend on other targets in this package, and on products in packages this package depends on.
+        .target(
+            name: "LlamaMobileVD",
+            dependencies: ["llama_mobile_vd"],
+            path: "Sources/LlamaMobileVD"
+        ),
+        .binaryTarget(
+            name: "llama_mobile_vd",
+            path: "llama_mobile_vd.xcframework"
+        ),
+        .testTarget(
+            name: "LlamaMobileVDTests",
+            dependencies: ["LlamaMobileVD"],
+            path: "Tests/LlamaMobileVDTests"
+        )
+    ]
+)
+EOF
+log_message "SUCCESS" "Package.swift created successfully"
+
+# Copy Tests directory if it exists
+if [ -d "$SDK_DIR/Tests" ]; then
+    log_message "INFO" "Copying Tests directory..."
+    cp -R "$SDK_DIR/Tests" "$BUNDLE_DIR/"
+    log_message "SUCCESS" "Tests directory copied successfully"
+fi
+
+# Copy README.md if it exists
+if [ -f "$SDK_DIR/README.md" ]; then
+    log_message "INFO" "Copying README.md..."
+    cp "$SDK_DIR/README.md" "$BUNDLE_DIR/"
+    log_message "SUCCESS" "README.md copied successfully"
+fi
+
 # Ensure the framework name is correct in imports
 if [ -f "$BUNDLE_DIR/Sources/$FRAMEWORK_NAME/$FRAMEWORK_NAME.swift" ]; then
     log_message "INFO" "Fixing framework import in Swift wrapper..."

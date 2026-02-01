@@ -10,7 +10,6 @@ targets:
         DEVELOPMENT_TEAM: ""
         PRODUCT_BUNDLE_IDENTIFIER: "com.llamamobile.iOSSdkExample"
         FRAMEWORK_SEARCH_PATHS: ["../../llama_mobile_vd-ios-SDK/LlamaMobileVDBundle"]
-        HEADER_SEARCH_PATHS: ["../../llama_mobile_vd-ios-SDK/LlamaMobileVDBundle/LlamaMobileVDBundle.xcframework/ios-arm64_x86_64-simulator/llama_mobile_vd.framework/Headers"]
     entitlements:
       path: iOSSDKExample.entitlements
     info:
@@ -19,6 +18,6 @@ targets:
         UILaunchStoryboardName: LaunchScreen
         UIViewControllerBasedStatusBarAppearance: true
     dependencies:
-      - framework: "../../llama_mobile_vd-ios-SDK/LlamaMobileVDBundle/LlamaMobileVDBundle.xcframework/ios-arm64_x86_64-simulator/llama_mobile_vd.framework"
+      - framework: "../../llama_mobile_vd-ios-SDK/LlamaMobileVDBundle/llama_mobile_vd.xcframework"
         embed: true
         codeSign: true

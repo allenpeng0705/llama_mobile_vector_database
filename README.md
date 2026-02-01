@@ -64,9 +64,20 @@ llama_mobile_vd provides SDKs for all major mobile and web platforms:
 
 **Note**: React Native SDK is not currently implemented. Support for other platforms may be added in future releases.
 
-## Core Features
+### Core Features
 
 Built on QuiverDB's high-performance foundation, all SDKs provide consistent API with the following core features:
+
+#### Async API Support
+
+The following SDKs include **asynchronous API methods** for non-blocking operations, allowing you to perform vector database operations without freezing the UI thread:
+
+- **Flutter SDK**: Async methods with `async` suffix (e.g., `createAsync`, `addVectorAsync`)
+- **Capacitor Plugin**: Async methods with `Async` suffix (e.g., `createVectorStoreAsync`, `addVectorsAsync`)
+- **Android SDK**: Kotlin extension functions with `Async` suffix (e.g., `createVectorStoreAsync`, `addVectorAsync`)
+- **iOS SDK**: Async methods with `Async` suffix (e.g., `addVectorAsync`, `searchAsync`)
+
+Async methods run in background threads/queues and return results on the main thread, making them ideal for use in UI applications.
 
 ### Performance
 - **SIMD-optimized**: ARM NEON, x86 AVX2 (~100ns for 768d vectors)
@@ -466,6 +477,30 @@ print('Search results: $searchResult');
 await LlamaMobileVD.releaseVectorStore(storeId);
 ```
 
+#### Using Async API
+
+```dart
+import 'package:llama_mobile_vd/llama_mobile_vd.dart';
+
+// Create a vector store asynchronously
+final vectorStore = await VectorStore.createAsync(128, DistanceMetric.cosine);
+
+// Add vectors asynchronously
+final vector = List.filled(128, 0.0);
+await vectorStore.addVectorAsync(1, vector);
+
+// Search asynchronously
+final query = List.filled(128, 0.0);
+final searchResults = await vectorStore.searchAsync(query, 5);
+print('Search results: $searchResults');
+
+// Clear asynchronously
+await vectorStore.clearAsync();
+
+// Destroy when done
+await vectorStore.destroy();
+```
+
 ### Capacitor Plugin
 
 ```typescript
@@ -499,6 +534,43 @@ console.log('Search results:', {
 // Get vector count
 const { count } = await LlamaMobileVD.getVectorCount({ storeId });
 console.log('Vector count:', count);
+
+// Clean up
+await LlamaMobileVD.destroyVectorStore({ storeId });
+```
+
+#### Using Async API
+
+```typescript
+import { LlamaMobileVD } from 'llama-mobile-vd-capacitor-plugin';
+
+// Create a vector store asynchronously
+const { storeId } = await LlamaMobileVD.createVectorStoreAsync({
+  dimension: 128,
+  metric: 'cosine'
+});
+
+// Add vectors asynchronously
+await LlamaMobileVD.addVectorsAsync({
+  storeId,
+  vectors: [Array(128).fill(0.0)],
+  ids: [1]
+});
+
+// Search asynchronously
+const queryVector = Array(128).fill(0.0);
+const { ids, distances } = await LlamaMobileVD.searchAsync({
+  storeId,
+  queryVector,
+  k: 5
+});
+console.log('Search results:', {
+  ids,
+  distances
+});
+
+// Clear asynchronously
+await LlamaMobileVD.clearVectorStoreAsync({ storeId });
 
 // Clean up
 await LlamaMobileVD.destroyVectorStore({ storeId });
@@ -637,6 +709,9 @@ This example highlights the power of memory-mapped storage for large datasets.
 | `getCount` | Get count of vectors | None | `number` |
 | `clear` | Clear all vectors | None | `void` |
 | `close` / `deinit` | Release resources | None | `void` |
+| `addVectorAsync` (Flutter) / `addVectorsAsync` (Capacitor) | Add vector(s) asynchronously | `vector: number[]`, `id: number` (Flutter)<br>`vectors: number[][]`, `ids: number[]` (Capacitor) | `Future<void>` (Flutter)<br>`Promise<void>` (Capacitor) |
+| `searchAsync` | Search for nearest neighbors asynchronously | `query: number[]`, `k: number` | `Future<SearchResult[]>` (Flutter)<br>`Promise<{ids: number[], distances: number[]}>` (Capacitor) |
+| `clearAsync` | Clear all vectors asynchronously | None | `Future<void>` (Flutter)<br>`Promise<void>` (Capacitor) |
 
 ### HNSWIndex Class
 
@@ -648,6 +723,9 @@ This example highlights the power of memory-mapped storage for large datasets.
 | `getCount` | Get count of vectors | None | `number` |
 | `clear` | Clear all vectors | None | `void` |
 | `close` / `deinit` | Release resources | None | `void` |
+| `addVectorAsync` (Flutter) / `addVectorsAsync` (Capacitor) | Add vector(s) asynchronously | `vector: number[]`, `id: number` (Flutter)<br>`vectors: number[][]`, `ids: number[]` (Capacitor) | `Future<void>` (Flutter)<br>`Promise<void>` (Capacitor) |
+| `searchAsync` | Search for nearest neighbors asynchronously | `query: number[]`, `k: number`, `efSearch: number` (optional) | `Future<SearchResult[]>` (Flutter)<br>`Promise<{ids: number[], distances: number[]}>` (Capacitor) |
+| `clearAsync` | Clear all vectors asynchronously | None | `Future<void>` (Flutter)<br>`Promise<void>` (Capacitor) |
 
 ### Distance Metrics
 

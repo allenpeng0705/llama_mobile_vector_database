@@ -25,6 +25,7 @@ class MainViewController: UIViewController {
     private var hnswEfConstruction: Int = 200
     private var searchK: Int = 5
     private var efSearch: Int = 50
+    private var useAsync: Bool = false
     
     // MMap file path
     private var mmapFilePath: String
@@ -55,6 +56,8 @@ class MainViewController: UIViewController {
     private let searchKLabel = UILabel()
     private let efSearchSlider = UISlider()
     private let efSearchLabel = UILabel()
+    private let asyncSwitch = UISwitch()
+    private let asyncLabel = UILabel()
     
     private let createVectorStoreButton = UIButton(type: .system)
     private let addVectorsToStoreButton = UIButton(type: .system)
@@ -125,7 +128,7 @@ class MainViewController: UIViewController {
         statusLabel.clipsToBounds = true
         statusLabel.textAlignment = .center
         statusLabel.font = UIFont.systemFont(ofSize: 16)
-        statusLabel.textColor = .darkText
+        statusLabel.textColor = .darkGray
         
         contentView.addSubview(statusLabel)
         NSLayoutConstraint.activate([
@@ -151,6 +154,7 @@ class MainViewController: UIViewController {
         // Dimension slider
         dimensionLabel.text = "Vector Dimension: \(dimension)"
         dimensionLabel.font = UIFont.systemFont(ofSize: 14)
+        dimensionLabel.textColor = .black
         dimensionLabel.translatesAutoresizingMaskIntoConstraints = false
         
         contentView.addSubview(dimensionLabel)
@@ -205,6 +209,7 @@ class MainViewController: UIViewController {
         // HNSW M slider
         hnswMLabel.text = "M (Connections per node): \(hnswM)"
         hnswMLabel.font = UIFont.systemFont(ofSize: 14)
+        hnswMLabel.textColor = .black
         hnswMLabel.translatesAutoresizingMaskIntoConstraints = false
         
         contentView.addSubview(hnswMLabel)
@@ -233,6 +238,7 @@ class MainViewController: UIViewController {
         // HNSW efConstruction slider
         hnswEfConstructionLabel.text = "efConstruction: \(hnswEfConstruction)"
         hnswEfConstructionLabel.font = UIFont.systemFont(ofSize: 14)
+        hnswEfConstructionLabel.textColor = .black
         hnswEfConstructionLabel.translatesAutoresizingMaskIntoConstraints = false
         
         contentView.addSubview(hnswEfConstructionLabel)
@@ -261,6 +267,7 @@ class MainViewController: UIViewController {
         // Search K slider
         searchKLabel.text = "Search k: \(searchK)"
         searchKLabel.font = UIFont.systemFont(ofSize: 14)
+        searchKLabel.textColor = .black
         searchKLabel.translatesAutoresizingMaskIntoConstraints = false
         
         contentView.addSubview(searchKLabel)
@@ -289,6 +296,7 @@ class MainViewController: UIViewController {
         // efSearch slider
         efSearchLabel.text = "HNSW efSearch: \(efSearch)"
         efSearchLabel.font = UIFont.systemFont(ofSize: 14)
+        efSearchLabel.textColor = .black
         efSearchLabel.translatesAutoresizingMaskIntoConstraints = false
         
         contentView.addSubview(efSearchLabel)
@@ -310,6 +318,31 @@ class MainViewController: UIViewController {
             efSearchSlider.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
             efSearchSlider.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
             efSearchSlider.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding)
+        ])
+        
+        currentY += 40
+        
+        // Async switch
+        asyncLabel.text = "Use Async API"
+        asyncLabel.font = UIFont.systemFont(ofSize: 16)
+        asyncLabel.textColor = .black
+        asyncLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        contentView.addSubview(asyncLabel)
+        NSLayoutConstraint.activate([
+            asyncLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
+            asyncLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding)
+        ])
+        
+        asyncSwitch.isOn = useAsync
+        asyncSwitch.addTarget(self, action: #selector(asyncSwitchChanged(_:)), for: .valueChanged)
+        asyncSwitch.translatesAutoresizingMaskIntoConstraints = false
+        
+        contentView.addSubview(asyncSwitch)
+        NSLayoutConstraint.activate([
+            asyncSwitch.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
+            asyncSwitch.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
+            asyncSwitch.centerYAnchor.constraint(equalTo: asyncLabel.centerYAnchor)
         ])
         
         currentY += sectionSpacing
@@ -398,6 +431,7 @@ class MainViewController: UIViewController {
         // VectorStore info
         vectorStoreInfoLabel.numberOfLines = 0
         vectorStoreInfoLabel.font = UIFont.systemFont(ofSize: 14)
+        vectorStoreInfoLabel.textColor = .black
         vectorStoreInfoLabel.text = "VectorStore ID: None\nVector count: 0"
         vectorStoreInfoLabel.translatesAutoresizingMaskIntoConstraints = false
         
@@ -415,6 +449,7 @@ class MainViewController: UIViewController {
         vectorStoreResultsTableView.register(UITableViewCell.self, forCellReuseIdentifier: "ResultCell")
         vectorStoreResultsTableView.translatesAutoresizingMaskIntoConstraints = false
         vectorStoreResultsTableView.isHidden = true
+        vectorStoreResultsTableView.backgroundColor = .white
         
         contentView.addSubview(vectorStoreResultsTableView)
         NSLayoutConstraint.activate([
@@ -510,6 +545,7 @@ class MainViewController: UIViewController {
         // HNSWIndex info
         hnswIndexInfoLabel.numberOfLines = 0
         hnswIndexInfoLabel.font = UIFont.systemFont(ofSize: 14)
+        hnswIndexInfoLabel.textColor = .black
         hnswIndexInfoLabel.text = "HNSWIndex ID: None\nVector count: 0"
         hnswIndexInfoLabel.translatesAutoresizingMaskIntoConstraints = false
         
@@ -527,6 +563,7 @@ class MainViewController: UIViewController {
         hnswIndexResultsTableView.register(UITableViewCell.self, forCellReuseIdentifier: "ResultCell")
         hnswIndexResultsTableView.translatesAutoresizingMaskIntoConstraints = false
         hnswIndexResultsTableView.isHidden = true
+        hnswIndexResultsTableView.backgroundColor = .white
         
         contentView.addSubview(hnswIndexResultsTableView)
         NSLayoutConstraint.activate([
@@ -625,6 +662,7 @@ class MainViewController: UIViewController {
         // MMapVectorStore info
         mmapVectorStoreInfoLabel.numberOfLines = 0
         mmapVectorStoreInfoLabel.font = UIFont.systemFont(ofSize: 14)
+        mmapVectorStoreInfoLabel.textColor = .black
         mmapVectorStoreInfoLabel.text = "MMapVectorStore Status: None\nVector count: 0\nDimension: 0\nMetric:"
         mmapVectorStoreInfoLabel.translatesAutoresizingMaskIntoConstraints = false
         
@@ -642,6 +680,7 @@ class MainViewController: UIViewController {
         mmapVectorStoreResultsTableView.register(UITableViewCell.self, forCellReuseIdentifier: "ResultCell")
         mmapVectorStoreResultsTableView.translatesAutoresizingMaskIntoConstraints = false
         mmapVectorStoreResultsTableView.isHidden = true
+        mmapVectorStoreResultsTableView.backgroundColor = .white
         
         contentView.addSubview(mmapVectorStoreResultsTableView)
         NSLayoutConstraint.activate([
@@ -658,6 +697,7 @@ class MainViewController: UIViewController {
         let label = UILabel()
         label.text = title
         label.font = UIFont.systemFont(ofSize: 20, weight: .bold)
+        label.textColor = .black
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }
@@ -725,6 +765,11 @@ class MainViewController: UIViewController {
         efSearchLabel.text = "HNSW efSearch: \(efSearch)"
     }
     
+    @objc private func asyncSwitchChanged(_ `switch`: UISwitch) {
+        useAsync = `switch`.isOn
+        updateStatus(message: useAsync ? "Async API enabled" : "Sync API enabled")
+    }
+    
     // VectorStore operations
     @objc private func createVectorStoreButtonTapped() {
         updateStatus(message: "Creating VectorStore...")
@@ -751,23 +796,46 @@ class MainViewController: UIViewController {
         
         updateStatus(message: "Adding 100 vectors to VectorStore...")
         
-        DispatchQueue.global(qos: .userInitiated).async {
-            do {
-                for i in 0..<100 {
-                    let vector = self.createRandomVector(dimension: self.dimension)
-                    try vectorStore.addVector(id: UInt64(i + 1), vector: vector)
+        if useAsync {
+            Task {
+                do {
+                    for i in 0..<100 {
+                        let vector = createRandomVector(dimension: dimension)
+                        try await vectorStore.addVectorAsync(id: UInt64(i + 1), vector: vector)
+                    }
+                    
+                    let count = try await vectorStore.countAsync()
+                    
+                    await MainActor.run {
+                        vectorStoreCount = count
+                        updateVectorStoreInfo()
+                        updateStatus(message: "Added 100 vectors to VectorStore (Async)")
+                    }
+                } catch {
+                    await MainActor.run {
+                        updateStatus(message: "Error adding vectors to VectorStore: \(error.localizedDescription)")
+                    }
                 }
-                
-                let count = try vectorStore.count()
-                
-                DispatchQueue.main.async {
-                    self.vectorStoreCount = count
-                    self.updateVectorStoreInfo()
-                    self.updateStatus(message: "Added 100 vectors to VectorStore")
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    self.updateStatus(message: "Error adding vectors to VectorStore: \(error.localizedDescription)")
+            }
+        } else {
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    for i in 0..<100 {
+                        let vector = self.createRandomVector(dimension: self.dimension)
+                        try vectorStore.addVector(id: UInt64(i + 1), vector: vector)
+                    }
+                    
+                    let count = try vectorStore.count()
+                    
+                    DispatchQueue.main.async {
+                        self.vectorStoreCount = count
+                        self.updateVectorStoreInfo()
+                        self.updateStatus(message: "Added 100 vectors to VectorStore (Sync)")
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        self.updateStatus(message: "Error adding vectors to VectorStore: \(error.localizedDescription)")
+                    }
                 }
             }
         }
@@ -786,20 +854,40 @@ class MainViewController: UIViewController {
         
         updateStatus(message: "Searching VectorStore...")
         
-        DispatchQueue.global(qos: .userInitiated).async {
-            do {
-                let queryVector = self.createRandomVector(dimension: self.dimension)
-                let results = try vectorStore.search(query: queryVector, k: self.searchK)
-                
-                DispatchQueue.main.async {
-                    self.vectorStoreResults = results
-                    self.vectorStoreResultsTableView.reloadData()
-                    self.vectorStoreResultsTableView.isHidden = false
-                    self.updateStatus(message: "Search completed successfully")
+        if useAsync {
+            Task {
+                do {
+                    let queryVector = createRandomVector(dimension: dimension)
+                    let results = try await vectorStore.searchAsync(query: queryVector, k: searchK)
+                    
+                    await MainActor.run {
+                        vectorStoreResults = results
+                        vectorStoreResultsTableView.reloadData()
+                        vectorStoreResultsTableView.isHidden = false
+                        updateStatus(message: "Search completed successfully (Async)")
+                    }
+                } catch {
+                    await MainActor.run {
+                        updateStatus(message: "Error searching VectorStore: \(error.localizedDescription)")
+                    }
                 }
-            } catch {
-                DispatchQueue.main.async {
-                    self.updateStatus(message: "Error searching VectorStore: \(error.localizedDescription)")
+            }
+        } else {
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    let queryVector = self.createRandomVector(dimension: self.dimension)
+                    let results = try vectorStore.search(query: queryVector, k: self.searchK)
+                    
+                    DispatchQueue.main.async {
+                        self.vectorStoreResults = results
+                        self.vectorStoreResultsTableView.reloadData()
+                        self.vectorStoreResultsTableView.isHidden = false
+                        self.updateStatus(message: "Search completed successfully (Sync)")
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        self.updateStatus(message: "Error searching VectorStore: \(error.localizedDescription)")
+                    }
                 }
             }
         }
@@ -813,17 +901,38 @@ class MainViewController: UIViewController {
         
         updateStatus(message: "Clearing VectorStore...")
         
-        do {
-            try vectorStore.clear()
-            
-            vectorStoreCount = 0
-            vectorStoreResults.removeAll()
-            vectorStoreResultsTableView.reloadData()
-            vectorStoreResultsTableView.isHidden = true
-            updateVectorStoreInfo()
-            updateStatus(message: "VectorStore cleared successfully")
-        } catch {
-            updateStatus(message: "Error clearing VectorStore: \(error.localizedDescription)")
+        if useAsync {
+            Task {
+                do {
+                    try await vectorStore.clearAsync()
+                    
+                    await MainActor.run {
+                        vectorStoreCount = 0
+                        vectorStoreResults.removeAll()
+                        vectorStoreResultsTableView.reloadData()
+                        vectorStoreResultsTableView.isHidden = true
+                        updateVectorStoreInfo()
+                        updateStatus(message: "VectorStore cleared successfully (Async)")
+                    }
+                } catch {
+                    await MainActor.run {
+                        updateStatus(message: "Error clearing VectorStore: \(error.localizedDescription)")
+                    }
+                }
+            }
+        } else {
+            do {
+                try vectorStore.clear()
+                
+                vectorStoreCount = 0
+                vectorStoreResults.removeAll()
+                vectorStoreResultsTableView.reloadData()
+                vectorStoreResultsTableView.isHidden = true
+                updateVectorStoreInfo()
+                updateStatus(message: "VectorStore cleared successfully (Sync)")
+            } catch {
+                updateStatus(message: "Error clearing VectorStore: \(error.localizedDescription)")
+            }
         }
     }
     
@@ -877,23 +986,46 @@ class MainViewController: UIViewController {
         
         updateStatus(message: "Adding 100 vectors to HNSWIndex...")
         
-        DispatchQueue.global(qos: .userInitiated).async {
-            do {
-                for i in 0..<100 {
-                    let vector = self.createRandomVector(dimension: self.dimension)
-                    try hnswIndex.addVector(id: UInt64(i + 1), vector: vector)
+        if useAsync {
+            Task {
+                do {
+                    for i in 0..<100 {
+                        let vector = createRandomVector(dimension: dimension)
+                        try await hnswIndex.addVectorAsync(id: UInt64(i + 1), vector: vector)
+                    }
+                    
+                    let count = try await hnswIndex.countAsync()
+                    
+                    await MainActor.run {
+                        hnswIndexCount = count
+                        updateHNSWIndexInfo()
+                        updateStatus(message: "Added 100 vectors to HNSWIndex (Async)")
+                    }
+                } catch {
+                    await MainActor.run {
+                        updateStatus(message: "Error adding vectors to HNSWIndex: \(error.localizedDescription)")
+                    }
                 }
-                
-                let count = try hnswIndex.count()
-                
-                DispatchQueue.main.async {
-                    self.hnswIndexCount = count
-                    self.updateHNSWIndexInfo()
-                    self.updateStatus(message: "Added 100 vectors to HNSWIndex")
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    self.updateStatus(message: "Error adding vectors to HNSWIndex: \(error.localizedDescription)")
+            }
+        } else {
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    for i in 0..<100 {
+                        let vector = self.createRandomVector(dimension: self.dimension)
+                        try hnswIndex.addVector(id: UInt64(i + 1), vector: vector)
+                    }
+                    
+                    let count = try hnswIndex.count()
+                    
+                    DispatchQueue.main.async {
+                        self.hnswIndexCount = count
+                        self.updateHNSWIndexInfo()
+                        self.updateStatus(message: "Added 100 vectors to HNSWIndex (Sync)")
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        self.updateStatus(message: "Error adding vectors to HNSWIndex: \(error.localizedDescription)")
+                    }
                 }
             }
         }
@@ -912,22 +1044,44 @@ class MainViewController: UIViewController {
         
         updateStatus(message: "Searching HNSWIndex...")
         
-        DispatchQueue.global(qos: .userInitiated).async {
-            do {
-                let queryVector = self.createRandomVector(dimension: self.dimension)
-                // Set efSearch parameter first
-                try hnswIndex.setEfSearch(self.efSearch)
-                let results = try hnswIndex.search(query: queryVector, k: self.searchK)
-                
-                DispatchQueue.main.async {
-                    self.hnswIndexResults = results
-                    self.hnswIndexResultsTableView.reloadData()
-                    self.hnswIndexResultsTableView.isHidden = false
-                    self.updateStatus(message: "Search completed successfully")
+        if useAsync {
+            Task {
+                do {
+                    let queryVector = createRandomVector(dimension: dimension)
+                    // Set efSearch parameter first
+                    try await hnswIndex.setEfSearchAsync(efSearch)
+                    let results = try await hnswIndex.searchAsync(query: queryVector, k: searchK)
+                    
+                    await MainActor.run {
+                        hnswIndexResults = results
+                        hnswIndexResultsTableView.reloadData()
+                        hnswIndexResultsTableView.isHidden = false
+                        updateStatus(message: "Search completed successfully (Async)")
+                    }
+                } catch {
+                    await MainActor.run {
+                        updateStatus(message: "Error searching HNSWIndex: \(error.localizedDescription)")
+                    }
                 }
-            } catch {
-                DispatchQueue.main.async {
-                    self.updateStatus(message: "Error searching HNSWIndex: \(error.localizedDescription)")
+            }
+        } else {
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    let queryVector = self.createRandomVector(dimension: self.dimension)
+                    // Set efSearch parameter first
+                    try hnswIndex.setEfSearch(self.efSearch)
+                    let results = try hnswIndex.search(query: queryVector, k: self.searchK)
+                    
+                    DispatchQueue.main.async {
+                        self.hnswIndexResults = results
+                        self.hnswIndexResultsTableView.reloadData()
+                        self.hnswIndexResultsTableView.isHidden = false
+                        self.updateStatus(message: "Search completed successfully (Sync)")
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        self.updateStatus(message: "Error searching HNSWIndex: \(error.localizedDescription)")
+                    }
                 }
             }
         }
@@ -1119,6 +1273,7 @@ extension MainViewController: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "ResultCell", for: indexPath)
+        cell.backgroundColor = .white
         
         let results: [(id: UInt64, distance: Float)]
         if tableView == vectorStoreResultsTableView {
@@ -1132,6 +1287,7 @@ extension MainViewController: UITableViewDataSource, UITableViewDelegate {
         let result = results[indexPath.row]
         
         cell.textLabel?.text = "Vector \(result.id)"
+        cell.textLabel?.textColor = .black
         cell.detailTextLabel?.text = "Distance: \(String(format: "%.6f", result.distance))"
         cell.detailTextLabel?.textColor = .gray
         
