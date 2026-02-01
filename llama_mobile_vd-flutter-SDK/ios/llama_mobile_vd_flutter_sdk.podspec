@@ -20,6 +20,12 @@ Flutter SDK for Llama Mobile Vector Database
   }
   s.swift_version = '5.0'
 
-  # Add the framework
+  # Add the framework as a vendored framework
   s.vendored_frameworks = 'llama_mobile_vd.xcframework'
+  
+  # Ensure the framework is linked and available
+  s.xcconfig = { 
+    'OTHER_LDFLAGS' => '$(inherited) -framework llama_mobile_vd',
+    'FRAMEWORK_SEARCH_PATHS' => '$(inherited) $(PODS_TARGET_SRCROOT)'
+  }
 end

@@ -21,7 +21,7 @@ class LlamaMobileVDInstrumentedTests {
         runBlocking {
             // Test with small dimension
             val smallDimension = 32
-            val storeId = LlamaMobileVD.createVectorStore(smallDimension, DistanceMetric.L2.toJava())
+            val storeId = LlamaMobileVD.createVectorStore(smallDimension, LlamaMobileVD.DistanceMetric.L2)
             assertTrue(storeId > 0)
             
             // Test add vectors
@@ -66,17 +66,17 @@ class LlamaMobileVDInstrumentedTests {
         runBlocking {
             // Test with small dimension
             val smallDimension = 64
-            val smallStoreId = LlamaMobileVD.createVectorStore(smallDimension, DistanceMetric.COSINE.toJava())
+            val smallStoreId = LlamaMobileVD.createVectorStore(smallDimension, LlamaMobileVD.DistanceMetric.COSINE)
             assertTrue(smallStoreId > 0)
             
             // Test with medium dimension
             val mediumDimension = 256
-            val mediumStoreId = LlamaMobileVD.createVectorStore(mediumDimension, DistanceMetric.COSINE.toJava())
+            val mediumStoreId = LlamaMobileVD.createVectorStore(mediumDimension, LlamaMobileVD.DistanceMetric.COSINE)
             assertTrue(mediumStoreId > 0)
             
             // Test with large dimension
             val largeDimension = 512
-            val largeStoreId = LlamaMobileVD.createVectorStore(largeDimension, DistanceMetric.COSINE.toJava())
+            val largeStoreId = LlamaMobileVD.createVectorStore(largeDimension, LlamaMobileVD.DistanceMetric.COSINE)
             assertTrue(largeStoreId > 0)
             
             // Clean up
@@ -91,7 +91,7 @@ class LlamaMobileVDInstrumentedTests {
     fun testVectorStoreWithDifferentDatasetSizes() {
         runBlocking {
             val dimension = 64
-            val storeId = LlamaMobileVD.createVectorStore(dimension, DistanceMetric.L2.toJava())
+            val storeId = LlamaMobileVD.createVectorStore(dimension, LlamaMobileVD.DistanceMetric.L2)
             
             // Test with small dataset (100 vectors)
             val smallDatasetSize = 100
@@ -119,7 +119,7 @@ class LlamaMobileVDInstrumentedTests {
             val maxElements = 1000L
             
             // Create HNSWIndex
-            val indexId = LlamaMobileVD.createHNSWIndex(dimension, DistanceMetric.COSINE.toJava(), maxElements)
+            val indexId = LlamaMobileVD.createHNSWIndex(dimension, LlamaMobileVD.DistanceMetric.COSINE, maxElements)
             assertTrue(indexId > 0)
             
             // Test setEfSearch
@@ -174,7 +174,7 @@ class LlamaMobileVDInstrumentedTests {
             val filePath = "$tempDir/test_mmap_store.bin"
             
             // Create builder
-            val builderId = LlamaMobileVD.createMMapVectorStoreBuilder(dimension, DistanceMetric.L2.toJava())
+            val builderId = LlamaMobileVD.createMMapVectorStoreBuilder(dimension, LlamaMobileVD.DistanceMetric.L2)
             assertTrue(builderId > 0)
             
             // Test builder reserve
@@ -253,7 +253,7 @@ class LlamaMobileVDInstrumentedTests {
             val largeDimension = 1024 // Using 1024 instead of 3096 for faster testing
             
             // Test VectorStore with large dimension
-            val storeId = LlamaMobileVD.createVectorStore(largeDimension, DistanceMetric.COSINE.toJava())
+            val storeId = LlamaMobileVD.createVectorStore(largeDimension, LlamaMobileVD.DistanceMetric.COSINE)
             assertTrue(storeId > 0)
             
             // Add a vector

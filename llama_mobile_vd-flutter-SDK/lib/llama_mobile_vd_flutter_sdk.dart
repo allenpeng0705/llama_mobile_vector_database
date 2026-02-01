@@ -72,8 +72,22 @@ class VectorStore {
     return VectorStore(storeId);
   }
 
+  static Future<VectorStore> createAsync(
+      int dimension, DistanceMetric metric) async {
+    final int storeId = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
+        'vectorStoreCreateAsync',
+        {'dimension': dimension, 'metric': metric.value});
+    return VectorStore(storeId);
+  }
+
   Future<void> addVector(int id, List<double> vector) async {
     await LlamaMobileVDFlutterSdk._channel.invokeMethod('vectorStoreAddVector',
+        {'storeId': storeId, 'id': id, 'vector': vector});
+  }
+
+  Future<void> addVectorAsync(int id, List<double> vector) async {
+    await LlamaMobileVDFlutterSdk._channel.invokeMethod(
+        'vectorStoreAddVectorAsync',
         {'storeId': storeId, 'id': id, 'vector': vector});
   }
 
@@ -88,15 +102,37 @@ class VectorStore {
     }).toList();
   }
 
+  Future<List<SearchResult>> searchAsync(
+      List<double> queryVector, int k) async {
+    final List<dynamic> results = await LlamaMobileVDFlutterSdk._channel
+        .invokeMethod('vectorStoreSearchAsync',
+            {'storeId': storeId, 'queryVector': queryVector, 'k': k});
+
+    return results.map((result) {
+      final Map<Object?, Object?> map = result as Map<Object?, Object?>;
+      return SearchResult(map['id'] as int, map['distance'] as double);
+    }).toList();
+  }
+
   Future<List<double>?> getVector(int id) async {
-    final List<double>? vector = await LlamaMobileVDFlutterSdk._channel
+    final dynamic result = await LlamaMobileVDFlutterSdk._channel
         .invokeMethod('vectorStoreGetVector', {'storeId': storeId, 'id': id});
-    return vector;
+    if (result == null) {
+      return null;
+    }
+    final List<Object?> list = result as List<Object?>;
+    return list.map((item) => (item as num).toDouble()).toList();
   }
 
   Future<bool> removeVector(int id) async {
     final bool removed = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
         'vectorStoreRemoveVector', {'storeId': storeId, 'id': id});
+    return removed;
+  }
+
+  Future<bool> removeVectorAsync(int id) async {
+    final bool removed = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
+        'vectorStoreRemoveVectorAsync', {'storeId': storeId, 'id': id});
     return removed;
   }
 
@@ -131,15 +167,33 @@ class VectorStore {
     return updated;
   }
 
+  Future<bool> updateVectorAsync(int id, List<double> vector) async {
+    final bool updated = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
+        'vectorStoreUpdateVectorAsync',
+        {'storeId': storeId, 'id': id, 'vector': vector});
+    return updated;
+  }
+
   Future<bool> reserve(int capacity) async {
     final bool reserved = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
         'vectorStoreReserve', {'storeId': storeId, 'capacity': capacity});
     return reserved;
   }
 
+  Future<bool> reserveAsync(int capacity) async {
+    final bool reserved = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
+        'vectorStoreReserveAsync', {'storeId': storeId, 'capacity': capacity});
+    return reserved;
+  }
+
   Future<void> clear() async {
     await LlamaMobileVDFlutterSdk._channel
         .invokeMethod('vectorStoreClear', {'storeId': storeId});
+  }
+
+  Future<void> clearAsync() async {
+    await LlamaMobileVDFlutterSdk._channel
+        .invokeMethod('vectorStoreClearAsync', {'storeId': storeId});
   }
 
   Future<void> destroy() async {
@@ -157,6 +211,17 @@ class HNSWIndex {
       int dimension, DistanceMetric metric, int maxElements) async {
     final int indexId = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
         'hnswIndexCreate', {
+      'dimension': dimension,
+      'metric': metric.value,
+      'maxElements': maxElements
+    });
+    return HNSWIndex(indexId);
+  }
+
+  static Future<HNSWIndex> createAsync(
+      int dimension, DistanceMetric metric, int maxElements) async {
+    final int indexId = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
+        'hnswIndexCreateAsync', {
       'dimension': dimension,
       'metric': metric.value,
       'maxElements': maxElements
@@ -183,15 +248,53 @@ class HNSWIndex {
     return HNSWIndex(indexId);
   }
 
+  static Future<HNSWIndex> createWithParamsAsync(
+      int dimension,
+      DistanceMetric metric,
+      int maxElements,
+      int M,
+      int efConstruction,
+      int seed) async {
+    final int indexId = await LlamaMobileVDFlutterSdk._channel
+        .invokeMethod('hnswIndexCreateWithParamsAsync', {
+      'dimension': dimension,
+      'metric': metric.value,
+      'maxElements': maxElements,
+      'M': M,
+      'efConstruction': efConstruction,
+      'seed': seed
+    });
+    return HNSWIndex(indexId);
+  }
+
   Future<bool> addVector(int id, List<double> vector) async {
     final bool added = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
         'hnswIndexAddVector', {'indexId': indexId, 'id': id, 'vector': vector});
     return added;
   }
 
+  Future<bool> addVectorAsync(int id, List<double> vector) async {
+    final bool added = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
+        'hnswIndexAddVectorAsync',
+        {'indexId': indexId, 'id': id, 'vector': vector});
+    return added;
+  }
+
   Future<List<SearchResult>> search(List<double> queryVector, int k) async {
     final List<dynamic> results = await LlamaMobileVDFlutterSdk._channel
         .invokeMethod('hnswIndexSearch',
+            {'indexId': indexId, 'queryVector': queryVector, 'k': k});
+
+    return results.map((result) {
+      final Map<Object?, Object?> map = result as Map<Object?, Object?>;
+      return SearchResult(map['id'] as int, map['distance'] as double);
+    }).toList();
+  }
+
+  Future<List<SearchResult>> searchAsync(
+      List<double> queryVector, int k) async {
+    final List<dynamic> results = await LlamaMobileVDFlutterSdk._channel
+        .invokeMethod('hnswIndexSearchAsync',
             {'indexId': indexId, 'queryVector': queryVector, 'k': k});
 
     return results.map((result) {
@@ -248,9 +351,21 @@ class HNSWIndex {
     return saved;
   }
 
+  Future<bool> saveAsync(String filename) async {
+    final bool saved = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
+        'hnswIndexSaveAsync', {'indexId': indexId, 'filename': filename});
+    return saved;
+  }
+
   static Future<HNSWIndex> load(String filename) async {
     final int indexId = await LlamaMobileVDFlutterSdk._channel
         .invokeMethod('hnswIndexLoad', {'filename': filename});
+    return HNSWIndex(indexId);
+  }
+
+  static Future<HNSWIndex> loadAsync(String filename) async {
+    final int indexId = await LlamaMobileVDFlutterSdk._channel
+        .invokeMethod('hnswIndexLoadAsync', {'filename': filename});
     return HNSWIndex(indexId);
   }
 
@@ -273,9 +388,24 @@ class MMapVectorStoreBuilder {
     return MMapVectorStoreBuilder(builderId);
   }
 
+  static Future<MMapVectorStoreBuilder> createAsync(
+      int dimension, DistanceMetric metric) async {
+    final int builderId = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
+        'mmapVectorStoreBuilderCreateAsync',
+        {'dimension': dimension, 'metric': metric.value});
+    return MMapVectorStoreBuilder(builderId);
+  }
+
   Future<bool> addVector(int id, List<double> vector) async {
     final bool added = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
         'mmapVectorStoreBuilderAddVector',
+        {'builderId': builderId, 'id': id, 'vector': vector});
+    return added;
+  }
+
+  Future<bool> addVectorAsync(int id, List<double> vector) async {
+    final bool added = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
+        'mmapVectorStoreBuilderAddVectorAsync',
         {'builderId': builderId, 'id': id, 'vector': vector});
     return added;
   }
@@ -287,9 +417,23 @@ class MMapVectorStoreBuilder {
     return reserved;
   }
 
+  Future<bool> reserveAsync(int capacity) async {
+    final bool reserved = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
+        'mmapVectorStoreBuilderReserveAsync',
+        {'builderId': builderId, 'capacity': capacity});
+    return reserved;
+  }
+
   Future<bool> save(String filename) async {
     final bool saved = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
         'mmapVectorStoreBuilderSave',
+        {'builderId': builderId, 'filename': filename});
+    return saved;
+  }
+
+  Future<bool> saveAsync(String filename) async {
+    final bool saved = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
+        'mmapVectorStoreBuilderSaveAsync',
         {'builderId': builderId, 'filename': filename});
     return saved;
   }
@@ -323,11 +467,20 @@ class MMapVectorStore {
     return MMapVectorStore(storeId);
   }
 
+  static Future<MMapVectorStore> openAsync(String filename) async {
+    final int storeId = await LlamaMobileVDFlutterSdk._channel
+        .invokeMethod('mmapVectorStoreOpenAsync', {'filename': filename});
+    return MMapVectorStore(storeId);
+  }
+
   Future<List<double>?> getVector(int id) async {
-    final List<double>? vector = await LlamaMobileVDFlutterSdk._channel
-        .invokeMethod(
-            'mmapVectorStoreGetVector', {'storeId': storeId, 'id': id});
-    return vector;
+    final dynamic result = await LlamaMobileVDFlutterSdk._channel.invokeMethod(
+        'mmapVectorStoreGetVector', {'storeId': storeId, 'id': id});
+    if (result == null) {
+      return null;
+    }
+    final List<Object?> list = result as List<Object?>;
+    return list.map((item) => (item as num).toDouble()).toList();
   }
 
   Future<bool> contains(int id) async {
@@ -339,6 +492,18 @@ class MMapVectorStore {
   Future<List<SearchResult>> search(List<double> queryVector, int k) async {
     final List<dynamic> results = await LlamaMobileVDFlutterSdk._channel
         .invokeMethod('mmapVectorStoreSearch',
+            {'storeId': storeId, 'queryVector': queryVector, 'k': k});
+
+    return results.map((result) {
+      final Map<Object?, Object?> map = result as Map<Object?, Object?>;
+      return SearchResult(map['id'] as int, map['distance'] as double);
+    }).toList();
+  }
+
+  Future<List<SearchResult>> searchAsync(
+      List<double> queryVector, int k) async {
+    final List<dynamic> results = await LlamaMobileVDFlutterSdk._channel
+        .invokeMethod('mmapVectorStoreSearchAsync',
             {'storeId': storeId, 'queryVector': queryVector, 'k': k});
 
     return results.map((result) {

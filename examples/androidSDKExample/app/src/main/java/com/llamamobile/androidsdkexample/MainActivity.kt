@@ -9,7 +9,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.llamamobile.vd.LlamaMobileVD
-import com.llamamobile.vd.SearchResult
+import com.llamamobile.vd.LlamaMobileVD.SearchResult
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
@@ -1314,7 +1314,7 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val version = LlamaMobileVD.version
+                val version = LlamaMobileVD.getVersion()
                 
                 handler.post {
                     versionInfoTextView.text = "Version: $version"
@@ -1333,10 +1333,10 @@ class MainActivity : AppCompatActivity() {
         
         Thread {
             try {
-                val version = LlamaMobileVD.version
-                val major = LlamaMobileVD.versionMajor
-                val minor = LlamaMobileVD.versionMinor
-                val patch = LlamaMobileVD.versionPatch
+                val version = LlamaMobileVD.getVersion()
+                val major = LlamaMobileVD.getVersionMajor()
+                val minor = LlamaMobileVD.getVersionMinor()
+                val patch = LlamaMobileVD.getVersionPatch()
                 
                 handler.post {
                     versionInfoTextView.text = "Version: $version\nMajor: $major\nMinor: $minor\nPatch: $patch"

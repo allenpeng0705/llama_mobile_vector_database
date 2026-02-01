@@ -62,6 +62,9 @@ class _MainPageState extends State<MainPage> {
   // Status message
   String _statusMessage = "Ready";
 
+  // Async mode flag
+  bool _useAsync = false;
+
   @override
   void initState() {
     super.initState();
@@ -107,7 +110,14 @@ class _MainPageState extends State<MainPage> {
     _updateStatus("Creating VectorStore...");
 
     try {
-      _vectorStore = await VectorStore.create(_dimension, _selectedMetric);
+      if (_useAsync) {
+        _vectorStore = await VectorStore.createAsync(
+          _dimension,
+          _selectedMetric,
+        );
+      } else {
+        _vectorStore = await VectorStore.create(_dimension, _selectedMetric);
+      }
       _vectorStoreCount = 0;
       _vectorStoreResults.clear();
       _updateVectorStoreInfo();
@@ -127,7 +137,14 @@ class _MainPageState extends State<MainPage> {
 
     try {
       for (int i = 0; i < 100; i++) {
-        await _vectorStore!.addVector(i + 1, _createRandomVector(_dimension));
+        if (_useAsync) {
+          await _vectorStore!.addVectorAsync(
+            i + 1,
+            _createRandomVector(_dimension),
+          );
+        } else {
+          await _vectorStore!.addVector(i + 1, _createRandomVector(_dimension));
+        }
       }
 
       _vectorStoreCount = await _vectorStore!.getSize();
@@ -153,7 +170,14 @@ class _MainPageState extends State<MainPage> {
 
     try {
       final queryVector = _createRandomVector(_dimension);
-      _vectorStoreResults = await _vectorStore!.search(queryVector, _searchK);
+      if (_useAsync) {
+        _vectorStoreResults = await _vectorStore!.searchAsync(
+          queryVector,
+          _searchK,
+        );
+      } else {
+        _vectorStoreResults = await _vectorStore!.search(queryVector, _searchK);
+      }
       _updateStatus("Search completed successfully");
     } catch (e) {
       _updateStatus("Error searching VectorStore: $e");
@@ -167,7 +191,11 @@ class _MainPageState extends State<MainPage> {
     }
 
     try {
-      await _vectorStore!.clear();
+      if (_useAsync) {
+        await _vectorStore!.clearAsync();
+      } else {
+        await _vectorStore!.clear();
+      }
       _vectorStoreCount = 0;
       _vectorStoreResults.clear();
       _updateVectorStoreInfo();
@@ -200,14 +228,25 @@ class _MainPageState extends State<MainPage> {
     _updateStatus("Creating HNSWIndex...");
 
     try {
-      _hnswIndex = await HNSWIndex.createWithParams(
-        _dimension,
-        _selectedMetric,
-        1000,
-        _hnswM,
-        _hnswEfConstruction,
-        42,
-      );
+      if (_useAsync) {
+        _hnswIndex = await HNSWIndex.createWithParamsAsync(
+          _dimension,
+          _selectedMetric,
+          1000,
+          _hnswM,
+          _hnswEfConstruction,
+          42,
+        );
+      } else {
+        _hnswIndex = await HNSWIndex.createWithParams(
+          _dimension,
+          _selectedMetric,
+          1000,
+          _hnswM,
+          _hnswEfConstruction,
+          42,
+        );
+      }
       _hnswIndexCount = 0;
       _hnswIndexResults.clear();
       _updateHNSWIndexInfo();
@@ -227,7 +266,14 @@ class _MainPageState extends State<MainPage> {
 
     try {
       for (int i = 0; i < 100; i++) {
-        await _hnswIndex!.addVector(i + 1, _createRandomVector(_dimension));
+        if (_useAsync) {
+          await _hnswIndex!.addVectorAsync(
+            i + 1,
+            _createRandomVector(_dimension),
+          );
+        } else {
+          await _hnswIndex!.addVector(i + 1, _createRandomVector(_dimension));
+        }
       }
 
       _hnswIndexCount = await _hnswIndex!.getSize();
@@ -254,7 +300,14 @@ class _MainPageState extends State<MainPage> {
     try {
       final queryVector = _createRandomVector(_dimension);
       await _hnswIndex!.setEfSearch(_efSearch);
-      _hnswIndexResults = await _hnswIndex!.search(queryVector, _searchK);
+      if (_useAsync) {
+        _hnswIndexResults = await _hnswIndex!.searchAsync(
+          queryVector,
+          _searchK,
+        );
+      } else {
+        _hnswIndexResults = await _hnswIndex!.search(queryVector, _searchK);
+      }
       _updateStatus("Search completed successfully");
     } catch (e) {
       _updateStatus("Error searching HNSWIndex: $e");
@@ -309,17 +362,24 @@ class _MainPageState extends State<MainPage> {
     _updateStatus("Creating MMapVectorStore...");
 
     try {
-      final builder = await MMapVectorStoreBuilder.create(
-        _dimension,
-        _selectedMetric,
-      );
+      final builder = await (_useAsync
+          ? MMapVectorStoreBuilder.createAsync(_dimension, _selectedMetric)
+          : MMapVectorStoreBuilder.create(_dimension, _selectedMetric));
 
       // Add some vectors
       for (int i = 0; i < 100; i++) {
-        await builder.addVector(i + 1, _createRandomVector(_dimension));
+        if (_useAsync) {
+          await builder.addVectorAsync(i + 1, _createRandomVector(_dimension));
+        } else {
+          await builder.addVector(i + 1, _createRandomVector(_dimension));
+        }
       }
 
-      await builder.save(_mmapFilePath);
+      if (_useAsync) {
+        await builder.saveAsync(_mmapFilePath);
+      } else {
+        await builder.save(_mmapFilePath);
+      }
       await builder.destroy();
 
       _updateStatus("MMapVectorStore created successfully");
@@ -332,7 +392,11 @@ class _MainPageState extends State<MainPage> {
     _updateStatus("Opening MMapVectorStore...");
 
     try {
-      _mmapVectorStore = await MMapVectorStore.open(_mmapFilePath);
+      if (_useAsync) {
+        _mmapVectorStore = await MMapVectorStore.openAsync(_mmapFilePath);
+      } else {
+        _mmapVectorStore = await MMapVectorStore.open(_mmapFilePath);
+      }
       _mmapVectorStoreCount = await _mmapVectorStore!.getSize();
       _mmapVectorStoreDimension = _dimension;
       _mmapVectorStoreMetric = _selectedMetric.toString();
@@ -354,10 +418,17 @@ class _MainPageState extends State<MainPage> {
 
     try {
       final queryVector = _createRandomVector(_dimension);
-      _mmapVectorStoreResults = await _mmapVectorStore!.search(
-        queryVector,
-        _searchK,
-      );
+      if (_useAsync) {
+        _mmapVectorStoreResults = await _mmapVectorStore!.searchAsync(
+          queryVector,
+          _searchK,
+        );
+      } else {
+        _mmapVectorStoreResults = await _mmapVectorStore!.search(
+          queryVector,
+          _searchK,
+        );
+      }
       _updateStatus("Search completed successfully");
     } catch (e) {
       _updateStatus("Error searching MMapVectorStore: $e");
@@ -481,6 +552,23 @@ class _MainPageState extends State<MainPage> {
                 ],
               ),
             ],
+          ),
+        ),
+
+        // Async mode switch
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: SwitchListTile(
+            title: const Text("Use Async Operations"),
+            subtitle: const Text(
+              "When enabled, use async methods where available",
+            ),
+            value: _useAsync,
+            onChanged: (value) {
+              setState(() {
+                _useAsync = value;
+              });
+            },
           ),
         ),
       ],

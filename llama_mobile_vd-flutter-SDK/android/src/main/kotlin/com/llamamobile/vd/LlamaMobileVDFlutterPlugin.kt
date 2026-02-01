@@ -34,6 +34,14 @@ class LlamaMobileVDFlutterPlugin: FlutterPlugin, MethodCallHandler {
       "vectorStoreReserve" -> handleVectorStoreReserve(call, result)
       "vectorStoreClear" -> handleVectorStoreClear(call, result)
       "vectorStoreDestroy" -> handleVectorStoreDestroy(call, result)
+      // VectorStore async methods
+      "vectorStoreCreateAsync" -> handleVectorStoreCreateAsync(call, result)
+      "vectorStoreAddVectorAsync" -> handleVectorStoreAddVectorAsync(call, result)
+      "vectorStoreSearchAsync" -> handleVectorStoreSearchAsync(call, result)
+      "vectorStoreRemoveVectorAsync" -> handleVectorStoreRemoveVectorAsync(call, result)
+      "vectorStoreUpdateVectorAsync" -> handleVectorStoreUpdateVectorAsync(call, result)
+      "vectorStoreReserveAsync" -> handleVectorStoreReserveAsync(call, result)
+      "vectorStoreClearAsync" -> handleVectorStoreClearAsync(call, result)
       // HNSWIndex methods
       "hnswIndexCreate" -> handleHNSWIndexCreate(call, result)
       "hnswIndexCreateWithParams" -> handleHNSWIndexCreateWithParams(call, result)
@@ -49,6 +57,13 @@ class LlamaMobileVDFlutterPlugin: FlutterPlugin, MethodCallHandler {
       "hnswIndexSave" -> handleHNSWIndexSave(call, result)
       "hnswIndexLoad" -> handleHNSWIndexLoad(call, result)
       "hnswIndexDestroy" -> handleHNSWIndexDestroy(call, result)
+      // HNSWIndex async methods
+      "hnswIndexCreateAsync" -> handleHNSWIndexCreateAsync(call, result)
+      "hnswIndexCreateWithParamsAsync" -> handleHNSWIndexCreateWithParamsAsync(call, result)
+      "hnswIndexAddVectorAsync" -> handleHNSWIndexAddVectorAsync(call, result)
+      "hnswIndexSearchAsync" -> handleHNSWIndexSearchAsync(call, result)
+      "hnswIndexSaveAsync" -> handleHNSWIndexSaveAsync(call, result)
+      "hnswIndexLoadAsync" -> handleHNSWIndexLoadAsync(call, result)
       // MMapVectorStoreBuilder methods
       "mmapVectorStoreBuilderCreate" -> handleMMapVectorStoreBuilderCreate(call, result)
       "mmapVectorStoreBuilderAddVector" -> handleMMapVectorStoreBuilderAddVector(call, result)
@@ -57,6 +72,11 @@ class LlamaMobileVDFlutterPlugin: FlutterPlugin, MethodCallHandler {
       "mmapVectorStoreBuilderGetSize" -> handleMMapVectorStoreBuilderGetSize(call, result)
       "mmapVectorStoreBuilderGetDimension" -> handleMMapVectorStoreBuilderGetDimension(call, result)
       "mmapVectorStoreBuilderDestroy" -> handleMMapVectorStoreBuilderDestroy(call, result)
+      // MMapVectorStoreBuilder async methods
+      "mmapVectorStoreBuilderCreateAsync" -> handleMMapVectorStoreBuilderCreateAsync(call, result)
+      "mmapVectorStoreBuilderAddVectorAsync" -> handleMMapVectorStoreBuilderAddVectorAsync(call, result)
+      "mmapVectorStoreBuilderReserveAsync" -> handleMMapVectorStoreBuilderReserveAsync(call, result)
+      "mmapVectorStoreBuilderSaveAsync" -> handleMMapVectorStoreBuilderSaveAsync(call, result)
       // MMapVectorStore methods
       "mmapVectorStoreOpen" -> handleMMapVectorStoreOpen(call, result)
       "mmapVectorStoreGetVector" -> handleMMapVectorStoreGetVector(call, result)
@@ -66,6 +86,9 @@ class LlamaMobileVDFlutterPlugin: FlutterPlugin, MethodCallHandler {
       "mmapVectorStoreGetDimension" -> handleMMapVectorStoreGetDimension(call, result)
       "mmapVectorStoreGetMetric" -> handleMMapVectorStoreGetMetric(call, result)
       "mmapVectorStoreClose" -> handleMMapVectorStoreClose(call, result)
+      // MMapVectorStore async methods
+      "mmapVectorStoreOpenAsync" -> handleMMapVectorStoreOpenAsync(call, result)
+      "mmapVectorStoreSearchAsync" -> handleMMapVectorStoreSearchAsync(call, result)
       // Version methods
       "getVersion" -> handleGetVersion(call, result)
       else -> {
@@ -309,6 +332,160 @@ class LlamaMobileVDFlutterPlugin: FlutterPlugin, MethodCallHandler {
     } catch (e: Exception) {
       result.error("DESTROY_FAILED", "Failed to destroy vector store: {e.message}", null)
     }
+  }
+
+  // MARK: - VectorStore async methods
+  private fun handleVectorStoreCreateAsync(call: MethodCall, result: Result) {
+    val dimension = call.argument<Int>("dimension") ?: run {
+      result.error("INVALID_ARGUMENTS", "Dimension is required", null)
+      return
+    }
+    val metric = call.argument<Int>("metric") ?: run {
+      result.error("INVALID_ARGUMENTS", "Metric is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val storeId = LlamaMobileVD.nativeVectorStoreCreate(dimension, metric)
+        if (storeId == 0L) {
+          result.error("CREATE_FAILED", "Failed to create vector store", null)
+          return@Thread
+        }
+        result.success(storeId)
+      } catch (e: Exception) {
+        result.error("CREATE_FAILED", "Failed to create vector store: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleVectorStoreAddVectorAsync(call: MethodCall, result: Result) {
+    val storeId = call.argument<Number>("storeId")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "StoreId is required", null)
+      return
+    }
+    val id = call.argument<Number>("id")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "Id is required", null)
+      return
+    }
+    val vector = call.argument<List<Double>>("vector")?.map { it.toFloat() }?.toFloatArray() ?: run {
+      result.error("INVALID_ARGUMENTS", "Vector is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        LlamaMobileVD.nativeVectorStoreAddVector(storeId, id, vector)
+        result.success(true)
+      } catch (e: Exception) {
+        result.error("ADD_FAILED", "Failed to add vector: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleVectorStoreSearchAsync(call: MethodCall, result: Result) {
+    val storeId = call.argument<Number>("storeId")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "StoreId is required", null)
+      return
+    }
+    val queryVector = call.argument<List<Double>>("queryVector")?.map { it.toFloat() }?.toFloatArray() ?: run {
+      result.error("INVALID_ARGUMENTS", "QueryVector is required", null)
+      return
+    }
+    val k = call.argument<Int>("k") ?: run {
+      result.error("INVALID_ARGUMENTS", "k is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val searchResults = LlamaMobileVD.nativeVectorStoreSearch(storeId, queryVector, k)
+        val flutterResults = searchResults.map { mapOf("id" to it.id, "distance" to it.distance) }
+        result.success(flutterResults)
+      } catch (e: Exception) {
+        result.error("SEARCH_FAILED", "Search failed: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleVectorStoreRemoveVectorAsync(call: MethodCall, result: Result) {
+    val storeId = call.argument<Number>("storeId")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "StoreId is required", null)
+      return
+    }
+    val id = call.argument<Number>("id")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "Id is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val removed = LlamaMobileVD.nativeVectorStoreRemoveVector(storeId, id)
+        result.success(removed)
+      } catch (e: Exception) {
+        result.error("REMOVE_FAILED", "Failed to remove vector: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleVectorStoreUpdateVectorAsync(call: MethodCall, result: Result) {
+    val storeId = call.argument<Number>("storeId")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "StoreId is required", null)
+      return
+    }
+    val id = call.argument<Number>("id")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "Id is required", null)
+      return
+    }
+    val vector = call.argument<List<Double>>("vector")?.map { it.toFloat() }?.toFloatArray() ?: run {
+      result.error("INVALID_ARGUMENTS", "Vector is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val updated = LlamaMobileVD.nativeVectorStoreUpdateVector(storeId, id, vector)
+        result.success(updated)
+      } catch (e: Exception) {
+        result.error("UPDATE_FAILED", "Failed to update vector: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleVectorStoreReserveAsync(call: MethodCall, result: Result) {
+    val storeId = call.argument<Number>("storeId")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "StoreId is required", null)
+      return
+    }
+    val capacity = call.argument<Number>("capacity")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "Capacity is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val reserved = LlamaMobileVD.nativeVectorStoreReserve(storeId, capacity)
+        result.success(reserved)
+      } catch (e: Exception) {
+        result.error("RESERVE_FAILED", "Failed to reserve capacity: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleVectorStoreClearAsync(call: MethodCall, result: Result) {
+    val storeId = call.argument<Number>("storeId")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "StoreId is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        LlamaMobileVD.nativeVectorStoreClear(storeId)
+        result.success(true)
+      } catch (e: Exception) {
+        result.error("CLEAR_FAILED", "Failed to clear vector store: {e.message}", null)
+      }
+    }.start()
   }
 
   // MARK: - HNSWIndex methods
@@ -582,6 +759,161 @@ class LlamaMobileVDFlutterPlugin: FlutterPlugin, MethodCallHandler {
     }
   }
 
+  // MARK: - HNSWIndex async methods
+  private fun handleHNSWIndexCreateAsync(call: MethodCall, result: Result) {
+    val dimension = call.argument<Int>("dimension") ?: run {
+      result.error("INVALID_ARGUMENTS", "Dimension is required", null)
+      return
+    }
+    val metric = call.argument<Int>("metric") ?: run {
+      result.error("INVALID_ARGUMENTS", "Metric is required", null)
+      return
+    }
+    val maxElements = call.argument<Number>("maxElements")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "MaxElements is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val indexId = LlamaMobileVD.nativeHNSWIndexCreate(dimension, metric, maxElements)
+        if (indexId == 0L) {
+          result.error("CREATE_FAILED", "Failed to create HNSW index", null)
+          return@Thread
+        }
+        result.success(indexId)
+      } catch (e: Exception) {
+        result.error("CREATE_FAILED", "Failed to create HNSW index: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleHNSWIndexCreateWithParamsAsync(call: MethodCall, result: Result) {
+    val dimension = call.argument<Int>("dimension") ?: run {
+      result.error("INVALID_ARGUMENTS", "Dimension is required", null)
+      return
+    }
+    val metric = call.argument<Int>("metric") ?: run {
+      result.error("INVALID_ARGUMENTS", "Metric is required", null)
+      return
+    }
+    val maxElements = call.argument<Number>("maxElements")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "MaxElements is required", null)
+      return
+    }
+    val M = call.argument<Int>("M") ?: run {
+      result.error("INVALID_ARGUMENTS", "M is required", null)
+      return
+    }
+    val efConstruction = call.argument<Int>("efConstruction") ?: run {
+      result.error("INVALID_ARGUMENTS", "EfConstruction is required", null)
+      return
+    }
+    val seed = call.argument<Int>("seed") ?: 42
+
+    Thread {
+      try {
+        val indexId = LlamaMobileVD.nativeHNSWIndexCreateWithParams(dimension, metric, maxElements, M, efConstruction, seed)
+        if (indexId == 0L) {
+          result.error("CREATE_FAILED", "Failed to create HNSW index with params", null)
+          return@Thread
+        }
+        result.success(indexId)
+      } catch (e: Exception) {
+        result.error("CREATE_FAILED", "Failed to create HNSW index with params: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleHNSWIndexAddVectorAsync(call: MethodCall, result: Result) {
+    val indexId = call.argument<Number>("indexId")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "IndexId is required", null)
+      return
+    }
+    val id = call.argument<Number>("id")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "Id is required", null)
+      return
+    }
+    val vector = call.argument<List<Double>>("vector")?.map { it.toFloat() }?.toFloatArray() ?: run {
+      result.error("INVALID_ARGUMENTS", "Vector is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val added = LlamaMobileVD.nativeHNSWIndexAddVector(indexId, id, vector)
+        result.success(added)
+      } catch (e: Exception) {
+        result.error("ADD_FAILED", "Failed to add vector to HNSW index: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleHNSWIndexSearchAsync(call: MethodCall, result: Result) {
+    val indexId = call.argument<Number>("indexId")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "IndexId is required", null)
+      return
+    }
+    val queryVector = call.argument<List<Double>>("queryVector")?.map { it.toFloat() }?.toFloatArray() ?: run {
+      result.error("INVALID_ARGUMENTS", "QueryVector is required", null)
+      return
+    }
+    val k = call.argument<Int>("k") ?: run {
+      result.error("INVALID_ARGUMENTS", "k is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val searchResults = LlamaMobileVD.nativeHNSWIndexSearch(indexId, queryVector, k)
+        val flutterResults = searchResults.map { mapOf("id" to it.id, "distance" to it.distance) }
+        result.success(flutterResults)
+      } catch (e: Exception) {
+        result.error("SEARCH_FAILED", "Search failed: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleHNSWIndexSaveAsync(call: MethodCall, result: Result) {
+    val indexId = call.argument<Number>("indexId")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "IndexId is required", null)
+      return
+    }
+    val filename = call.argument<String>("filename") ?: run {
+      result.error("INVALID_ARGUMENTS", "Filename is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val saved = LlamaMobileVD.nativeHNSWIndexSave(indexId, filename)
+        result.success(saved)
+      } catch (e: Exception) {
+        result.error("SAVE_FAILED", "Failed to save HNSW index: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleHNSWIndexLoadAsync(call: MethodCall, result: Result) {
+    val filename = call.argument<String>("filename") ?: run {
+      result.error("INVALID_ARGUMENTS", "Filename is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val indexId = LlamaMobileVD.nativeHNSWIndexLoad(filename)
+        if (indexId == 0L) {
+          result.error("LOAD_FAILED", "Failed to load HNSW index", null)
+          return@Thread
+        }
+        result.success(indexId)
+      } catch (e: Exception) {
+        result.error("LOAD_FAILED", "Failed to load HNSW index: {e.message}", null)
+      }
+    }.start()
+  }
+
   // MARK: - MMapVectorStoreBuilder methods
   private fun handleMMapVectorStoreBuilderCreate(call: MethodCall, result: Result) {
     val dimension = call.argument<Int>("dimension") ?: run {
@@ -703,6 +1035,95 @@ class LlamaMobileVDFlutterPlugin: FlutterPlugin, MethodCallHandler {
     } catch (e: Exception) {
       result.error("DESTROY_FAILED", "Failed to destroy builder: {e.message}", null)
     }
+  }
+
+  // MARK: - MMapVectorStoreBuilder async methods
+  private fun handleMMapVectorStoreBuilderCreateAsync(call: MethodCall, result: Result) {
+    val dimension = call.argument<Int>("dimension") ?: run {
+      result.error("INVALID_ARGUMENTS", "Dimension is required", null)
+      return
+    }
+    val metric = call.argument<Int>("metric") ?: run {
+      result.error("INVALID_ARGUMENTS", "Metric is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val builderId = LlamaMobileVD.nativeMMapVectorStoreBuilderCreate(dimension, metric)
+        if (builderId == 0L) {
+          result.error("CREATE_FAILED", "Failed to create MMapVectorStoreBuilder", null)
+          return@Thread
+        }
+        result.success(builderId)
+      } catch (e: Exception) {
+        result.error("CREATE_FAILED", "Failed to create MMapVectorStoreBuilder: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleMMapVectorStoreBuilderAddVectorAsync(call: MethodCall, result: Result) {
+    val builderId = call.argument<Number>("builderId")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "BuilderId is required", null)
+      return
+    }
+    val id = call.argument<Number>("id")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "Id is required", null)
+      return
+    }
+    val vector = call.argument<List<Double>>("vector")?.map { it.toFloat() }?.toFloatArray() ?: run {
+      result.error("INVALID_ARGUMENTS", "Vector is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val added = LlamaMobileVD.nativeMMapVectorStoreBuilderAddVector(builderId, id, vector)
+        result.success(added)
+      } catch (e: Exception) {
+        result.error("ADD_FAILED", "Failed to add vector to builder: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleMMapVectorStoreBuilderReserveAsync(call: MethodCall, result: Result) {
+    val builderId = call.argument<Number>("builderId")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "BuilderId is required", null)
+      return
+    }
+    val capacity = call.argument<Number>("capacity")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "Capacity is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val reserved = LlamaMobileVD.nativeMMapVectorStoreBuilderReserve(builderId, capacity)
+        result.success(reserved)
+      } catch (e: Exception) {
+        result.error("RESERVE_FAILED", "Failed to reserve capacity: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleMMapVectorStoreBuilderSaveAsync(call: MethodCall, result: Result) {
+    val builderId = call.argument<Number>("builderId")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "BuilderId is required", null)
+      return
+    }
+    val filename = call.argument<String>("filename") ?: run {
+      result.error("INVALID_ARGUMENTS", "Filename is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val saved = LlamaMobileVD.nativeMMapVectorStoreBuilderSave(builderId, filename)
+        result.success(saved)
+      } catch (e: Exception) {
+        result.error("SAVE_FAILED", "Failed to save builder: {e.message}", null)
+      }
+    }.start()
   }
 
   // MARK: - MMapVectorStore methods
@@ -843,10 +1264,56 @@ class LlamaMobileVDFlutterPlugin: FlutterPlugin, MethodCallHandler {
     }
   }
 
+  // MARK: - MMapVectorStore async methods
+  private fun handleMMapVectorStoreOpenAsync(call: MethodCall, result: Result) {
+    val filename = call.argument<String>("filename") ?: run {
+      result.error("INVALID_ARGUMENTS", "Filename is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val storeId = LlamaMobileVD.nativeMMapVectorStoreOpen(filename)
+        if (storeId == 0L) {
+          result.error("OPEN_FAILED", "Failed to open MMapVectorStore", null)
+          return@Thread
+        }
+        result.success(storeId)
+      } catch (e: Exception) {
+        result.error("OPEN_FAILED", "Failed to open MMapVectorStore: {e.message}", null)
+      }
+    }.start()
+  }
+
+  private fun handleMMapVectorStoreSearchAsync(call: MethodCall, result: Result) {
+    val storeId = call.argument<Number>("storeId")?.toLong() ?: run {
+      result.error("INVALID_ARGUMENTS", "StoreId is required", null)
+      return
+    }
+    val queryVector = call.argument<List<Double>>("queryVector")?.map { it.toFloat() }?.toFloatArray() ?: run {
+      result.error("INVALID_ARGUMENTS", "QueryVector is required", null)
+      return
+    }
+    val k = call.argument<Int>("k") ?: run {
+      result.error("INVALID_ARGUMENTS", "k is required", null)
+      return
+    }
+
+    Thread {
+      try {
+        val searchResults = LlamaMobileVD.nativeMMapVectorStoreSearch(storeId, queryVector, k)
+        val flutterResults = searchResults.map { mapOf("id" to it.id, "distance" to it.distance) }
+        result.success(flutterResults)
+      } catch (e: Exception) {
+        result.error("SEARCH_FAILED", "Search failed: {e.message}", null)
+      }
+    }.start()
+  }
+
   // MARK: - Version methods
   private fun handleGetVersion(call: MethodCall, result: Result) {
     try {
-      val version = LlamaMobileVD.version
+      val version = LlamaMobileVD.getVersion()
       result.success(version)
     } catch (e: Exception) {
       result.error("VERSION_FAILED", "Failed to get version: {e.message}", null)
