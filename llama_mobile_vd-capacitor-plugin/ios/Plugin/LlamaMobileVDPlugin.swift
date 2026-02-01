@@ -28,10 +28,10 @@ public class LlamaMobileVDPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
     
     // Use static variables to persist across plugin instances
-    static var vectorStores: [Int: LlamaMobileVDSDK.VectorStore] = [:]
-    static var hnswIndexes: [Int: LlamaMobileVDSDK.HNSWIndex] = [:]
-    static var mmapBuilders: [Int: LlamaMobileVDSDK.MMapVectorStoreBuilder] = [:]
-    static var mmapStores: [Int: LlamaMobileVDSDK.MMapVectorStore] = [:]
+    static var vectorStores: [Int: LlamaMobileVD.VectorStore] = [:]
+    static var hnswIndexes: [Int: LlamaMobileVD.HNSWIndex] = [:]
+    static var mmapBuilders: [Int: LlamaMobileVD.MMapVectorStoreBuilder] = [:]
+    static var mmapStores: [Int: LlamaMobileVD.MMapVectorStore] = [:]
     static var nextId: Int = 1
     
     override public func load() {
@@ -41,7 +41,7 @@ public class LlamaMobileVDPlugin: CAPPlugin, CAPBridgedPlugin {
     
     @objc public func getVersion(_ call: CAPPluginCall) {
         print("LlamaMobileVDPlugin: getVersion called - instance: \(ObjectIdentifier(self))")
-        let version = LlamaMobileVDSDK.Version.full
+        let version = LlamaMobileVD.Version.full
         print("LlamaMobileVDPlugin: getVersion returned: \(version)")
         // Add a prefix to make it clear this is from the native iOS plugin
         call.resolve(["version": version])
@@ -54,7 +54,7 @@ public class LlamaMobileVDPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         
         let metricStr = call.getString("metric") ?? "cosine"
-        let metric: LlamaMobileVDSDK.DistanceMetric
+        let metric: LlamaMobileVD.DistanceMetric
         
         switch metricStr {
         case "l2":
@@ -69,7 +69,7 @@ public class LlamaMobileVDPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         
         do {
-            let store = try LlamaMobileVDSDK.VectorStore(dimension: dimension, metric: metric)
+            let store = try LlamaMobileVD.VectorStore(dimension: dimension, metric: metric)
             let storeId = LlamaMobileVDPlugin.nextId
             LlamaMobileVDPlugin.nextId += 1
             LlamaMobileVDPlugin.vectorStores[storeId] = store
@@ -259,7 +259,7 @@ public class LlamaMobileVDPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         
         let metricStr = call.getString("metric") ?? "cosine"
-        let metric: LlamaMobileVDSDK.DistanceMetric
+        let metric: LlamaMobileVD.DistanceMetric
         
         switch metricStr {
         case "l2":
@@ -279,7 +279,7 @@ public class LlamaMobileVDPlugin: CAPPlugin, CAPBridgedPlugin {
         let seed = call.getInt("seed") ?? 42
         
         do {
-            let index = try LlamaMobileVDSDK.HNSWIndex(
+            let index = try LlamaMobileVD.HNSWIndex(
                 dimension: dimension,
                 metric: metric,
                 maxElements: maxElements,
@@ -381,7 +381,7 @@ public class LlamaMobileVDPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         
         let metricStr = call.getString("metric") ?? "cosine"
-        let metric: LlamaMobileVDSDK.DistanceMetric
+        let metric: LlamaMobileVD.DistanceMetric
         
         switch metricStr {
         case "l2":
@@ -397,7 +397,7 @@ public class LlamaMobileVDPlugin: CAPPlugin, CAPBridgedPlugin {
         
         do {
             print("LlamaMobileVDPlugin: About to create builder with dimension: \(dimension), metric: \(metric)")
-            let builder = try LlamaMobileVDSDK.MMapVectorStoreBuilder(dimension: dimension, metric: metric)
+            let builder = try LlamaMobileVD.MMapVectorStoreBuilder(dimension: dimension, metric: metric)
             print("LlamaMobileVDPlugin: Builder created successfully: \(builder)")
             let builderId = LlamaMobileVDPlugin.nextId
             LlamaMobileVDPlugin.nextId += 1
@@ -530,7 +530,7 @@ public class LlamaMobileVDPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             
             print("LlamaMobileVDPlugin: Opening MMap vector store from: \(fullPath)")
-            let store = try LlamaMobileVDSDK.MMapVectorStore.open(from: fullPath)
+            let store = try LlamaMobileVD.MMapVectorStore.open(from: fullPath)
             let storeId = LlamaMobileVDPlugin.nextId
             LlamaMobileVDPlugin.nextId += 1
             LlamaMobileVDPlugin.mmapStores[storeId] = store

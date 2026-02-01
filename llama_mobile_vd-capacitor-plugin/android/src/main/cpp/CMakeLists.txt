@@ -1,18 +1,28 @@
-cmake_minimum_required(VERSION 3.22.1)
-project("llama_mobile_vd_capacitor")
+cmake_minimum_required(VERSION 3.18.1)
 
+project("llama_mobile_vd")
+
+# Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-add_library(llama_mobile_vd SHARED
+# Include header files
+include_directories(include)
+
+# Add the static library
+add_library(llama_mobile_vd STATIC IMPORTED)
+set_target_properties(llama_mobile_vd PROPERTIES
+    IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libllama_mobile_vd.a
+)
+
+# Create the JNI library
+add_library(llama_mobile_vd_jni SHARED
     llama_mobile_vd_jni.cpp
 )
 
-target_include_directories(llama_mobile_vd PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+target_link_libraries(llama_mobile_vd_jni
+    llama_mobile_vd
+    log
+    -lc++_static
 )
 
-target_link_libraries(llama_mobile_vd
-    ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libllama_mobile_vd.a
-    log
-)

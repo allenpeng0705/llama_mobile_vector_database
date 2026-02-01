@@ -108,25 +108,23 @@ public class LlamaMobileVDPlugin extends Plugin {
             }
 
             long storeId = vectorStoreIds.get(id);
-            List<double[]> vectors = new ArrayList<>();
+            JSArray idsArray = call.getArray("ids");
+            
             for (int i = 0; i < vectorsArray.length(); i++) {
                 JSONArray vectorArray = vectorsArray.getJSONArray(i);
-                double[] vector = new double[vectorArray.length()];
+                float[] vector = new float[vectorArray.length()];
                 for (int j = 0; j < vectorArray.length(); j++) {
-                    vector[j] = vectorArray.getDouble(j);
+                    vector[j] = (float) vectorArray.getDouble(j);
                 }
-                vectors.add(vector);
-            }
-
-            JSArray idsArray = call.getArray("ids");
-            if (idsArray != null && idsArray.length() > 0) {
-                int[] ids = new int[idsArray.length()];
-                for (int i = 0; i < idsArray.length(); i++) {
-                    ids[i] = idsArray.getInt(i);
+                
+                long vectorId;
+                if (idsArray != null && i < idsArray.length()) {
+                    vectorId = idsArray.getLong(i);
+                } else {
+                    vectorId = i;
                 }
-                LlamaMobileVD.nativeVectorStoreAddVectors(storeId, vectors, ids);
-            } else {
-                LlamaMobileVD.nativeVectorStoreAddVectors(storeId, vectors);
+                
+                LlamaMobileVD.nativeVectorStoreAddVector(storeId, vectorId, vector);
             }
             call.resolve();
         } catch (Exception e) {
@@ -142,7 +140,7 @@ public class LlamaMobileVDPlugin extends Plugin {
             return;
         }
 
-        int vectorId = call.getInt("id", -1);
+        long vectorId = call.getLong("id", -1L);
         if (vectorId < 0) {
             call.reject("Missing or invalid id parameter");
             return;
@@ -150,7 +148,7 @@ public class LlamaMobileVDPlugin extends Plugin {
 
         try {
             long storeId;
-            double[] vector;
+            float[] vector;
             if (vectorStoreIds.containsKey(id)) {
                 storeId = vectorStoreIds.get(id);
                 vector = LlamaMobileVD.nativeVectorStoreGetVector(storeId, vectorId);
@@ -160,7 +158,7 @@ public class LlamaMobileVDPlugin extends Plugin {
             }
             JSObject result = new JSObject();
             JSArray vectorArray = new JSArray();
-            for (double value : vector) {
+            for (float value : vector) {
                 vectorArray.put(value);
             }
             result.put("vector", vectorArray);
@@ -192,13 +190,13 @@ public class LlamaMobileVDPlugin extends Plugin {
 
         try {
             long storeId;
-            int count;
+            long count;
             if (vectorStoreIds.containsKey(id)) {
                 storeId = vectorStoreIds.get(id);
-                count = LlamaMobileVD.nativeVectorStoreGetCount(storeId);
+                count = LlamaMobileVD.nativeVectorStoreGetSize(storeId);
             } else {
                 storeId = mmapStoreIds.get(id);
-                count = LlamaMobileVD.nativeMMapVectorStoreGetCount(storeId);
+                count = LlamaMobileVD.nativeMMapVectorStoreGetSize(storeId);
             }
             
             if (count == 0) {
@@ -207,7 +205,7 @@ public class LlamaMobileVDPlugin extends Plugin {
             }
             
             // Process the queryVector array correctly
-            double[] queryVector;
+            float[] queryVector;
             try {
                 // Check if the first element is a Number (flat array) or JSONArray (nested array)
                 if (queryVectorArray.length() > 0) {
@@ -216,11 +214,11 @@ public class LlamaMobileVDPlugin extends Plugin {
                     
                     if (firstElement instanceof Number) {
                         // Handle flat array: [0.1, 0.2, 0.3]
-                        queryVector = new double[queryVectorArray.length()];
+                        queryVector = new float[queryVectorArray.length()];
                         for (int i = 0; i < queryVectorArray.length(); i++) {
                             Object value = queryVectorArray.get(i);
                             if (value instanceof Number) {
-                                queryVector[i] = ((Number) value).doubleValue();
+                                queryVector[i] = ((Number) value).floatValue();
                                 System.out.println("DEBUG: Flat array element " + i + ": " + queryVector[i]);
                             } else {
                                 call.reject("Invalid value in queryVector at index " + i + ": " + value);
@@ -230,9 +228,9 @@ public class LlamaMobileVDPlugin extends Plugin {
                     } else if (firstElement instanceof JSONArray) {
                         // Handle nested array: [[0.1, 0.2, 0.3]]
                         JSONArray innerArray = (JSONArray) firstElement;
-                        queryVector = new double[innerArray.length()];
+                        queryVector = new float[innerArray.length()];
                         for (int j = 0; j < innerArray.length(); j++) {
-                            queryVector[j] = innerArray.getDouble(j);
+                            queryVector[j] = (float) innerArray.getDouble(j);
                             System.out.println("DEBUG: Nested array element " + j + ": " + queryVector[j]);
                         }
                     } else {
@@ -258,13 +256,11 @@ public class LlamaMobileVDPlugin extends Plugin {
             }
             System.out.println("]");
 
-            int[] ids = new int[k];
-            double[] distances = new double[k];
-
+            LlamaMobileVD.SearchResult[] results;
             if (vectorStoreIds.containsKey(id)) {
                 System.out.println("DEBUG: Calling nativeVectorStoreSearch with storeId: " + storeId + ", k: " + k + ", queryVector length: " + queryVector.length);
                 try {
-                    LlamaMobileVD.nativeVectorStoreSearch(storeId, queryVector, k, ids, distances);
+                    results = LlamaMobileVD.nativeVectorStoreSearch(storeId, queryVector, k);
                     System.out.println("DEBUG: nativeVectorStoreSearch completed successfully");
                 } catch (Exception e) {
                     System.out.println("ERROR: nativeVectorStoreSearch failed: " + e.getMessage());
@@ -275,7 +271,7 @@ public class LlamaMobileVDPlugin extends Plugin {
             } else {
                 System.out.println("DEBUG: Calling nativeMMapVectorStoreSearch with storeId: " + storeId + ", k: " + k + ", queryVector length: " + queryVector.length);
                 try {
-                    LlamaMobileVD.nativeMMapVectorStoreSearch(storeId, queryVector, k, ids, distances);
+                    results = LlamaMobileVD.nativeMMapVectorStoreSearch(storeId, queryVector, k);
                     System.out.println("DEBUG: nativeMMapVectorStoreSearch completed successfully");
                 } catch (Exception e) {
                     System.out.println("ERROR: nativeMMapVectorStoreSearch failed: " + e.getMessage());
@@ -287,17 +283,17 @@ public class LlamaMobileVDPlugin extends Plugin {
 
             // Debug: Log the search results
             System.out.println("DEBUG: Search results:");
-            for (int i = 0; i < k; i++) {
-                System.out.println("DEBUG:  " + i + ". id: " + ids[i] + ", distance: " + distances[i]);
+            for (int i = 0; i < results.length; i++) {
+                System.out.println("DEBUG:  " + i + ". id: " + results[i].getId() + ", distance: " + results[i].getDistance());
             }
 
             JSObject result = new JSObject();
             JSArray idsArray = new JSArray();
             JSArray distancesArray = new JSArray();
             
-            for (int i = 0; i < k; i++) {
-                idsArray.put(ids[i]);
-                distancesArray.put(distances[i]);
+            for (int i = 0; i < results.length; i++) {
+                idsArray.put(results[i].getId());
+                distancesArray.put(results[i].getDistance());
             }
             
             result.put("ids", idsArray);
@@ -330,11 +326,10 @@ public class LlamaMobileVDPlugin extends Plugin {
             }
 
             long storeId = vectorStoreIds.get(id);
-            int[] ids = new int[idsArray.length()];
             for (int i = 0; i < idsArray.length(); i++) {
-                ids[i] = idsArray.getInt(i);
+                long vectorId = idsArray.getLong(i);
+                LlamaMobileVD.nativeVectorStoreRemoveVector(storeId, vectorId);
             }
-            LlamaMobileVD.nativeVectorStoreRemoveVectors(storeId, ids);
             call.resolve();
         } catch (Exception e) {
             call.reject("Failed to remove vectors: " + e.getMessage());
@@ -351,13 +346,13 @@ public class LlamaMobileVDPlugin extends Plugin {
 
         try {
             long storeId;
-            int count;
+            long count;
             if (vectorStoreIds.containsKey(id)) {
                 storeId = vectorStoreIds.get(id);
-                count = LlamaMobileVD.nativeVectorStoreGetCount(storeId);
+                count = LlamaMobileVD.nativeVectorStoreGetSize(storeId);
             } else {
                 storeId = mmapStoreIds.get(id);
-                count = LlamaMobileVD.nativeMMapVectorStoreGetCount(storeId);
+                count = LlamaMobileVD.nativeMMapVectorStoreGetSize(storeId);
             }
             JSObject result = new JSObject();
             result.put("count", count);
@@ -509,14 +504,19 @@ public class LlamaMobileVDPlugin extends Plugin {
         try {
             long indexId = hnswIndexIds.get(id);
             
-            int count = LlamaMobileVD.nativeHNSWIndexGetCount(indexId);
+            long count = LlamaMobileVD.nativeHNSWIndexGetSize(indexId);
             if (count == 0) {
                 call.reject("Cannot search an empty HNSW index");
                 return;
             }
             
+            // Set efSearch if provided
+            if (efSearch != null) {
+                LlamaMobileVD.nativeHNSWIndexSetEfSearch(indexId, efSearch);
+            }
+            
             // Process the queryVector array correctly
-            double[] queryVector;
+            float[] queryVector;
             try {
                 // Check if the first element is a Number (flat array) or JSONArray (nested array)
                 if (queryVectorArray.length() > 0) {
@@ -525,11 +525,11 @@ public class LlamaMobileVDPlugin extends Plugin {
                     
                     if (firstElement instanceof Number) {
                         // Handle flat array: [0.1, 0.2, 0.3]
-                        queryVector = new double[queryVectorArray.length()];
+                        queryVector = new float[queryVectorArray.length()];
                         for (int i = 0; i < queryVectorArray.length(); i++) {
                             Object value = queryVectorArray.get(i);
                             if (value instanceof Number) {
-                                queryVector[i] = ((Number) value).doubleValue();
+                                queryVector[i] = ((Number) value).floatValue();
                                 System.out.println("DEBUG: HNSW Flat array element " + i + ": " + queryVector[i]);
                             } else {
                                 call.reject("Invalid value in queryVector at index " + i + ": " + value);
@@ -539,9 +539,9 @@ public class LlamaMobileVDPlugin extends Plugin {
                     } else if (firstElement instanceof JSONArray) {
                         // Handle nested array: [[0.1, 0.2, 0.3]]
                         JSONArray innerArray = (JSONArray) firstElement;
-                        queryVector = new double[innerArray.length()];
+                        queryVector = new float[innerArray.length()];
                         for (int j = 0; j < innerArray.length(); j++) {
-                            queryVector[j] = innerArray.getDouble(j);
+                            queryVector[j] = (float) innerArray.getDouble(j);
                             System.out.println("DEBUG: HNSW Nested array element " + j + ": " + queryVector[j]);
                         }
                     } else {
@@ -567,29 +567,22 @@ public class LlamaMobileVDPlugin extends Plugin {
             }
             System.out.println("]");
 
-            int[] ids = new int[k];
-            double[] distances = new double[k];
-            if (efSearch != null) {
-                System.out.println("DEBUG: HNSW Calling nativeHNSWIndexSearch with indexId: " + indexId + ", k: " + k + ", efSearch: " + efSearch);
-                LlamaMobileVD.nativeHNSWIndexSearch(indexId, queryVector, k, efSearch, ids, distances);
-            } else {
-                System.out.println("DEBUG: HNSW Calling nativeHNSWIndexSearch with indexId: " + indexId + ", k: " + k);
-                LlamaMobileVD.nativeHNSWIndexSearch(indexId, queryVector, k, ids, distances);
-            }
+            // Call the native search method
+            LlamaMobileVD.SearchResult[] results = LlamaMobileVD.nativeHNSWIndexSearch(indexId, queryVector, k);
 
             // Debug: Log the search results
             System.out.println("DEBUG: HNSW Search results:");
-            for (int i = 0; i < k; i++) {
-                System.out.println("DEBUG: HNSW  " + i + ". id: " + ids[i] + ", distance: " + distances[i]);
+            for (int i = 0; i < results.length; i++) {
+                System.out.println("DEBUG: HNSW  " + i + ". id: " + results[i].getId() + ", distance: " + results[i].getDistance());
             }
 
             JSObject result = new JSObject();
             JSArray idsArray = new JSArray();
             JSArray distancesArray = new JSArray();
             
-            for (int i = 0; i < k; i++) {
-                idsArray.put(ids[i]);
-                distancesArray.put(distances[i]);
+            for (int i = 0; i < results.length; i++) {
+                idsArray.put(results[i].getId());
+                distancesArray.put(results[i].getDistance());
             }
             
             result.put("ids", idsArray);
@@ -617,25 +610,23 @@ public class LlamaMobileVDPlugin extends Plugin {
 
         try {
             long indexId = hnswIndexIds.get(id);
-            List<double[]> vectors = new ArrayList<>();
+            JSArray idsArray = call.getArray("ids");
+            
             for (int i = 0; i < vectorsArray.length(); i++) {
                 JSONArray vectorArray = vectorsArray.getJSONArray(i);
-                double[] vector = new double[vectorArray.length()];
+                float[] vector = new float[vectorArray.length()];
                 for (int j = 0; j < vectorArray.length(); j++) {
-                    vector[j] = vectorArray.getDouble(j);
+                    vector[j] = (float) vectorArray.getDouble(j);
                 }
-                vectors.add(vector);
-            }
-
-            JSArray idsArray = call.getArray("ids");
-            if (idsArray != null && idsArray.length() > 0) {
-                int[] ids = new int[idsArray.length()];
-                for (int i = 0; i < idsArray.length(); i++) {
-                    ids[i] = idsArray.getInt(i);
+                
+                long vectorId;
+                if (idsArray != null && i < idsArray.length()) {
+                    vectorId = idsArray.getLong(i);
+                } else {
+                    vectorId = i;
                 }
-                LlamaMobileVD.nativeHNSWIndexAddVectors(indexId, vectors, ids);
-            } else {
-                LlamaMobileVD.nativeHNSWIndexAddVectors(indexId, vectors);
+                
+                LlamaMobileVD.nativeHNSWIndexAddVector(indexId, vectorId, vector);
             }
             call.resolve();
         } catch (Exception e) {
@@ -727,25 +718,23 @@ public class LlamaMobileVDPlugin extends Plugin {
 
         try {
             long builderId = mmapBuilderIds.get(id);
-            List<double[]> vectors = new ArrayList<>();
+            JSArray idsArray = call.getArray("ids");
+            
             for (int i = 0; i < vectorsArray.length(); i++) {
                 JSONArray vectorArray = vectorsArray.getJSONArray(i);
-                double[] vector = new double[vectorArray.length()];
+                float[] vector = new float[vectorArray.length()];
                 for (int j = 0; j < vectorArray.length(); j++) {
-                    vector[j] = vectorArray.getDouble(j);
+                    vector[j] = (float) vectorArray.getDouble(j);
                 }
-                vectors.add(vector);
-            }
-
-            JSArray idsArray = call.getArray("ids");
-            if (idsArray != null && idsArray.length() > 0) {
-                int[] ids = new int[idsArray.length()];
-                for (int i = 0; i < idsArray.length(); i++) {
-                    ids[i] = idsArray.getInt(i);
+                
+                long vectorId;
+                if (idsArray != null && i < idsArray.length()) {
+                    vectorId = idsArray.getLong(i);
+                } else {
+                    vectorId = i;
                 }
-                LlamaMobileVD.nativeMMapVectorStoreBuilderAddVectors(builderId, vectors, ids);
-            } else {
-                LlamaMobileVD.nativeMMapVectorStoreBuilderAddVectors(builderId, vectors);
+                
+                LlamaMobileVD.nativeMMapVectorStoreBuilderAddVector(builderId, vectorId, vector);
             }
             call.resolve();
         } catch (Exception e) {

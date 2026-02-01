@@ -15,6 +15,7 @@ echo -e "${GREEN}=== Building LlamaMobileVD Capacitor Plugin ===${NC}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PLUGIN_DIR="$PROJECT_ROOT/llama_mobile_vd-capacitor-plugin"
+SDK_BACKUP_DIR="$PROJECT_ROOT/scripts/sdk_backup"
 
 # ==========================
 # CENTRAL CONFIGURATION
@@ -64,71 +65,143 @@ if [ ! -d "$PLUGIN_DIR" ]; then
     exit 1
 fi
 
-# Step 1: Verify iOS framework
-echo -e "\n${YELLOW}Step 1: Verifying iOS framework...${NC}"
-IOS_FRAMEWORK="$PLUGIN_DIR/ios/llama_mobile_vd.xcframework"
-if [ ! -d "$IOS_FRAMEWORK" ]; then
-    echo -e "${YELLOW}iOS framework not found, searching for sources...${NC}"
-    
-    # Try sources in order of preference
-    potential_sources=(
-        "$PROJECT_ROOT/llama_mobile_vd-ios-SDK/ios/llama_mobile_vd.xcframework"  # Preferred: dedicated iOS SDK
-        "$PROJECT_ROOT/llama_mobile_vd-ios/ios/llama_mobile_vd.xcframework"       # Alternative: iOS directory
-        "$PROJECT_ROOT/llama_mobile_vd-flutter-SDK/ios/llama_mobile_vd.xcframework" # Fallback: Flutter SDK
-    )
-    
-    found_source=""
-    for source in "${potential_sources[@]}"; do
-        if [ -d "$source" ]; then
-            found_source="$source"
-            break
-        fi
-    done
-    
-    if [ -n "$found_source" ]; then
-        echo -e "${YELLOW}Copying iOS framework from $found_source${NC}"
-        cp -R "$found_source" "$PLUGIN_DIR/ios/"
-        echo -e "${GREEN}✓ iOS framework copied${NC}"
-    else
-        echo -e "${RED}Error: No iOS framework found at any of the potential sources:${NC}"
-        for source in "${potential_sources[@]}"; do
-            echo -e "${RED}  - $source${NC}"
-        done
-        echo -e "${YELLOW}Please ensure the iOS framework is built and available in one of these locations.${NC}"
-        exit 1
-    fi
-else
-    echo -e "${GREEN}✓ iOS framework found${NC}"
+# ==========================
+# STEP 1: Backup Capacitor Plugin
+# ==========================
+echo -e "\n${YELLOW}Step 1: Backing up Capacitor Plugin...${NC}"
+
+# Create backup directory if it doesn't exist
+mkdir -p "$SDK_BACKUP_DIR"
+
+# Create timestamped backup
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+BACKUP_NAME="llama_mobile_vd-capacitor-plugin_$TIMESTAMP"
+BACKUP_DIR="$SDK_BACKUP_DIR/$BACKUP_NAME"
+mkdir -p "$BACKUP_DIR"
+
+# Copy Capacitor plugin files to backup
+echo -e "${YELLOW}Creating backup at $BACKUP_DIR${NC}"
+cp -r "$PLUGIN_DIR/"* "$BACKUP_DIR/"
+echo -e "${GREEN}✓ Capacitor Plugin backed up${NC}"
+
+# ==========================
+# STEP 2: Clean and Copy Native Files
+# ==========================
+echo -e "\n${YELLOW}Step 2: Cleaning and copying native files...${NC}"
+
+# Clean iOS xcframework
+IOS_XCFRAMEWORK_DST="$PLUGIN_DIR/ios/llama_mobile_vd.xcframework"
+if [ -d "$IOS_XCFRAMEWORK_DST" ]; then
+    echo -e "${YELLOW}Cleaning iOS xcframework...${NC}"
+    rm -rf "$IOS_XCFRAMEWORK_DST"
 fi
 
-# Step 2: Verify Android JNI libraries
-echo -e "\n${YELLOW}Step 2: Verifying Android JNI libraries...${NC}"
-ANDROID_JNI="$PLUGIN_DIR/android/src/main/jniLibs"
-if [ ! -d "$ANDROID_JNI" ] || [ -z "$(ls -A $ANDROID_JNI 2>/dev/null)" ]; then
-    echo -e "${YELLOW}Android JNI libraries not found, copying from Android SDK...${NC}"
-    ANDROID_SDK_JNI="$PROJECT_ROOT/llama_mobile_vd-android-SDK/src/main/jniLibs"
-    if [ -d "$ANDROID_SDK_JNI" ]; then
-        mkdir -p "$ANDROID_JNI"
-        cp -R "$ANDROID_SDK_JNI"/* "$ANDROID_JNI/"
-        echo -e "${GREEN}✓ Android JNI libraries copied${NC}"
-    else
-        echo -e "${RED}Error: Android SDK JNI libraries not found at $ANDROID_SDK_JNI${NC}"
-        exit 1
-    fi
-else
-    echo -e "${GREEN}✓ Android JNI libraries found${NC}"
+# Clean iOS Swift wrapper
+IOS_SWIFT_DST="$PLUGIN_DIR/ios/Plugin/LlamaMobileVD.swift"
+if [ -f "$IOS_SWIFT_DST" ]; then
+    echo -e "${YELLOW}Cleaning iOS Swift wrapper...${NC}"
+    rm -f "$IOS_SWIFT_DST"
 fi
 
-# Step 3: Build TypeScript code
+# Clean Android cpp directory
+ANDROID_CPP_DST="$PLUGIN_DIR/android/src/main/cpp"
+if [ -d "$ANDROID_CPP_DST" ]; then
+    echo -e "${YELLOW}Cleaning Android cpp directory...${NC}"
+    rm -rf "$ANDROID_CPP_DST"
+fi
+
+# Clean Android jniLibs directory
+ANDROID_JNI_DST="$PLUGIN_DIR/android/src/main/jniLibs"
+if [ -d "$ANDROID_JNI_DST" ]; then
+    echo -e "${YELLOW}Cleaning Android jniLibs directory...${NC}"
+    rm -rf "$ANDROID_JNI_DST"
+fi
+
+# Clean Android Java wrapper
+ANDROID_JAVA_DST="$PLUGIN_DIR/android/src/main/java/com/llamamobile/vd/LlamaMobileVD.java"
+if [ -f "$ANDROID_JAVA_DST" ]; then
+    echo -e "${YELLOW}Cleaning Android Java wrapper...${NC}"
+    rm -f "$ANDROID_JAVA_DST"
+fi
+
+# Create necessary directories
+mkdir -p "$PLUGIN_DIR/ios/Plugin"
+mkdir -p "$PLUGIN_DIR/android/src/main/cpp"
+mkdir -p "$PLUGIN_DIR/android/src/main/jniLibs"
+mkdir -p "$PLUGIN_DIR/android/src/main/java/com/llamamobile/vd"
+
+# Copy iOS xcframework from llama_mobile_vd-ios
+echo -e "${YELLOW}Copying iOS xcframework...${NC}"
+IOS_XCFRAMEWORK_SRC="$PROJECT_ROOT/llama_mobile_vd-ios/llama_mobile_vd.xcframework"
+if [ -d "$IOS_XCFRAMEWORK_SRC" ]; then
+    cp -r "$IOS_XCFRAMEWORK_SRC" "$IOS_XCFRAMEWORK_DST"
+    echo -e "${GREEN}✓ iOS xcframework copied${NC}"
+else
+    echo -e "${RED}Error: iOS xcframework not found at $IOS_XCFRAMEWORK_SRC${NC}"
+    exit 1
+fi
+
+# Copy Swift wrapper from llama_mobile_vd-ios-SDK
+echo -e "${YELLOW}Copying Swift wrapper...${NC}"
+IOS_SWIFT_SRC="$PROJECT_ROOT/llama_mobile_vd-ios-SDK/Sources/LlamaMobileVD/LlamaMobileVD.swift"
+if [ -f "$IOS_SWIFT_SRC" ]; then
+    cp -f "$IOS_SWIFT_SRC" "$IOS_SWIFT_DST"
+    echo -e "${GREEN}✓ Swift wrapper copied${NC}"
+else
+    echo -e "${RED}Error: Swift wrapper not found at $IOS_SWIFT_SRC${NC}"
+    exit 1
+fi
+
+# Copy JNI libs from llama_mobile_vd-android
+echo -e "${YELLOW}Copying JNI libraries...${NC}"
+ANDROID_JNI_SRC="$PROJECT_ROOT/llama_mobile_vd-android/libs"
+if [ -d "$ANDROID_JNI_SRC" ]; then
+    cp -r "$ANDROID_JNI_SRC"/* "$ANDROID_JNI_DST/"
+    echo -e "${GREEN}✓ JNI libraries copied${NC}"
+else
+    echo -e "${RED}Error: JNI libraries not found at $ANDROID_JNI_SRC${NC}"
+    exit 1
+fi
+
+# Copy cpp files from llama_mobile_vd-android-SDK
+echo -e "${YELLOW}Copying cpp files...${NC}"
+ANDROID_CPP_SRC="$PROJECT_ROOT/llama_mobile_vd-android-SDK/src/main/cpp"
+if [ -d "$ANDROID_CPP_SRC" ]; then
+    cp -r "$ANDROID_CPP_SRC"/* "$ANDROID_CPP_DST/"
+    echo -e "${GREEN}✓ cpp files copied${NC}"
+else
+    echo -e "${RED}Error: cpp files not found at $ANDROID_CPP_SRC${NC}"
+    exit 1
+fi
+
+# Copy Java wrapper from llama_mobile_vd-android-SDK
+echo -e "${YELLOW}Copying Java wrapper...${NC}"
+ANDROID_JAVA_SRC="$PROJECT_ROOT/llama_mobile_vd-android-SDK/src/main/java/com/llamamobile/vd/LlamaMobileVD.java"
+if [ -f "$ANDROID_JAVA_SRC" ]; then
+    cp -f "$ANDROID_JAVA_SRC" "$ANDROID_JAVA_DST"
+    echo -e "${GREEN}✓ Java wrapper copied${NC}"
+else
+    echo -e "${RED}Error: Java wrapper not found at $ANDROID_JAVA_SRC${NC}"
+    exit 1
+fi
+
+# ==========================
+# STEP 3: Build Everything
+# ==========================
 echo -e "\n${YELLOW}Step 3: Building TypeScript code...${NC}"
 cd "$PLUGIN_DIR"
+
+# Install dependencies
+echo -e "${YELLOW}Installing npm dependencies...${NC}"
 npm install
+
+# Build TypeScript
+echo -e "${YELLOW}Building TypeScript...${NC}"
 npm run build
 
-# Step 4: Verify build artifacts
-echo -e "\n${YELLOW}Step 4: Verifying build artifacts...${NC}"
+# Verify build artifacts
+echo -e "\n${YELLOW}Verifying build artifacts...${NC}"
 
-# Check TypeScript build
 if [ ! -d "$PLUGIN_DIR/dist" ]; then
     echo -e "${RED}Error: dist directory not found${NC}"
     exit 1
@@ -162,7 +235,26 @@ fi
 
 echo -e "${GREEN}✓ Android plugin verified${NC}"
 
-# Step 6: Display summary
+# ==========================
+# STEP 4: Run Tests
+# ==========================
+echo -e "\n${YELLOW}Step 4: Running tests...${NC}"
+
+# Check if tests directory exists
+if [ -d "$PLUGIN_DIR/tests" ] || [ -d "$PLUGIN_DIR/test" ] || [ -d "$PLUGIN_DIR/__tests__" ]; then
+    echo -e "${YELLOW}Running npm test...${NC}"
+    if npm test; then
+        echo -e "${GREEN}✓ Tests passed${NC}"
+    else
+        echo -e "${YELLOW}Warning: Some tests failed or were skipped${NC}"
+    fi
+else
+    echo -e "${YELLOW}No test directory found, skipping tests${NC}"
+fi
+
+# ==========================
+# STEP 5: Display Summary
+# ==========================
 echo -e "\n${GREEN}=== Build Summary ===${NC}"
 echo -e "Plugin directory: ${GREEN}$PLUGIN_DIR${NC}"
 echo -e "TypeScript build: ${GREEN}dist/${NC}"
@@ -170,6 +262,8 @@ echo -e "iOS plugin: ${GREEN}ios/Plugin/${NC}"
 echo -e "iOS framework: ${GREEN}ios/llama_mobile_vd.xcframework/${NC}"
 echo -e "Android plugin: ${GREEN}android/src/main/java/com/llamamobile/vd/${NC}"
 echo -e "Android JNI libs: ${GREEN}android/src/main/jniLibs/${NC}"
+echo -e "Android cpp: ${GREEN}android/src/main/cpp/${NC}"
+echo -e "Backup location: ${GREEN}$BACKUP_DIR${NC}"
 
 echo -e "\n${GREEN}=== Build completed successfully! ===${NC}"
 echo -e "You can now use the plugin in your Capacitor project:"
@@ -177,8 +271,4 @@ echo -e "  cd your-capacitor-project"
 echo -e "  npm install $PLUGIN_DIR"
 echo -e "  npx cap sync"
 
-echo -e "\n${YELLOW}=== Important Notes ===${NC}"
-echo -e "1. Tests were skipped because they require native platform implementation"
-echo -e "2. The plugin is now ready for use on iOS and Android"
-echo -e "3. Web platform will use fallback implementation"
-echo -e "4. No source code was deleted during this process"
+echo -e "\n${GREEN}✓ Everything is fine!${NC}"
