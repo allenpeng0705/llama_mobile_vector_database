@@ -295,6 +295,222 @@ export class LlamaMobileVDWeb {
     this.mmapStores.delete(options.storeId);
   }
 
+  // Async methods
+  async createVectorStoreAsync(options: {
+    dimension: number;
+    metric: 'l2' | 'cosine' | 'dot';
+  }): Promise<{ storeId: number }> {
+    const storeId = this.nextStoreId++;
+    this.vectorStores.set(storeId, {
+      dimension: options.dimension,
+      metric: options.metric,
+      vectors: new Map(),
+      nextId: 1
+    });
+    return { storeId };
+  }
+
+  async addVectorsAsync(options: {
+    storeId: number;
+    vectors: number[][];
+    ids?: number[];
+  }): Promise<void> {
+    const store = this.vectorStores.get(options.storeId) || this.mmapStores.get(options.storeId);
+    if (!store) {
+      throw new Error(`Vector store ${options.storeId} not found`);
+    }
+
+    for (let i = 0; i < options.vectors.length; i++) {
+      const vector = options.vectors[i];
+      if (vector.length !== store.dimension) {
+        throw new Error(`Vector dimension ${vector.length} does not match store dimension ${store.dimension}`);
+      }
+
+      const id = options.ids?.[i] || store.nextId++;
+      store.vectors.set(id, vector);
+    }
+  }
+
+  async searchAsync(options: {
+    storeId: number;
+    queryVector: number[];
+    k: number;
+  }): Promise<{ ids: number[]; distances: number[] }> {
+    const store = this.vectorStores.get(options.storeId) || this.mmapStores.get(options.storeId);
+    if (!store) {
+      throw new Error(`Vector store ${options.storeId} not found`);
+    }
+
+    if (options.queryVector.length !== store.dimension) {
+      throw new Error(`Query vector dimension ${options.queryVector.length} does not match store dimension ${store.dimension}`);
+    }
+
+    const results: { id: number; distance: number }[] = [];
+
+    for (const [id, vector] of store.vectors.entries()) {
+      const distance = this.calculateDistance(store.metric, options.queryVector, vector);
+      results.push({ id, distance });
+    }
+
+    results.sort((a, b) => a.distance - b.distance);
+    const topK = results.slice(0, options.k);
+
+    return {
+      ids: topK.map(r => r.id),
+      distances: topK.map(r => r.distance)
+    };
+  }
+
+  async removeVectorsAsync(options: {
+    storeId: number;
+    ids: number[];
+  }): Promise<void> {
+    const store = this.vectorStores.get(options.storeId) || this.mmapStores.get(options.storeId);
+    if (!store) {
+      throw new Error(`Vector store ${options.storeId} not found`);
+    }
+
+    for (const id of options.ids) {
+      store.vectors.delete(id);
+    }
+  }
+
+  async clearVectorsAsync(options: {
+    storeId: number;
+  }): Promise<void> {
+    const store = this.vectorStores.get(options.storeId) || this.mmapStores.get(options.storeId);
+    if (!store) {
+      throw new Error(`Vector store ${options.storeId} not found`);
+    }
+
+    store.vectors.clear();
+    store.nextId = 1;
+  }
+
+  async createHNSWIndexAsync(options: {
+    dimension: number;
+    metric: 'l2' | 'cosine' | 'dot';
+    maxElements: number;
+    m: number;
+    efConstruction: number;
+  }): Promise<{ indexId: number }> {
+    const indexId = this.nextIndexId++;
+    this.hnswIndexes.set(indexId, {
+      storeId: -1,
+      m: options.m,
+      efConstruction: options.efConstruction
+    });
+    return { indexId };
+  }
+
+  async searchHNSWAsync(options: {
+    indexId: number;
+    queryVector: number[];
+    k: number;
+    efSearch?: number;
+  }): Promise<{ ids: number[]; distances: number[] }> {
+    const index = this.hnswIndexes.get(options.indexId);
+    if (!index) {
+      throw new Error(`HNSW index ${options.indexId} not found`);
+    }
+
+    const store = this.vectorStores.get(index.storeId) || this.mmapStores.get(index.storeId);
+    if (!store) {
+      throw new Error(`Vector store ${index.storeId} not found`);
+    }
+
+    return this.search({
+      storeId: index.storeId,
+      queryVector: options.queryVector,
+      k: options.k
+    });
+  }
+
+  async addVectorsToHNSWAsync(options: {
+    indexId: number;
+    vectors: number[][];
+    ids?: number[];
+  }): Promise<void> {
+    const index = this.hnswIndexes.get(options.indexId);
+    if (!index) {
+      throw new Error(`HNSW index ${options.indexId} not found`);
+    }
+
+    await this.addVectors({
+      storeId: index.storeId,
+      vectors: options.vectors,
+      ids: options.ids
+    });
+  }
+
+  async createMMapVectorStoreBuilderAsync(options: {
+    dimension: number;
+    metric: 'l2' | 'cosine' | 'dot';
+  }): Promise<{ builderId: number }> {
+    const builderId = this.nextBuilderId++;
+    this.mmapBuilders.set(builderId, {
+      dimension: options.dimension,
+      metric: options.metric,
+      vectors: new Map(),
+      nextId: 1
+    });
+    return { builderId };
+  }
+
+  async addVectorsToMMapBuilderAsync(options: {
+    builderId: number;
+    vectors: number[][];
+    ids?: number[];
+  }): Promise<void> {
+    const builder = this.mmapBuilders.get(options.builderId);
+    if (!builder) {
+      throw new Error(`MMap builder ${options.builderId} not found`);
+    }
+
+    for (let i = 0; i < options.vectors.length; i++) {
+      const vector = options.vectors[i];
+      if (vector.length !== builder.dimension) {
+        throw new Error(`Vector dimension ${vector.length} does not match builder dimension ${builder.dimension}`);
+      }
+
+      const id = options.ids?.[i] || builder.nextId++;
+      builder.vectors.set(id, vector);
+    }
+  }
+
+  async buildMMapVectorStoreAsync(options: {
+    builderId: number;
+    path: string;
+  }): Promise<void> {
+    const builder = this.mmapBuilders.get(options.builderId);
+    if (!builder) {
+      throw new Error(`MMap builder ${options.builderId} not found`);
+    }
+
+    const storeId = this.nextStoreId++;
+    this.mmapStores.set(storeId, {
+      dimension: builder.dimension,
+      metric: builder.metric,
+      vectors: builder.vectors,
+      nextId: builder.nextId
+    });
+
+    this.mmapBuilders.delete(options.builderId);
+  }
+
+  async openMMapVectorStoreAsync(options: {
+    path: string;
+  }): Promise<{ storeId: number }> {
+    const storeId = this.nextStoreId++;
+    this.mmapStores.set(storeId, {
+      dimension: 128,
+      metric: 'l2',
+      vectors: new Map(),
+      nextId: 1
+    });
+    return { storeId };
+  }
+
   private calculateDistance(metric: 'l2' | 'cosine' | 'dot', a: number[], b: number[]): number {
     switch (metric) {
       case 'l2':

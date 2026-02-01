@@ -39,6 +39,9 @@ function App() {
   // Status
   const [status, setStatus] = useState('Ready')
 
+  // Async switcher
+  const [useAsync, setUseAsync] = useState(false)
+
   // Set default MMap file path and check plugin version
   useEffect(() => {
     const setupMmapFilePath = async () => {
@@ -98,7 +101,10 @@ function App() {
     updateStatus('Creating VectorStore...')
     
     try {
-      const result = await LlamaMobileVD.createVectorStore({
+      const result = useAsync ? await LlamaMobileVD.createVectorStoreAsync({
+        dimension,
+        metric: selectedMetric
+      }) : await LlamaMobileVD.createVectorStore({
         dimension,
         metric: selectedMetric
       })
@@ -125,10 +131,17 @@ function App() {
         vectors.push(createRandomVector(dimension))
       }
       
-      await LlamaMobileVD.addVectors({
-        storeId: vectorStoreId,
-        vectors
-      })
+      if (useAsync) {
+        await LlamaMobileVD.addVectorsAsync({
+          storeId: vectorStoreId,
+          vectors
+        })
+      } else {
+        await LlamaMobileVD.addVectors({
+          storeId: vectorStoreId,
+          vectors
+        })
+      }
       
       const countResult = await LlamaMobileVD.getVectorCount({ storeId: vectorStoreId })
       setVectorStoreCount(countResult.count)
@@ -153,7 +166,11 @@ function App() {
     
     try {
       const queryVector = createRandomVector(dimension)
-      const result = await LlamaMobileVD.search({
+      const result = useAsync ? await LlamaMobileVD.searchAsync({
+        storeId: vectorStoreId,
+        queryVector,
+        k: searchK
+      }) : await LlamaMobileVD.search({
         storeId: vectorStoreId,
         queryVector,
         k: searchK
@@ -180,7 +197,11 @@ function App() {
     updateStatus('Clearing VectorStore...')
     
     try {
-      await LlamaMobileVD.clearVectors({ storeId: vectorStoreId })
+      if (useAsync) {
+        await LlamaMobileVD.clearVectorsAsync({ storeId: vectorStoreId })
+      } else {
+        await LlamaMobileVD.clearVectors({ storeId: vectorStoreId })
+      }
       setVectorStoreCount(0)
       setVectorStoreResults([])
       updateStatus('VectorStore cleared successfully')
@@ -213,7 +234,13 @@ function App() {
     updateStatus('Creating HNSWIndex...')
     
     try {
-      const result = await LlamaMobileVD.createHNSWIndex({
+      const result = useAsync ? await LlamaMobileVD.createHNSWIndexAsync({
+        dimension,
+        metric: selectedMetric,
+        maxElements: 10000,
+        m: hnswM,
+        efConstruction: hnswEfConstruction
+      }) : await LlamaMobileVD.createHNSWIndex({
         dimension,
         metric: selectedMetric,
         maxElements: 10000,
@@ -243,10 +270,17 @@ function App() {
         vectors.push(createRandomVector(dimension))
       }
       
-      await LlamaMobileVD.addVectorsToHNSW({
-        indexId: hnswIndexId,
-        vectors
-      })
+      if (useAsync) {
+        await LlamaMobileVD.addVectorsToHNSWAsync({
+          indexId: hnswIndexId,
+          vectors
+        })
+      } else {
+        await LlamaMobileVD.addVectorsToHNSW({
+          indexId: hnswIndexId,
+          vectors
+        })
+      }
       
       setHnswIndexCount(prev => prev + 100)
       updateStatus('Added 100 vectors to HNSWIndex')
@@ -270,7 +304,12 @@ function App() {
     
     try {
       const queryVector = createRandomVector(dimension)
-      const result = await LlamaMobileVD.searchHNSW({
+      const result = useAsync ? await LlamaMobileVD.searchHNSWAsync({
+        indexId: hnswIndexId,
+        queryVector,
+        k: searchK,
+        efSearch
+      }) : await LlamaMobileVD.searchHNSW({
         indexId: hnswIndexId,
         queryVector,
         k: searchK,
@@ -313,7 +352,10 @@ function App() {
     updateStatus('Creating MMapVectorStore...')
     
     try {
-      const builderResult = await LlamaMobileVD.createMMapVectorStoreBuilder({
+      const builderResult = useAsync ? await LlamaMobileVD.createMMapVectorStoreBuilderAsync({
+        dimension,
+        metric: selectedMetric
+      }) : await LlamaMobileVD.createMMapVectorStoreBuilder({
         dimension,
         metric: selectedMetric
       })
@@ -324,16 +366,30 @@ function App() {
         vectors.push(createRandomVector(dimension))
       }
       
-      await LlamaMobileVD.addVectorsToMMapBuilder({
-        builderId: builderResult.builderId,
-        vectors
-      })
+      if (useAsync) {
+        await LlamaMobileVD.addVectorsToMMapBuilderAsync({
+          builderId: builderResult.builderId,
+          vectors
+        })
+      } else {
+        await LlamaMobileVD.addVectorsToMMapBuilder({
+          builderId: builderResult.builderId,
+          vectors
+        })
+      }
       
       // Build the MMap vector store
-      await LlamaMobileVD.buildMMapVectorStore({ 
-        builderId: builderResult.builderId,
-        path: mmapFilePath
-      })
+      if (useAsync) {
+        await LlamaMobileVD.buildMMapVectorStoreAsync({ 
+          builderId: builderResult.builderId,
+          path: mmapFilePath
+        })
+      } else {
+        await LlamaMobileVD.buildMMapVectorStore({ 
+          builderId: builderResult.builderId,
+          path: mmapFilePath
+        })
+      }
       
       // Destroy the builder
       await LlamaMobileVD.destroyMMapVectorStoreBuilder({ builderId: builderResult.builderId })
@@ -348,7 +404,9 @@ function App() {
     updateStatus('Opening MMapVectorStore...')
     
     try {
-      const result = await LlamaMobileVD.openMMapVectorStore({
+      const result = useAsync ? await LlamaMobileVD.openMMapVectorStoreAsync({
+        path: mmapFilePath
+      }) : await LlamaMobileVD.openMMapVectorStore({
         path: mmapFilePath
       })
       setMmapVectorStoreId(result.storeId)
@@ -371,7 +429,11 @@ function App() {
     
     try {
       const queryVector = createRandomVector(dimension)
-      const result = await LlamaMobileVD.search({
+      const result = useAsync ? await LlamaMobileVD.searchAsync({
+        storeId: mmapVectorStoreId,
+        queryVector,
+        k: searchK
+      }) : await LlamaMobileVD.search({
         storeId: mmapVectorStoreId,
         queryVector,
         k: searchK
@@ -426,6 +488,19 @@ function App() {
         {/* Configuration */}
         <div className="config-card">
           <h2>Configuration</h2>
+          
+          <div className="config-item">
+            <label>Use Async API:</label>
+            <div className="async-switch">
+              <input
+                type="checkbox"
+                id="asyncSwitch"
+                checked={useAsync}
+                onChange={(e) => setUseAsync(e.target.checked)}
+              />
+              <label htmlFor="asyncSwitch" className="switch-label"></label>
+            </div>
+          </div>
           
           <div className="config-item">
             <label>Vector Dimension: {dimension}</label>

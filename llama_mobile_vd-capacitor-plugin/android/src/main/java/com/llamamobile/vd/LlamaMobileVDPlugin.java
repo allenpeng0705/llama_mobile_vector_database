@@ -806,4 +806,570 @@ public class LlamaMobileVDPlugin extends Plugin {
             call.reject("Failed to close MMap vector store: " + e.getMessage());
         }
     }
+
+    // MARK: - VectorStore async methods
+    @PluginMethod
+    public void createVectorStoreAsync(PluginCall call) {
+        int dimension = call.getInt("dimension", -1);
+        if (dimension < 0) {
+            call.reject("Missing or invalid dimension parameter");
+            return;
+        }
+
+        String metricStr = call.getString("metric", "cosine");
+        int metric;
+        switch (metricStr) {
+            case "l2":
+                metric = 0;
+                break;
+            case "cosine":
+                metric = 1;
+                break;
+            case "dot":
+                metric = 2;
+                break;
+            default:
+                call.reject("Invalid metric: " + metricStr);
+                return;
+        }
+
+        new Thread(() -> {
+            try {
+                long storeId = LlamaMobileVD.nativeVectorStoreCreate(dimension, metric);
+                int id = nextId++;
+                vectorStoreIds.put(id, storeId);
+                JSObject result = new JSObject();
+                result.put("storeId", id);
+                call.resolve(result);
+            } catch (Exception e) {
+                call.reject("Failed to create vector store: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    @PluginMethod
+    public void addVectorsAsync(PluginCall call) {
+        int id = call.getInt("storeId", -1);
+        if (id < 0 || (!vectorStoreIds.containsKey(id) && !mmapStoreIds.containsKey(id))) {
+            call.reject("Missing or invalid storeId parameter");
+            return;
+        }
+
+        JSArray vectorsArray = call.getArray("vectors");
+        if (vectorsArray == null || vectorsArray.length() == 0) {
+            call.reject("Missing or invalid vectors parameter");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                if (mmapStoreIds.containsKey(id)) {
+                    call.reject("Cannot add vectors to MMap vector store - it's read-only");
+                    return;
+                }
+
+                long storeId = vectorStoreIds.get(id);
+                JSArray idsArray = call.getArray("ids");
+                
+                for (int i = 0; i < vectorsArray.length(); i++) {
+                    JSONArray vectorArray = vectorsArray.getJSONArray(i);
+                    float[] vector = new float[vectorArray.length()];
+                    for (int j = 0; j < vectorArray.length(); j++) {
+                        vector[j] = (float) vectorArray.getDouble(j);
+                    }
+                    
+                    long vectorId;
+                    if (idsArray != null && i < idsArray.length()) {
+                        vectorId = idsArray.getLong(i);
+                    } else {
+                        vectorId = i;
+                    }
+                    
+                    LlamaMobileVD.nativeVectorStoreAddVector(storeId, vectorId, vector);
+                }
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("Failed to add vectors: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    @PluginMethod
+    public void searchAsync(PluginCall call) {
+        int id = call.getInt("storeId", -1);
+        if (id < 0 || (!vectorStoreIds.containsKey(id) && !mmapStoreIds.containsKey(id))) {
+            call.reject("Missing or invalid storeId parameter");
+            return;
+        }
+
+        JSArray queryVectorArray = call.getArray("queryVector");
+        if (queryVectorArray == null || queryVectorArray.length() == 0) {
+            call.reject("Missing or invalid queryVector parameter");
+            return;
+        }
+
+        int k = call.getInt("k", -1);
+        if (k < 0) {
+            call.reject("Missing or invalid k parameter");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                long storeId;
+                long count;
+                if (vectorStoreIds.containsKey(id)) {
+                    storeId = vectorStoreIds.get(id);
+                    count = LlamaMobileVD.nativeVectorStoreGetSize(storeId);
+                } else {
+                    storeId = mmapStoreIds.get(id);
+                    count = LlamaMobileVD.nativeMMapVectorStoreGetSize(storeId);
+                }
+                
+                if (count == 0) {
+                    call.reject("Cannot search an empty vector store");
+                    return;
+                }
+                
+                float[] queryVector;
+                try {
+                    if (queryVectorArray.length() > 0) {
+                        Object firstElement = queryVectorArray.get(0);
+                        
+                        if (firstElement instanceof Number) {
+                            queryVector = new float[queryVectorArray.length()];
+                            for (int i = 0; i < queryVectorArray.length(); i++) {
+                                Object value = queryVectorArray.get(i);
+                                if (value instanceof Number) {
+                                    queryVector[i] = ((Number) value).floatValue();
+                                } else {
+                                    call.reject("Invalid value in queryVector at index " + i + ": " + value);
+                                    return;
+                                }
+                            }
+                        } else if (firstElement instanceof JSONArray) {
+                            JSONArray innerArray = (JSONArray) firstElement;
+                            queryVector = new float[innerArray.length()];
+                            for (int j = 0; j < innerArray.length(); j++) {
+                                queryVector[j] = (float) innerArray.getDouble(j);
+                            }
+                        } else {
+                            call.reject("Invalid queryVector format: expected array of numbers");
+                            return;
+                        }
+                    } else {
+                        call.reject("Empty queryVector array");
+                        return;
+                    }
+                } catch (Exception e) {
+                    call.reject("Failed to process queryVector: " + e.getMessage());
+                    return;
+                }
+
+                LlamaMobileVD.SearchResult[] results;
+                if (vectorStoreIds.containsKey(id)) {
+                    results = LlamaMobileVD.nativeVectorStoreSearch(storeId, queryVector, k);
+                } else {
+                    results = LlamaMobileVD.nativeMMapVectorStoreSearch(storeId, queryVector, k);
+                }
+
+                JSObject result = new JSObject();
+                JSArray idsArray = new JSArray();
+                JSArray distancesArray = new JSArray();
+                
+                for (int i = 0; i < results.length; i++) {
+                    idsArray.put(results[i].getId());
+                    distancesArray.put(results[i].getDistance());
+                }
+                
+                result.put("ids", idsArray);
+                result.put("distances", distancesArray);
+                call.resolve(result);
+            } catch (Exception e) {
+                call.reject("Failed to search: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    @PluginMethod
+    public void removeVectorsAsync(PluginCall call) {
+        int id = call.getInt("storeId", -1);
+        if (id < 0 || (!vectorStoreIds.containsKey(id) && !mmapStoreIds.containsKey(id))) {
+            call.reject("Missing or invalid storeId parameter");
+            return;
+        }
+
+        JSArray idsArray = call.getArray("ids");
+        if (idsArray == null || idsArray.length() == 0) {
+            call.reject("Missing or invalid ids parameter");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                if (mmapStoreIds.containsKey(id)) {
+                    call.reject("Cannot remove vectors from MMap vector store - it's read-only");
+                    return;
+                }
+
+                long storeId = vectorStoreIds.get(id);
+                for (int i = 0; i < idsArray.length(); i++) {
+                    long vectorId = idsArray.getLong(i);
+                    LlamaMobileVD.nativeVectorStoreRemoveVector(storeId, vectorId);
+                }
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("Failed to remove vectors: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    @PluginMethod
+    public void clearVectorsAsync(PluginCall call) {
+        int id = call.getInt("storeId", -1);
+        if (id < 0 || (!vectorStoreIds.containsKey(id) && !mmapStoreIds.containsKey(id))) {
+            call.reject("Missing or invalid storeId parameter");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                if (mmapStoreIds.containsKey(id)) {
+                    call.reject("Cannot clear vectors from MMap vector store - it's read-only");
+                    return;
+                }
+
+                long storeId = vectorStoreIds.get(id);
+                LlamaMobileVD.nativeVectorStoreClear(storeId);
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("Failed to clear vectors: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    // MARK: - HNSWIndex async methods
+    @PluginMethod
+    public void createHNSWIndexAsync(PluginCall call) {
+        int dimension = call.getInt("dimension", -1);
+        if (dimension < 0) {
+            call.reject("Missing or invalid dimension parameter");
+            return;
+        }
+
+        String metricStr = call.getString("metric", "cosine");
+        int metric;
+        switch (metricStr) {
+            case "l2":
+                metric = 0;
+                break;
+            case "cosine":
+                metric = 1;
+                break;
+            case "dot":
+                metric = 2;
+                break;
+            default:
+                call.reject("Invalid metric: " + metricStr);
+                return;
+        }
+
+        int maxElements = call.getInt("maxElements", -1);
+        if (maxElements < 0) {
+            call.reject("Missing or invalid maxElements parameter");
+            return;
+        }
+
+        int m = call.getInt("m", -1);
+        if (m < 0) {
+            call.reject("Missing or invalid m parameter");
+            return;
+        }
+
+        int efConstruction = call.getInt("efConstruction", -1);
+        if (efConstruction < 0) {
+            call.reject("Missing or invalid efConstruction parameter");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                long indexId = LlamaMobileVD.nativeHNSWIndexCreateWithParams(dimension, metric, (long) maxElements, m, efConstruction, 42);
+                if (indexId == 0) {
+                    call.reject("Failed to create HNSW index: Invalid parameters");
+                    return;
+                }
+                int newId = nextId++;
+                hnswIndexIds.put(newId, indexId);
+                JSObject result = new JSObject();
+                result.put("indexId", newId);
+                call.resolve(result);
+            } catch (Exception e) {
+                call.reject("Failed to create HNSW index: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    @PluginMethod
+    public void searchHNSWAsync(PluginCall call) {
+        int id = call.getInt("indexId", -1);
+        if (id < 0 || !hnswIndexIds.containsKey(id)) {
+            call.reject("Missing or invalid indexId parameter");
+            return;
+        }
+
+        JSArray queryVectorArray = call.getArray("queryVector");
+        if (queryVectorArray == null || queryVectorArray.length() == 0) {
+            call.reject("Missing or invalid queryVector parameter");
+            return;
+        }
+
+        int k = call.getInt("k", -1);
+        if (k < 0) {
+            call.reject("Missing or invalid k parameter");
+            return;
+        }
+
+        Integer efSearch = call.getInt("efSearch");
+
+        new Thread(() -> {
+            try {
+                long indexId = hnswIndexIds.get(id);
+                
+                long count = LlamaMobileVD.nativeHNSWIndexGetSize(indexId);
+                if (count == 0) {
+                    call.reject("Cannot search an empty HNSW index");
+                    return;
+                }
+                
+                if (efSearch != null) {
+                    LlamaMobileVD.nativeHNSWIndexSetEfSearch(indexId, efSearch);
+                }
+                
+                float[] queryVector;
+                try {
+                    if (queryVectorArray.length() > 0) {
+                        Object firstElement = queryVectorArray.get(0);
+                        
+                        if (firstElement instanceof Number) {
+                            queryVector = new float[queryVectorArray.length()];
+                            for (int i = 0; i < queryVectorArray.length(); i++) {
+                                Object value = queryVectorArray.get(i);
+                                if (value instanceof Number) {
+                                    queryVector[i] = ((Number) value).floatValue();
+                                } else {
+                                    call.reject("Invalid value in queryVector at index " + i + ": " + value);
+                                    return;
+                                }
+                            }
+                        } else if (firstElement instanceof JSONArray) {
+                            JSONArray innerArray = (JSONArray) firstElement;
+                            queryVector = new float[innerArray.length()];
+                            for (int j = 0; j < innerArray.length(); j++) {
+                                queryVector[j] = (float) innerArray.getDouble(j);
+                            }
+                        } else {
+                            call.reject("Invalid queryVector format: expected array of numbers");
+                            return;
+                        }
+                    } else {
+                        call.reject("Empty queryVector array");
+                        return;
+                    }
+                } catch (Exception e) {
+                    call.reject("Failed to process queryVector: " + e.getMessage());
+                    return;
+                }
+
+                LlamaMobileVD.SearchResult[] results = LlamaMobileVD.nativeHNSWIndexSearch(indexId, queryVector, k);
+
+                JSObject result = new JSObject();
+                JSArray idsArray = new JSArray();
+                JSArray distancesArray = new JSArray();
+                
+                for (int i = 0; i < results.length; i++) {
+                    idsArray.put(results[i].getId());
+                    distancesArray.put(results[i].getDistance());
+                }
+                
+                result.put("ids", idsArray);
+                result.put("distances", distancesArray);
+                call.resolve(result);
+            } catch (Exception e) {
+                call.reject("Failed to search HNSW index: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    @PluginMethod
+    public void addVectorsToHNSWAsync(PluginCall call) {
+        int id = call.getInt("indexId", -1);
+        if (id < 0 || !hnswIndexIds.containsKey(id)) {
+            call.reject("Missing or invalid indexId parameter");
+            return;
+        }
+
+        JSArray vectorsArray = call.getArray("vectors");
+        if (vectorsArray == null || vectorsArray.length() == 0) {
+            call.reject("Missing or invalid vectors parameter");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                long indexId = hnswIndexIds.get(id);
+                JSArray idsArray = call.getArray("ids");
+                
+                for (int i = 0; i < vectorsArray.length(); i++) {
+                    JSONArray vectorArray = vectorsArray.getJSONArray(i);
+                    float[] vector = new float[vectorArray.length()];
+                    for (int j = 0; j < vectorArray.length(); j++) {
+                        vector[j] = (float) vectorArray.getDouble(j);
+                    }
+                    
+                    long vectorId;
+                    if (idsArray != null && i < idsArray.length()) {
+                        vectorId = idsArray.getLong(i);
+                    } else {
+                        vectorId = i;
+                    }
+                    
+                    LlamaMobileVD.nativeHNSWIndexAddVector(indexId, vectorId, vector);
+                }
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("Failed to add vectors to HNSW index: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    // MARK: - MMapVectorStoreBuilder async methods
+    @PluginMethod
+    public void createMMapVectorStoreBuilderAsync(PluginCall call) {
+        int dimension = call.getInt("dimension", -1);
+        if (dimension < 0) {
+            call.reject("Missing or invalid dimension parameter");
+            return;
+        }
+
+        String metricStr = call.getString("metric", "cosine");
+        int metric;
+        switch (metricStr) {
+            case "l2":
+                metric = 0;
+                break;
+            case "cosine":
+                metric = 1;
+                break;
+            case "dot":
+                metric = 2;
+                break;
+            default:
+                call.reject("Invalid metric: " + metricStr);
+                return;
+        }
+
+        new Thread(() -> {
+            try {
+                long builderId = LlamaMobileVD.nativeMMapVectorStoreBuilderCreate(dimension, metric);
+                int id = nextId++;
+                mmapBuilderIds.put(id, builderId);
+                JSObject result = new JSObject();
+                result.put("builderId", id);
+                call.resolve(result);
+            } catch (Exception e) {
+                call.reject("Failed to create MMap vector store builder: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    @PluginMethod
+    public void addVectorsToMMapBuilderAsync(PluginCall call) {
+        int id = call.getInt("builderId", -1);
+        if (id < 0 || !mmapBuilderIds.containsKey(id)) {
+            call.reject("Missing or invalid builderId parameter");
+            return;
+        }
+
+        JSArray vectorsArray = call.getArray("vectors");
+        if (vectorsArray == null || vectorsArray.length() == 0) {
+            call.reject("Missing or invalid vectors parameter");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                long builderId = mmapBuilderIds.get(id);
+                JSArray idsArray = call.getArray("ids");
+                
+                for (int i = 0; i < vectorsArray.length(); i++) {
+                    JSONArray vectorArray = vectorsArray.getJSONArray(i);
+                    float[] vector = new float[vectorArray.length()];
+                    for (int j = 0; j < vectorArray.length(); j++) {
+                        vector[j] = (float) vectorArray.getDouble(j);
+                    }
+                    
+                    long vectorId;
+                    if (idsArray != null && i < idsArray.length()) {
+                        vectorId = idsArray.getLong(i);
+                    } else {
+                        vectorId = i;
+                    }
+                    
+                    LlamaMobileVD.nativeMMapVectorStoreBuilderAddVector(builderId, vectorId, vector);
+                }
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("Failed to add vectors to MMap builder: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    @PluginMethod
+    public void buildMMapVectorStoreAsync(PluginCall call) {
+        int id = call.getInt("builderId", -1);
+        if (id < 0 || !mmapBuilderIds.containsKey(id)) {
+            call.reject("Missing or invalid builderId parameter");
+            return;
+        }
+
+        String path = call.getString("path");
+        if (path == null || path.isEmpty()) {
+            call.reject("Missing or invalid path parameter");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                long builderId = mmapBuilderIds.get(id);
+                LlamaMobileVD.nativeMMapVectorStoreBuilderSave(builderId, path);
+                mmapBuilderIds.remove(id);
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("Failed to build MMap vector store: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    @PluginMethod
+    public void openMMapVectorStoreAsync(PluginCall call) {
+        String path = call.getString("path");
+        if (path == null || path.isEmpty()) {
+            call.reject("Missing or invalid path parameter");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                long storeId = LlamaMobileVD.nativeMMapVectorStoreOpen(path);
+                int id = nextId++;
+                mmapStoreIds.put(id, storeId);
+                JSObject result = new JSObject();
+                result.put("storeId", id);
+                call.resolve(result);
+            } catch (Exception e) {
+                call.reject("Failed to open MMap vector store: " + e.getMessage());
+            }
+        }).start();
+    }
 }

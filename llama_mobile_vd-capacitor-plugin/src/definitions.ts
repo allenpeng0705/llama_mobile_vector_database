@@ -122,3 +122,87 @@ export interface CloseMMapVectorStoreOptions {
 export interface GetVersionResult {
   version: string;
 }
+
+// Async method interfaces
+export interface CreateVectorStoreAsyncOptions {
+  dimension: number;
+  metric: DistanceMetric;
+}
+
+export interface CreateVectorStoreAsyncResult {
+  storeId: number;
+}
+
+export interface AddVectorsAsyncOptions {
+  storeId: number;
+  vectors: number[][];
+  ids?: number[];
+}
+
+export interface SearchAsyncOptions {
+  storeId: number;
+  queryVector: number[];
+  k: number;
+}
+
+export interface RemoveVectorsAsyncOptions {
+  storeId: number;
+  ids: number[];
+}
+
+export interface ClearVectorsAsyncOptions {
+  storeId: number;
+}
+
+export interface CreateHNSWIndexAsyncOptions {
+  dimension: number;
+  metric: DistanceMetric;
+  maxElements: number;
+  m: number;
+  efConstruction: number;
+}
+
+export interface CreateHNSWIndexAsyncResult {
+  indexId: number;
+}
+
+export interface SearchHNSWAsyncOptions {
+  indexId: number;
+  queryVector: number[];
+  k: number;
+  efSearch?: number;
+}
+
+export interface AddVectorsToHNSWAsyncOptions {
+  indexId: number;
+  vectors: number[][];
+  ids?: number[];
+}
+
+export interface CreateMMapVectorStoreBuilderAsyncOptions {
+  dimension: number;
+  metric: DistanceMetric;
+}
+
+export interface CreateMMapVectorStoreBuilderAsyncResult {
+  builderId: number;
+}
+
+export interface AddVectorsToMMapBuilderAsyncOptions {
+  builderId: number;
+  vectors: number[][];
+  ids?: number[];
+}
+
+export interface BuildMMapVectorStoreAsyncOptions {
+  builderId: number;
+  path: string;
+}
+
+export interface OpenMMapVectorStoreAsyncOptions {
+  path: string;
+}
+
+export interface OpenMMapVectorStoreAsyncResult {
+  storeId: number;
+}

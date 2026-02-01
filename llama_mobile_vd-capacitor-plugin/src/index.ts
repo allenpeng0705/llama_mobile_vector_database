@@ -86,6 +86,74 @@ export interface LlamaMobileVDPlugin {
   }): Promise<{ storeId: number }>;
 
   closeMMapVectorStore(options: { storeId: number }): Promise<void>;
+
+  // Async methods
+  createVectorStoreAsync(options: {
+    dimension: number;
+    metric: 'l2' | 'cosine' | 'dot';
+  }): Promise<{ storeId: number }>;
+
+  addVectorsAsync(options: {
+    storeId: number;
+    vectors: number[][];
+    ids?: number[];
+  }): Promise<void>;
+
+  searchAsync(options: {
+    storeId: number;
+    queryVector: number[];
+    k: number;
+  }): Promise<{ ids: number[]; distances: number[] }>;
+
+  removeVectorsAsync(options: {
+    storeId: number;
+    ids: number[];
+  }): Promise<void>;
+
+  clearVectorsAsync(options: {
+    storeId: number;
+  }): Promise<void>;
+
+  createHNSWIndexAsync(options: {
+    dimension: number;
+    metric: 'l2' | 'cosine' | 'dot';
+    maxElements: number;
+    m: number;
+    efConstruction: number;
+  }): Promise<{ indexId: number }>;
+
+  searchHNSWAsync(options: {
+    indexId: number;
+    queryVector: number[];
+    k: number;
+    efSearch?: number;
+  }): Promise<{ ids: number[]; distances: number[] }>;
+
+  addVectorsToHNSWAsync(options: {
+    indexId: number;
+    vectors: number[][];
+    ids?: number[];
+  }): Promise<void>;
+
+  createMMapVectorStoreBuilderAsync(options: {
+    dimension: number;
+    metric: 'l2' | 'cosine' | 'dot';
+  }): Promise<{ builderId: number }>;
+
+  addVectorsToMMapBuilderAsync(options: {
+    builderId: number;
+    vectors: number[][];
+    ids?: number[];
+  }): Promise<void>;
+
+  buildMMapVectorStoreAsync(options: {
+    builderId: number;
+    path: string;
+  }): Promise<void>;
+
+  openMMapVectorStoreAsync(options: {
+    path: string;
+  }): Promise<{ storeId: number }>;
 }
 
 const LlamaMobileVD = registerPlugin<LlamaMobileVDPlugin>('LlamaMobileVD');
