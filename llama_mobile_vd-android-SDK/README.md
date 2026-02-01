@@ -1,10 +1,10 @@
-# LlamaMobileVD Android Kotlin SDK
+# LlamaMobileVD Android Java SDK
 
 A high-performance vector database SDK for Android applications, built on top of the LlamaMobileVD native library. This SDK provides embeddable vector database capabilities for Android apps, running natively with SIMD acceleration.
 
 ## Features
 
-- **Native Kotlin API**: Clean, intuitive Kotlin interface for vector storage and search
+- **Native Java API**: Clean, intuitive Java interface for vector storage and search
 - **High performance**: Built on a C++ core with ARM NEON acceleration
 - **Multiple distance metrics**: Support for L2 (Euclidean), Cosine, and Dot Product distances
 - **VectorStore**: Exact nearest neighbor search with thread-safe operations
@@ -19,7 +19,7 @@ A high-performance vector database SDK for Android applications, built on top of
 
 - Android 6.0+ (API level 23+)
 - Android Studio 2022.2.1+ (Electric Eel+)
-- Kotlin 1.8+ or Java 8+
+- Java 8+ or Kotlin 1.8+
 - Gradle 7.4+
 
 ## Installation
@@ -30,14 +30,14 @@ A high-performance vector database SDK for Android applications, built on top of
 2. Add the following to your app's `build.gradle` file:
 
 ```groovy
-// Add the Kotlin SDK as a module dependency
-implementation project(':llama_mobile_vd-android-SDK')
+// Add the Java SDK as a module dependency
+implementation project(':llama_mobile_vd-android-java-SDK')
 ```
 
-3. Import the LlamaMobileVD package in your Kotlin files:
+3. Import the LlamaMobileVD package in your Java files:
 
-```kotlin
-import com.llamamobile.vd.LlamaMobileVD
+```java
+import com.llamamobile.vd.LlamaMobileVD;
 ```
 
 ## Integration Guide
@@ -98,182 +98,218 @@ android {
 
 ### VectorStore Example
 
-```kotlin
+```java
 // Create a vector store with 512-dimensional vectors and cosine distance metric
-val dimension = 512
-val storeId = LlamaMobileVD.createVectorStore(dimension, LlamaMobileVD.DistanceMetric.COSINE)
+int dimension = 512;
+long storeId = LlamaMobileVD.createVectorStore(dimension, LlamaMobileVD.DistanceMetric.COSINE);
 
 // Add vectors to the store
-val vector1 = FloatArray(dimension) { 0.5f }
-LlamaMobileVD.nativeVectorStoreAddVector(storeId, 1, vector1)
+float[] vector1 = new float[dimension];
+for (int i = 0; i < dimension; i++) {
+    vector1[i] = 0.5f;
+}
+LlamaMobileVD.nativeVectorStoreAddVector(storeId, 1, vector1);
 
-val vector2 = FloatArray(dimension) { 0.8f }
-LlamaMobileVD.nativeVectorStoreAddVector(storeId, 2, vector2)
+float[] vector2 = new float[dimension];
+for (int i = 0; i < dimension; i++) {
+    vector2[i] = 0.8f;
+}
+LlamaMobileVD.nativeVectorStoreAddVector(storeId, 2, vector2);
 
 // Search for nearest neighbors
-val queryVector = FloatArray(dimension) { 0.6f }
-val results = LlamaMobileVD.nativeVectorStoreSearch(storeId, queryVector, 2)
+float[] queryVector = new float[dimension];
+for (int i = 0; i < dimension; i++) {
+    queryVector[i] = 0.6f;
+}
+LlamaMobileVD.SearchResult[] results = LlamaMobileVD.nativeVectorStoreSearch(storeId, queryVector, 2);
 
 // Process the results
-for (result in results) {
-    println("Vector ID: ${result.id}, Distance: ${result.distance}")
+for (LlamaMobileVD.SearchResult result : results) {
+    System.out.println("Vector ID: " + result.getId() + ", Distance: " + result.getDistance());
 }
 
 // Get vector by ID
-val retrievedVector = LlamaMobileVD.nativeVectorStoreGetVector(storeId, 1)
-println("Retrieved vector: ${retrievedVector?.take(5)}...")
+float[] retrievedVector = LlamaMobileVD.nativeVectorStoreGetVector(storeId, 1);
+if (retrievedVector != null) {
+    System.out.print("Retrieved vector: [");
+    for (int i = 0; i < Math.min(5, retrievedVector.length); i++) {
+        System.out.print(retrievedVector[i]);
+        if (i < 4) System.out.print(", ");
+    }
+    System.out.println("]...");
+}
 
 // Check if vector exists
-val exists = LlamaMobileVD.nativeVectorStoreContains(storeId, 1)
-println("Vector 1 exists: $exists")
+boolean exists = LlamaMobileVD.nativeVectorStoreContains(storeId, 1);
+System.out.println("Vector 1 exists: " + exists);
 
 // Remove vector
-val removed = LlamaMobileVD.nativeVectorStoreRemoveVector(storeId, 1)
-println("Vector 1 removed: $removed")
+boolean removed = LlamaMobileVD.nativeVectorStoreRemoveVector(storeId, 1);
+System.out.println("Vector 1 removed: " + removed);
 
 // Get store information
-val size = LlamaMobileVD.nativeVectorStoreGetSize(storeId)
-val storeDimension = LlamaMobileVD.nativeVectorStoreGetDimension(storeId)
-val metric = LlamaMobileVD.nativeVectorStoreGetMetric(storeId)
-println("Store size: $size, Dimension: $storeDimension, Metric: $metric")
+long size = LlamaMobileVD.nativeVectorStoreGetSize(storeId);
+int storeDimension = LlamaMobileVD.nativeVectorStoreGetDimension(storeId);
+int metric = LlamaMobileVD.nativeVectorStoreGetMetric(storeId);
+System.out.println("Store size: " + size + ", Dimension: " + storeDimension + ", Metric: " + metric);
 
 // Update vector
-val updatedVector = FloatArray(dimension) { 0.9f }
-val updated = LlamaMobileVD.nativeVectorStoreUpdateVector(storeId, 2, updatedVector)
-println("Vector 2 updated: $updated")
+float[] updatedVector = new float[dimension];
+for (int i = 0; i < dimension; i++) {
+    updatedVector[i] = 0.9f;
+}
+boolean updated = LlamaMobileVD.nativeVectorStoreUpdateVector(storeId, 2, updatedVector);
+System.out.println("Vector 2 updated: " + updated);
 
 // Reserve capacity
-val reserved = LlamaMobileVD.nativeVectorStoreReserve(storeId, 100)
-println("Capacity reserved: $reserved")
+boolean reserved = LlamaMobileVD.nativeVectorStoreReserve(storeId, 100);
+System.out.println("Capacity reserved: " + reserved);
 
 // Clear all vectors
-LlamaMobileVD.nativeVectorStoreClear(storeId)
-println("Store cleared, size: ${LlamaMobileVD.nativeVectorStoreGetSize(storeId)}")
+LlamaMobileVD.nativeVectorStoreClear(storeId);
+System.out.println("Store cleared, size: " + LlamaMobileVD.nativeVectorStoreGetSize(storeId));
 
 // Clean up
-LlamaMobileVD.nativeVectorStoreDestroy(storeId)
+LlamaMobileVD.nativeVectorStoreDestroy(storeId);
 ```
 
 ### HNSWIndex Example
 
-```kotlin
+```java
 // Create an HNSW index with 512-dimensional vectors and cosine distance metric
-val dimension = 512
-val maxElements = 10000
-val indexId = LlamaMobileVD.createHNSWIndex(dimension, LlamaMobileVD.DistanceMetric.COSINE, maxElements)
+int dimension = 512;
+long maxElements = 10000;
+long indexId = LlamaMobileVD.createHNSWIndex(dimension, LlamaMobileVD.DistanceMetric.COSINE, maxElements);
 
 // Set search parameters
-val efSearch = 64
-LlamaMobileVD.nativeHNSWIndexSetEfSearch(indexId, efSearch)
+int efSearch = 64;
+LlamaMobileVD.nativeHNSWIndexSetEfSearch(indexId, efSearch);
 
 // Add vectors to the index
-for (i in 0 until 1000) {
-    val vector = FloatArray(dimension) { kotlin.random.Random.nextFloat() * 2 - 1 }
-    LlamaMobileVD.nativeHNSWIndexAddVector(indexId, i.toLong(), vector)
+for (int i = 0; i < 1000; i++) {
+    float[] vector = new float[dimension];
+    for (int j = 0; j < dimension; j++) {
+        vector[j] = (float) (Math.random() * 2 - 1);
+    }
+    LlamaMobileVD.nativeHNSWIndexAddVector(indexId, i, vector);
 }
 
 // Search for nearest neighbors
-val queryVector = FloatArray(dimension) { kotlin.random.Random.nextFloat() * 2 - 1 }
-val results = LlamaMobileVD.nativeHNSWIndexSearch(indexId, queryVector, 10)
+float[] queryVector = new float[dimension];
+for (int i = 0; i < dimension; i++) {
+    queryVector[i] = (float) (Math.random() * 2 - 1);
+}
+LlamaMobileVD.SearchResult[] results = LlamaMobileVD.nativeHNSWIndexSearch(indexId, queryVector, 10);
 
 // Process the results
-for (result in results) {
-    println("Vector ID: ${result.id}, Distance: ${result.distance}")
+for (LlamaMobileVD.SearchResult result : results) {
+    System.out.println("Vector ID: " + result.getId() + ", Distance: " + result.getDistance());
 }
 
 // Get index information
-val size = LlamaMobileVD.nativeHNSWIndexGetSize(indexId)
-val indexDimension = LlamaMobileVD.nativeHNSWIndexGetDimension(indexId)
-val capacity = LlamaMobileVD.nativeHNSWIndexGetCapacity(indexId)
-val currentEfSearch = LlamaMobileVD.nativeHNSWIndexGetEfSearch(indexId)
-println("Index size: $size, Dimension: $indexDimension, Capacity: $capacity, efSearch: $currentEfSearch")
+long size = LlamaMobileVD.nativeHNSWIndexGetSize(indexId);
+int indexDimension = LlamaMobileVD.nativeHNSWIndexGetDimension(indexId);
+long capacity = LlamaMobileVD.nativeHNSWIndexGetCapacity(indexId);
+int currentEfSearch = LlamaMobileVD.nativeHNSWIndexGetEfSearch(indexId);
+System.out.println("Index size: " + size + ", Dimension: " + indexDimension + ", Capacity: " + capacity + ", efSearch: " + currentEfSearch);
 
 // Save index to file
-val file = File(context.filesDir, "my_hnsw_index.bin")
-val saved = LlamaMobileVD.nativeHNSWIndexSave(indexId, file.absolutePath)
-println("Index saved: $saved")
+File file = new File(context.getFilesDir(), "my_hnsw_index.bin");
+boolean saved = LlamaMobileVD.nativeHNSWIndexSave(indexId, file.getAbsolutePath());
+System.out.println("Index saved: " + saved);
 
 // Load index from file
-val loadedIndexId = LlamaMobileVD.nativeHNSWIndexLoad(file.absolutePath)
-println("Index loaded, size: ${LlamaMobileVD.nativeHNSWIndexGetSize(loadedIndexId)}")
+long loadedIndexId = LlamaMobileVD.nativeHNSWIndexLoad(file.getAbsolutePath());
+System.out.println("Index loaded, size: " + LlamaMobileVD.nativeHNSWIndexGetSize(loadedIndexId));
 
 // Clean up
-LlamaMobileVD.nativeHNSWIndexDestroy(indexId)
-LlamaMobileVD.nativeHNSWIndexDestroy(loadedIndexId)
+LlamaMobileVD.nativeHNSWIndexDestroy(indexId);
+LlamaMobileVD.nativeHNSWIndexDestroy(loadedIndexId);
 ```
 
 ### MMapVectorStore Example
 
-```kotlin
+```java
 // Create a file path for the MMapVectorStore
-val file = File(context.filesDir, "my_mmap_store.bin")
-val filePath = file.absolutePath
-val dimension = 512
+File file = new File(context.getFilesDir(), "my_mmap_store.bin");
+String filePath = file.getAbsolutePath();
+int dimension = 512;
 
 // Create MMapVectorStore using builder pattern
-val builderId = LlamaMobileVD.createMMapVectorStoreBuilder(dimension, LlamaMobileVD.DistanceMetric.COSINE)
+long builderId = LlamaMobileVD.createMMapVectorStoreBuilder(dimension, LlamaMobileVD.DistanceMetric.COSINE);
 
 // Reserve capacity
-LlamaMobileVD.nativeMMapVectorStoreBuilderReserve(builderId, 1000)
+LlamaMobileVD.nativeMMapVectorStoreBuilderReserve(builderId, 1000);
 
 // Add vectors to the builder
-for (i in 0 until 100) {
-    val vector = FloatArray(dimension) { kotlin.random.Random.nextFloat() * 2 - 1 }
-    LlamaMobileVD.nativeMMapVectorStoreBuilderAddVector(builderId, i.toLong(), vector)
+for (int i = 0; i < 100; i++) {
+    float[] vector = new float[dimension];
+    for (int j = 0; j < dimension; j++) {
+        vector[j] = (float) (Math.random() * 2 - 1);
+    }
+    LlamaMobileVD.nativeMMapVectorStoreBuilderAddVector(builderId, i, vector);
 }
 
 // Save builder to create MMapVectorStore
-val saved = LlamaMobileVD.nativeMMapVectorStoreBuilderSave(builderId, filePath)
-println("Builder saved: $saved")
+boolean saved = LlamaMobileVD.nativeMMapVectorStoreBuilderSave(builderId, filePath);
+System.out.println("Builder saved: " + saved);
 
 // Destroy builder
-LlamaMobileVD.nativeMMapVectorStoreBuilderDestroy(builderId)
+LlamaMobileVD.nativeMMapVectorStoreBuilderDestroy(builderId);
 
 // Open the MMapVectorStore
-val storeId = LlamaMobileVD.openMMapVectorStore(filePath)
+long storeId = LlamaMobileVD.openMMapVectorStore(filePath);
 
 // Search for nearest neighbors
-val queryVector = FloatArray(dimension) { kotlin.random.Random.nextFloat() * 2 - 1 }
-val results = LlamaMobileVD.nativeMMapVectorStoreSearch(storeId, queryVector, 5)
+float[] queryVector = new float[dimension];
+for (int i = 0; i < dimension; i++) {
+    queryVector[i] = (float) (Math.random() * 2 - 1);
+}
+LlamaMobileVD.SearchResult[] results = LlamaMobileVD.nativeMMapVectorStoreSearch(storeId, queryVector, 5);
 
 // Process search results
-for (result in results) {
-    println("Vector ID: ${result.id}, Distance: ${result.distance}")
+for (LlamaMobileVD.SearchResult result : results) {
+    System.out.println("Vector ID: " + result.getId() + ", Distance: " + result.getDistance());
 }
 
 // Get store information
-val size = LlamaMobileVD.nativeMMapVectorStoreGetSize(storeId)
-val storeDimension = LlamaMobileVD.nativeMMapVectorStoreGetDimension(storeId)
-val metric = LlamaMobileVD.nativeMMapVectorStoreGetMetric(storeId)
-println("Store size: $size, Dimension: $storeDimension, Metric: $metric")
+long size = LlamaMobileVD.nativeMMapVectorStoreGetSize(storeId);
+int storeDimension = LlamaMobileVD.nativeMMapVectorStoreGetDimension(storeId);
+int metric = LlamaMobileVD.nativeMMapVectorStoreGetMetric(storeId);
+System.out.println("Store size: " + size + ", Dimension: " + storeDimension + ", Metric: " + metric);
 
 // Check if vector exists
-val exists = LlamaMobileVD.nativeMMapVectorStoreContains(storeId, 42)
-println("Vector 42 exists: $exists")
+boolean exists = LlamaMobileVD.nativeMMapVectorStoreContains(storeId, 42);
+System.out.println("Vector 42 exists: " + exists);
 
 // Get vector by ID
-val retrievedVector = LlamaMobileVD.nativeMMapVectorStoreGetVector(storeId, 42)
+float[] retrievedVector = LlamaMobileVD.nativeMMapVectorStoreGetVector(storeId, 42);
 if (retrievedVector != null) {
-    println("Retrieved vector: ${retrievedVector.take(5)}...")
+    System.out.print("Retrieved vector: [");
+    for (int i = 0; i < Math.min(5, retrievedVector.length); i++) {
+        System.out.print(retrievedVector[i]);
+        if (i < 4) System.out.print(", ");
+    }
+    System.out.println("]...");
 }
 
 // Close the store
-LlamaMobileVD.nativeMMapVectorStoreClose(storeId)
+LlamaMobileVD.nativeMMapVectorStoreClose(storeId);
 ```
 
 ### Version Information Example
 
-```kotlin
+```java
 // Get version information
-val version = LlamaMobileVD.version
-val versionMajor = LlamaMobileVD.versionMajor
-val versionMinor = LlamaMobileVD.versionMinor
-val versionPatch = LlamaMobileVD.versionPatch
+String version = LlamaMobileVD.getVersion();
+int versionMajor = LlamaMobileVD.getVersionMajor();
+int versionMinor = LlamaMobileVD.getVersionMinor();
+int versionPatch = LlamaMobileVD.getVersionPatch();
 
-println("Version: $version")
-println("Version Major: $versionMajor")
-println("Version Minor: $versionMinor")
-println("Version Patch: $versionPatch")
+System.out.println("Version: " + version);
+System.out.println("Version Major: " + versionMajor);
+System.out.println("Version Minor: " + versionMinor);
+System.out.println("Version Patch: " + versionPatch);
 ```
 
 ## API Reference
@@ -288,218 +324,271 @@ Enum representing the distance metrics supported by LlamaMobileVD:
 
 ### SearchResult
 
-Data class representing a result from a vector search:
+Class representing a result from a vector search:
 
-```kotlin
-data class SearchResult(val id: Long, val distance: Float)
+```java
+public static class SearchResult {
+    private final long id;
+    private final float distance;
+    
+    public SearchResult(long id, float distance) {
+        this.id = id;
+        this.distance = distance;
+    }
+    
+    public long getId() {
+        return id;
+    }
+    
+    public float getDistance() {
+        return distance;
+    }
+    
+    @Override
+    public String toString() {
+        return "SearchResult{id=" + id + ", distance=" + distance + "}";
+    }
+}
 ```
 
 ### LlamaMobileVDException
 
 Exception class for error handling:
 
-```kotlin
-class LlamaMobileVDException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+```java
+public static class LlamaMobileVDException extends RuntimeException {
+    public LlamaMobileVDException(String message) {
+        super(message);
+    }
+    
+    public LlamaMobileVDException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
 ```
 
 ### Native Methods
 
 #### VectorStore Operations
 
-```kotlin
+```java
 // Create a new vector store
-fun nativeVectorStoreCreate(dimension: Int, metric: Int): Long
+public static native long nativeVectorStoreCreate(int dimension, int metric);
 
 // Add a vector to the store
-fun nativeVectorStoreAddVector(storeId: Long, id: Long, vector: FloatArray)
+public static native void nativeVectorStoreAddVector(long storeId, long id, float[] vector);
 
 // Search for nearest neighbors
-fun nativeVectorStoreSearch(storeId: Long, queryVector: FloatArray, k: Int): Array<SearchResult>
+public static native SearchResult[] nativeVectorStoreSearch(long storeId, float[] queryVector, int k);
 
 // Get a vector by ID
-fun nativeVectorStoreGetVector(storeId: Long, id: Long): FloatArray?
+public static native float[] nativeVectorStoreGetVector(long storeId, long id);
 
 // Remove a vector by ID
-fun nativeVectorStoreRemoveVector(storeId: Long, id: Long): Boolean
+public static native boolean nativeVectorStoreRemoveVector(long storeId, long id);
 
 // Check if a vector exists by ID
-fun nativeVectorStoreContains(storeId: Long, id: Long): Boolean
+public static native boolean nativeVectorStoreContains(long storeId, long id);
 
 // Get the number of vectors in the store
-fun nativeVectorStoreGetSize(storeId: Long): Long
+public static native long nativeVectorStoreGetSize(long storeId);
 
 // Get the dimension of vectors in the store
-fun nativeVectorStoreGetDimension(storeId: Long): Int
+public static native int nativeVectorStoreGetDimension(long storeId);
 
 // Get the distance metric used by the store
-fun nativeVectorStoreGetMetric(storeId: Long): Int
+public static native int nativeVectorStoreGetMetric(long storeId);
 
 // Update a vector by ID
-fun nativeVectorStoreUpdateVector(storeId: Long, id: Long, vector: FloatArray): Boolean
+public static native boolean nativeVectorStoreUpdateVector(long storeId, long id, float[] vector);
 
 // Reserve capacity for vectors
-fun nativeVectorStoreReserve(storeId: Long, capacity: Long): Boolean
+public static native boolean nativeVectorStoreReserve(long storeId, long capacity);
 
 // Clear all vectors from the store
-fun nativeVectorStoreClear(storeId: Long)
+public static native void nativeVectorStoreClear(long storeId);
 
 // Destroy the vector store and free resources
-fun nativeVectorStoreDestroy(storeId: Long)
+public static native void nativeVectorStoreDestroy(long storeId);
 ```
 
 #### HNSWIndex Operations
 
-```kotlin
+```java
 // Create a new HNSW index
-fun nativeHNSWIndexCreate(dimension: Int, metric: Int, maxElements: Long): Long
+public static native long nativeHNSWIndexCreate(int dimension, int metric, long maxElements);
 
 // Create a new HNSW index with custom parameters
-fun nativeHNSWIndexCreateWithParams(dimension: Int, metric: Int, maxElements: Long, M: Int, efConstruction: Int, seed: Int): Long
+public static native long nativeHNSWIndexCreateWithParams(int dimension, int metric, long maxElements, int M, int efConstruction, int seed);
 
 // Add a vector to the index
-fun nativeHNSWIndexAddVector(indexId: Long, id: Long, vector: FloatArray): Boolean
+public static native boolean nativeHNSWIndexAddVector(long indexId, long id, float[] vector);
 
 // Search for nearest neighbors
-fun nativeHNSWIndexSearch(indexId: Long, queryVector: FloatArray, k: Int): Array<SearchResult>
+public static native SearchResult[] nativeHNSWIndexSearch(long indexId, float[] queryVector, int k);
 
 // Set the efSearch parameter for search quality
-fun nativeHNSWIndexSetEfSearch(indexId: Long, efSearch: Int): Boolean
+public static native boolean nativeHNSWIndexSetEfSearch(long indexId, int efSearch);
 
 // Get the current efSearch parameter
-fun nativeHNSWIndexGetEfSearch(indexId: Long): Int
+public static native int nativeHNSWIndexGetEfSearch(long indexId);
 
 // Get the number of vectors in the index
-fun nativeHNSWIndexGetSize(indexId: Long): Long
+public static native long nativeHNSWIndexGetSize(long indexId);
 
 // Get the dimension of vectors in the index
-fun nativeHNSWIndexGetDimension(indexId: Long): Int
+public static native int nativeHNSWIndexGetDimension(long indexId);
 
 // Get the capacity of the index
-fun nativeHNSWIndexGetCapacity(indexId: Long): Long
+public static native long nativeHNSWIndexGetCapacity(long indexId);
 
 // Check if a vector exists by ID
-fun nativeHNSWIndexContains(indexId: Long, id: Long): Boolean
+public static native boolean nativeHNSWIndexContains(long indexId, long id);
 
 // Get a vector by ID
-fun nativeHNSWIndexGetVector(indexId: Long, id: Long): FloatArray?
+public static native float[] nativeHNSWIndexGetVector(long indexId, long id);
 
 // Save the index to a file
-fun nativeHNSWIndexSave(indexId: Long, filename: String): Boolean
+public static native boolean nativeHNSWIndexSave(long indexId, String filename);
 
 // Load an index from a file
-fun nativeHNSWIndexLoad(filename: String): Long
+public static native long nativeHNSWIndexLoad(String filename);
 
 // Destroy the index and free resources
-fun nativeHNSWIndexDestroy(indexId: Long)
+public static native void nativeHNSWIndexDestroy(long indexId);
 ```
 
 #### MMapVectorStoreBuilder Operations
 
-```kotlin
+```java
 // Create a new MMapVectorStore builder
-fun nativeMMapVectorStoreBuilderCreate(dimension: Int, metric: Int): Long
+public static native long nativeMMapVectorStoreBuilderCreate(int dimension, int metric);
 
 // Add a vector to the builder
-fun nativeMMapVectorStoreBuilderAddVector(builderId: Long, id: Long, vector: FloatArray): Boolean
+public static native boolean nativeMMapVectorStoreBuilderAddVector(long builderId, long id, float[] vector);
 
 // Reserve capacity for vectors
-fun nativeMMapVectorStoreBuilderReserve(builderId: Long, capacity: Long): Boolean
+public static native boolean nativeMMapVectorStoreBuilderReserve(long builderId, long capacity);
 
 // Save the builder to create an MMapVectorStore
-fun nativeMMapVectorStoreBuilderSave(builderId: Long, filename: String): Boolean
+public static native boolean nativeMMapVectorStoreBuilderSave(long builderId, String filename);
 
 // Get the number of vectors in the builder
-fun nativeMMapVectorStoreBuilderGetSize(builderId: Long): Long
+public static native long nativeMMapVectorStoreBuilderGetSize(long builderId);
 
 // Get the dimension of vectors in the builder
-fun nativeMMapVectorStoreBuilderGetDimension(builderId: Long): Int
+public static native int nativeMMapVectorStoreBuilderGetDimension(long builderId);
 
 // Destroy the builder and free resources
-fun nativeMMapVectorStoreBuilderDestroy(builderId: Long)
+public static native void nativeMMapVectorStoreBuilderDestroy(long builderId);
 ```
 
 #### MMapVectorStore Operations
 
-```kotlin
+```java
 // Open an existing memory-mapped vector store
-fun nativeMMapVectorStoreOpen(filename: String): Long
+public static native long nativeMMapVectorStoreOpen(String filename);
 
 // Get a vector by ID
-fun nativeMMapVectorStoreGetVector(storeId: Long, id: Long): FloatArray?
+public static native float[] nativeMMapVectorStoreGetVector(long storeId, long id);
 
 // Check if a vector exists by ID
-fun nativeMMapVectorStoreContains(storeId: Long, id: Long): Boolean
+public static native boolean nativeMMapVectorStoreContains(long storeId, long id);
 
 // Search for nearest neighbors
-fun nativeMMapVectorStoreSearch(storeId: Long, queryVector: FloatArray, k: Int): Array<SearchResult>
+public static native SearchResult[] nativeMMapVectorStoreSearch(long storeId, float[] queryVector, int k);
 
 // Get the number of vectors in the store
-fun nativeMMapVectorStoreGetSize(storeId: Long): Long
+public static native long nativeMMapVectorStoreGetSize(long storeId);
 
 // Get the dimension of vectors in the store
-fun nativeMMapVectorStoreGetDimension(storeId: Long): Int
+public static native int nativeMMapVectorStoreGetDimension(long storeId);
 
 // Get the distance metric used by the store
-fun nativeMMapVectorStoreGetMetric(storeId: Long): Int
+public static native int nativeMMapVectorStoreGetMetric(long storeId);
 
 // Close the memory-mapped store and free resources
-fun nativeMMapVectorStoreClose(storeId: Long)
+public static native void nativeMMapVectorStoreClose(long storeId);
 ```
 
 #### Version Information Methods
 
-```kotlin
+```java
 // Get the library version string
-fun nativeGetVersion(): String
+public static native String nativeGetVersion();
 
 // Get the major version number
-fun nativeGetVersionMajor(): Int
+public static native int nativeGetVersionMajor();
 
 // Get the minor version number
-fun nativeGetVersionMinor(): Int
+public static native int nativeGetVersionMinor();
 
 // Get the patch version number
-fun nativeGetVersionPatch(): Int
+public static native int nativeGetVersionPatch();
 ```
 
 #### Convenience Methods
 
-```kotlin
+```java
 // Create a vector store with a DistanceMetric enum
-fun createVectorStore(dimension: Int, metric: DistanceMetric): Long
+public static long createVectorStore(int dimension, DistanceMetric metric) {
+    return nativeVectorStoreCreate(dimension, metric.getValue());
+}
 
 // Create a vector store with default COSINE distance metric
-fun createVectorStore(dimension: Int): Long
+public static long createVectorStore(int dimension) {
+    return createVectorStore(dimension, DistanceMetric.COSINE);
+}
 
 // Create an HNSW index with a DistanceMetric enum
-fun createHNSWIndex(dimension: Int, metric: DistanceMetric, maxElements: Long): Long
+public static long createHNSWIndex(int dimension, DistanceMetric metric, long maxElements) {
+    return nativeHNSWIndexCreate(dimension, metric.getValue(), maxElements);
+}
 
 // Create an HNSW index with custom parameters
-fun createHNSWIndex(dimension: Int, metric: DistanceMetric, maxElements: Long, M: Int, efConstruction: Int, seed: Int = 42): Long
+public static long createHNSWIndex(int dimension, DistanceMetric metric, long maxElements, int M, int efConstruction, int seed) {
+    return nativeHNSWIndexCreateWithParams(dimension, metric.getValue(), maxElements, M, efConstruction, seed);
+}
 
 // Create an HNSW index with default COSINE distance metric
-fun createHNSWIndex(dimension: Int, maxElements: Long): Long
+public static long createHNSWIndex(int dimension, long maxElements) {
+    return createHNSWIndex(dimension, DistanceMetric.COSINE, maxElements);
+}
 
 // Create an MMapVectorStore builder with a DistanceMetric enum
-fun createMMapVectorStoreBuilder(dimension: Int, metric: DistanceMetric): Long
+public static long createMMapVectorStoreBuilder(int dimension, DistanceMetric metric) {
+    return nativeMMapVectorStoreBuilderCreate(dimension, metric.getValue());
+}
 
 // Create an MMapVectorStore builder with default COSINE distance metric
-fun createMMapVectorStoreBuilder(dimension: Int): Long
+public static long createMMapVectorStoreBuilder(int dimension) {
+    return createMMapVectorStoreBuilder(dimension, DistanceMetric.COSINE);
+}
 
 // Open an existing MMapVectorStore
-fun openMMapVectorStore(filePath: String): Long
+public static long openMMapVectorStore(String filePath) {
+    return nativeMMapVectorStoreOpen(filePath);
+}
 
 // Get the library version string
-val version: String
+public static String getVersion() {
+    return nativeGetVersion();
+}
 
 // Get the major version number
-val versionMajor: Int
+public static int getVersionMajor() {
+    return nativeGetVersionMajor();
+}
 
 // Get the minor version number
-val versionMinor: Int
+public static int getVersionMinor() {
+    return nativeGetVersionMinor();
+}
 
 // Get the patch version number
-val versionPatch: Int
+public static int getVersionPatch() {
+    return nativeGetVersionPatch();
+}
 ```
 
 ## Performance Tips
@@ -538,23 +627,23 @@ val versionPatch: Int
 
 - Android 6.0+ (API level 23+)
 - Android Studio 2022.2.1+ (Electric Eel+)
-- Kotlin 1.8+ or Java 8+
+- Java 8+ or Kotlin 1.8+
 - Gradle 7.4+
 
 ## Building from Source
 
-To build the Android Kotlin SDK from source:
+To build the Android Java SDK from source:
 
 ```bash
 cd /path/to/llama_mobile_vector_database
 ./scripts/build-android-SDK.sh
 ```
 
-This will build the native libraries and update the Kotlin SDK.
+This will build the native libraries and update the Java SDK.
 
 ## Running Tests
 
-The Android Kotlin SDK includes both unit tests and instrumented tests:
+The Android Java SDK includes both unit tests and instrumented tests:
 
 ### Unit Tests
 
@@ -562,7 +651,7 @@ Unit tests run on the JVM and test basic functionality:
 
 ```bash
 cd /path/to/llama_mobile_vector_database
-cd llama_mobile_vd-android-SDK
+cd llama_mobile_vd-android-java-SDK
 ./gradlew test
 ```
 
@@ -572,7 +661,7 @@ Instrumented tests run on an Android device or emulator and test the actual vect
 
 ```bash
 cd /path/to/llama_mobile_vector_database
-cd llama_mobile_vd-android-SDK
+cd llama_mobile_vd-android-java-SDK
 ./gradlew connectedAndroidTest
 ```
 

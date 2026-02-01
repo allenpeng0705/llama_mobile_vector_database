@@ -12,27 +12,18 @@ let package = Package(
             targets: ["iOSSDKExample"]
         )
     ],
-    dependencies: [],
+    dependencies: [
+        .package(path: "../../llama_mobile_vd-ios-SDK/LlamaMobileVDBundle")
+    ],
     targets: [
         .target(
             name: "iOSSDKExample",
-            dependencies: [],
+            dependencies: [.product(name: "LlamaMobileVD", package: "LlamaMobileVDBundle")],
             path: "Sources",
             resources: [
                 .process("../Main.storyboard"),
                 .process("../LaunchScreen.storyboard")
-            ],
-            cSettings: [
-                .headerSearchPath("../../llama_mobile_vd-ios-SDK/llama_mobile_vd.xcframework/ios-arm64/llama_mobile_vd.framework/Headers")
-            ],
-            linkerSettings: [
-                .linkedFramework("UIKit"),
-                .linkedFramework("Foundation"),
-                .linkedFramework("CoreGraphics"),
-                .linkedLibrary("z"),
-                .linkedLibrary("c++"),
-                .linkedFramework("llama_mobile_vd", searchPaths: ["../../llama_mobile_vd-ios-SDK/llama_mobile_vd.xcframework/ios-arm64/llama_mobile_vd.framework"]),
-                .unsafeFlags(["-F../../llama_mobile_vd-ios-SDK/llama_mobile_vd.xcframework/ios-arm64"])            ]
+            ]
         )
     ]
 )

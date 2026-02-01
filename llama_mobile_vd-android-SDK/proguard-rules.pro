@@ -31,11 +31,11 @@
 }
 
 # Keep SearchResult class
--keep class com.llamamobile.vd.SearchResult {
+-keep class com.llamamobile.vd.LlamaMobileVD$SearchResult {
     *;
 }
 
 # Keep LlamaMobileVDException class
--keep class com.llamamobile.vd.LlamaMobileVDException {
+-keep class com.llamamobile.vd.LlamaMobileVD$LlamaMobileVDException {
     *;
 }

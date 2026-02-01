@@ -43,11 +43,11 @@ namespace {
 
     // Helper function to throw Java exception
     void throwLlamaMobileVDException(JNIEnv* env, const char* message, int errorCode) {
-        jclass exceptionClass = env->FindClass("com/llamamobile/vd/LlamaMobileVDException");
-        if (exceptionClass != nullptr) {
-            env->ThrowNew(exceptionClass, message);
-        }
+    jclass exceptionClass = env->FindClass("com/llamamobile/vd/LlamaMobileVD$LlamaMobileVDException");
+    if (exceptionClass != nullptr) {
+        env->ThrowNew(exceptionClass, message);
     }
+}
 
     // Map to store native pointers
     std::unordered_map<jlong, void*> nativePointers;
@@ -173,15 +173,29 @@ JNIEXPORT jobjectArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVecto
         return nullptr;
     }    
     // Create Java SearchResult objects
-        jclass resultClass = env->FindClass("com/llamamobile/vd/SearchResult");
-        jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(JF)V");
-        
-        jobjectArray resultArray = env->NewObjectArray(static_cast<jsize>(k), resultClass, nullptr);
-        
-        for (size_t i = 0; i < static_cast<size_t>(k); i++) {
-            jobject resultObj = env->NewObject(resultClass, constructor, static_cast<jlong>(results[i].id), static_cast<jfloat>(results[i].distance));
-            env->SetObjectArrayElement(resultArray, static_cast<jsize>(i), resultObj);
-        }    
+    jclass resultClass = env->FindClass("com/llamamobile/vd/LlamaMobileVD$SearchResult");
+    if (resultClass == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to find SearchResult class", LLAMA_MOBILE_VD_ERROR);
+        return nullptr;
+    }
+    jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(JF)V");
+    if (constructor == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to find SearchResult constructor", LLAMA_MOBILE_VD_ERROR);
+        return nullptr;
+    }    
+    jobjectArray resultArray = env->NewObjectArray(static_cast<jsize>(k), resultClass, nullptr);
+    if (resultArray == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to create result array", LLAMA_MOBILE_VD_ERROR);
+        return nullptr;
+    }    
+    for (size_t i = 0; i < static_cast<size_t>(k); i++) {
+        jobject resultObj = env->NewObject(resultClass, constructor, static_cast<jlong>(results[i].id), static_cast<jfloat>(results[i].distance));
+        if (resultObj == nullptr) {
+            throwLlamaMobileVDException(env, "Failed to create SearchResult object", LLAMA_MOBILE_VD_ERROR);
+            return nullptr;
+        }
+        env->SetObjectArrayElement(resultArray, static_cast<jsize>(i), resultObj);
+    }    
     return resultArray;
 }
 
@@ -441,11 +455,275 @@ JNIEXPORT void JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeVectorStoreDe
     }
     
     // Call the C function to destroy the vector store
-    // Destroy is void-returning, no error to check
     llama_mobile_vd_vector_store_destroy(store);
     
     // Remove the native pointer from the map
     removeNativePointer(storeId);
+}
+
+// ==========================
+// MMapVectorStore JNI methods
+// ==========================
+
+// Open MMapVectorStore
+JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreOpen(
+        JNIEnv* env,
+        jclass clazz,
+        jstring filePath) {
+    
+    // Convert Java string to C++ string
+    const char* filePathStr = env->GetStringUTFChars(filePath, nullptr);
+    if (filePathStr == nullptr) {
+        return 0;
+    }
+    
+    LLAMA_MOBILE_VD_MMapVectorStore store = nullptr;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_open(filePathStr, &store);
+    
+    env->ReleaseStringUTFChars(filePath, filePathStr);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to open MMap vector store", error);
+        return 0;
+    }
+    
+    return registerNativePointer(store);
+}
+
+// Search vectors in MMapVectorStore
+JNIEXPORT jobjectArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreSearch(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId,
+        jfloatArray queryVector,
+        jint k) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return nullptr;
+    }
+    
+    // Convert Java float array to C++ vector
+    std::vector<float> queryVec = jfloatArrayToVector(env, queryVector);
+    if (queryVec.empty()) {
+        throwLlamaMobileVDException(env, "Invalid query vector", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return nullptr;
+    }
+    
+    // Allocate memory for search results
+    std::vector<LLAMA_MOBILE_VD_SearchResult> results(static_cast<size_t>(k));
+    
+    // Call the C function to search vectors
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_search(store, queryVec.data(), static_cast<size_t>(k), results.data(), static_cast<size_t>(k));
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Search failed", error);
+        return nullptr;
+    }
+    
+    // Create Java SearchResult objects
+    jclass resultClass = env->FindClass("com/llamamobile/vd/LlamaMobileVD$SearchResult");
+    if (resultClass == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to find SearchResult class", LLAMA_MOBILE_VD_ERROR);
+        return nullptr;
+    }
+    jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(JF)V");
+    if (constructor == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to find SearchResult constructor", LLAMA_MOBILE_VD_ERROR);
+        return nullptr;
+    }
+    
+    jobjectArray resultArray = env->NewObjectArray(static_cast<jsize>(k), resultClass, nullptr);
+    if (resultArray == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to create result array", LLAMA_MOBILE_VD_ERROR);
+        return nullptr;
+    }
+    
+    for (size_t i = 0; i < static_cast<size_t>(k); i++) {
+        jobject resultObj = env->NewObject(resultClass, constructor, static_cast<jlong>(results[i].id), static_cast<jfloat>(results[i].distance));
+        if (resultObj == nullptr) {
+            throwLlamaMobileVDException(env, "Failed to create SearchResult object", LLAMA_MOBILE_VD_ERROR);
+            return nullptr;
+        }
+        env->SetObjectArrayElement(resultArray, static_cast<jsize>(i), resultObj);
+    }
+    
+    return resultArray;
+}
+
+// Get vector by ID from MMapVectorStore
+JNIEXPORT jfloatArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreGetVector(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId,
+        jlong id) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return nullptr;
+    }
+    
+    // Get vector dimension
+    size_t dimension;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_dimension(store, &dimension);
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get vector dimension", error);
+        return nullptr;
+    }
+    
+    // Allocate memory for vector
+    float* vector = new float[dimension];
+    if (vector == nullptr) {
+        throwLlamaMobileVDException(env, "Memory allocation failed", LLAMA_MOBILE_VD_OUT_OF_MEMORY);
+        return nullptr;
+    }
+    
+    // Call the C function to get the vector
+    error = llama_mobile_vd_mmap_vector_store_get(store, static_cast<uint64_t>(id), vector, dimension);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        delete[] vector;
+        throwLlamaMobileVDException(env, "Failed to get vector", error);
+        return nullptr;
+    }
+    
+    // Convert C++ vector to Java float array
+    jfloatArray result = env->NewFloatArray(static_cast<jsize>(dimension));
+    if (result == nullptr) {
+        delete[] vector;
+        throwLlamaMobileVDException(env, "Failed to create Java array", LLAMA_MOBILE_VD_OUT_OF_MEMORY);
+        return nullptr;
+    }
+    
+    env->SetFloatArrayRegion(result, 0, static_cast<jsize>(dimension), vector);
+    
+    // Free the native vector
+    delete[] vector;
+    
+    return result;
+}
+
+// Get MMapVectorStore size
+JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreGetSize(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    // Call the C function to get the size
+    size_t size;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_size(store, &size);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get vector store size", error);
+        return 0;
+    }
+    
+    return static_cast<jlong>(size);
+}
+
+// Get MMapVectorStore dimension
+JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreGetDimension(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    // Call the C function to get the dimension
+    size_t dimension;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_dimension(store, &dimension);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get vector store dimension", error);
+        return 0;
+    }
+    
+    return static_cast<jint>(dimension);
+}
+
+// Get MMapVectorStore metric
+JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreGetMetric(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return 0;
+    }
+    
+    // Call the C function to get the metric
+    LLAMA_MOBILE_VD_DistanceMetric metric;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_metric(store, &metric);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to get vector store metric", error);
+        return 0;
+    }
+    
+    return static_cast<jint>(metric);
+}
+
+// Close MMapVectorStore
+JNIEXPORT void JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreClose(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        return;
+    }
+    
+    // Call the C function to close the MMap vector store
+    llama_mobile_vd_mmap_vector_store_close(store);
+    
+    // Remove the native pointer from the map
+    removeNativePointer(storeId);
+}
+
+// Check if MMapVectorStore contains vector
+JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreContains(
+        JNIEnv* env,
+        jclass clazz,
+        jlong storeId,
+        jlong id) {
+    
+    // Get the native vector store pointer
+    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
+    if (store == nullptr) {
+        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
+        return JNI_FALSE;
+    }
+    
+    // Call the C function to check if vector exists
+    int exists = 0;
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_contains(store, static_cast<uint64_t>(id), &exists);
+    
+    if (error != LLAMA_MOBILE_VD_OK) {
+        return JNI_FALSE;
+    }
+    
+    return exists != 0 ? JNI_TRUE : JNI_FALSE;
 }
 
 // ==========================
@@ -584,13 +862,29 @@ JNIEXPORT jobjectArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWI
     }
     
     // Create Java SearchResult objects
-    jclass resultClass = env->FindClass("com/llamamobile/vd/SearchResult");
+    jclass resultClass = env->FindClass("com/llamamobile/vd/LlamaMobileVD$SearchResult");
+    if (resultClass == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to find SearchResult class", LLAMA_MOBILE_VD_ERROR);
+        return nullptr;
+    }
     jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(JF)V");
+    if (constructor == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to find SearchResult constructor", LLAMA_MOBILE_VD_ERROR);
+        return nullptr;
+    }
     
     jobjectArray resultArray = env->NewObjectArray(static_cast<jsize>(k), resultClass, nullptr);
+    if (resultArray == nullptr) {
+        throwLlamaMobileVDException(env, "Failed to create result array", LLAMA_MOBILE_VD_ERROR);
+        return nullptr;
+    }
     
     for (size_t i = 0; i < static_cast<size_t>(k); i++) {
         jobject resultObj = env->NewObject(resultClass, constructor, static_cast<jlong>(results[i].id), static_cast<jfloat>(results[i].distance));
+        if (resultObj == nullptr) {
+            throwLlamaMobileVDException(env, "Failed to create SearchResult object", LLAMA_MOBILE_VD_ERROR);
+            return nullptr;
+        }
         env->SetObjectArrayElement(resultArray, static_cast<jsize>(i), resultObj);
     }
     
@@ -761,7 +1055,7 @@ JNIEXPORT jfloatArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIn
     }
     
     // Get vector dimension
-    size_t dimension = 0;
+    size_t dimension;
     LLAMA_MOBILE_VD_Error error = llama_mobile_vd_hnsw_index_dimension(index, &dimension);
     if (error != LLAMA_MOBILE_VD_OK) {
         throwLlamaMobileVDException(env, "Failed to get vector dimension", error);
@@ -845,10 +1139,7 @@ JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeHNSWIndexLoa
     }
     
     LLAMA_MOBILE_VD_HNSWIndex index = nullptr;
-    LLAMA_MOBILE_VD_Error error = LLAMA_MOBILE_VD_ERROR;
-    
-    // Call the C function to load the HNSW index
-    error = llama_mobile_vd_hnsw_index_load(filenameStr, &index);
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_hnsw_index_load(filenameStr, &index);
     
     env->ReleaseStringUTFChars(filename, filenameStr);
     
@@ -897,10 +1188,10 @@ JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorSt
     }
     
     LLAMA_MOBILE_VD_MMapVectorStoreBuilder builder = nullptr;
-    LLAMA_MOBILE_VD_Error error = LLAMA_MOBILE_VD_ERROR;
-    
-    // Call the C function to create the MMap vector store builder
-    error = llama_mobile_vd_mmap_vector_store_builder_create(static_cast<size_t>(dimension), it->second, &builder);
+    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_builder_create(
+        static_cast<size_t>(dimension),
+        it->second,
+        &builder);
     
     if (error != LLAMA_MOBILE_VD_OK) {
         throwLlamaMobileVDException(env, "Failed to create MMap vector store builder", error);
@@ -918,7 +1209,7 @@ JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVecto
         jlong id,
         jfloatArray vector) {
     
-    // Get the native MMap vector store builder pointer
+    // Get the native builder pointer
     LLAMA_MOBILE_VD_MMapVectorStoreBuilder builder = static_cast<LLAMA_MOBILE_VD_MMapVectorStoreBuilder>(getNativePointer(builderId));
     if (builder == nullptr) {
         throwLlamaMobileVDException(env, "Invalid MMap vector store builder", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
@@ -936,6 +1227,7 @@ JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVecto
     LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_builder_add(builder, static_cast<uint64_t>(id), vec.data());
     
     if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to add vector to MMap vector store builder", error);
         return JNI_FALSE;
     }
     
@@ -949,7 +1241,7 @@ JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVecto
         jlong builderId,
         jlong capacity) {
     
-    // Get the native MMap vector store builder pointer
+    // Get the native builder pointer
     LLAMA_MOBILE_VD_MMapVectorStoreBuilder builder = static_cast<LLAMA_MOBILE_VD_MMapVectorStoreBuilder>(getNativePointer(builderId));
     if (builder == nullptr) {
         throwLlamaMobileVDException(env, "Invalid MMap vector store builder", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
@@ -960,20 +1252,21 @@ JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVecto
     LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_builder_reserve(builder, static_cast<size_t>(capacity));
     
     if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to reserve capacity in MMap vector store builder", error);
         return JNI_FALSE;
     }
     
     return JNI_TRUE;
 }
 
-// Save MMapVectorStoreBuilder to file
+// Save MMapVectorStoreBuilder
 JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreBuilderSave(
         JNIEnv* env,
         jclass clazz,
         jlong builderId,
         jstring filename) {
     
-    // Get the native MMap vector store builder pointer
+    // Get the native builder pointer
     LLAMA_MOBILE_VD_MMapVectorStoreBuilder builder = static_cast<LLAMA_MOBILE_VD_MMapVectorStoreBuilder>(getNativePointer(builderId));
     if (builder == nullptr) {
         throwLlamaMobileVDException(env, "Invalid MMap vector store builder", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
@@ -992,6 +1285,7 @@ JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVecto
     env->ReleaseStringUTFChars(filename, filenameStr);
     
     if (error != LLAMA_MOBILE_VD_OK) {
+        throwLlamaMobileVDException(env, "Failed to save MMap vector store", error);
         return JNI_FALSE;
     }
     
@@ -1004,7 +1298,7 @@ JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorSt
         jclass clazz,
         jlong builderId) {
     
-    // Get the native MMap vector store builder pointer
+    // Get the native builder pointer
     LLAMA_MOBILE_VD_MMapVectorStoreBuilder builder = static_cast<LLAMA_MOBILE_VD_MMapVectorStoreBuilder>(getNativePointer(builderId));
     if (builder == nullptr) {
         throwLlamaMobileVDException(env, "Invalid MMap vector store builder", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
@@ -1029,7 +1323,7 @@ JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorSto
         jclass clazz,
         jlong builderId) {
     
-    // Get the native MMap vector store builder pointer
+    // Get the native builder pointer
     LLAMA_MOBILE_VD_MMapVectorStoreBuilder builder = static_cast<LLAMA_MOBILE_VD_MMapVectorStoreBuilder>(getNativePointer(builderId));
     if (builder == nullptr) {
         throwLlamaMobileVDException(env, "Invalid MMap vector store builder", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
@@ -1054,273 +1348,17 @@ JNIEXPORT void JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorSto
         jclass clazz,
         jlong builderId) {
     
-    // Get the native MMap vector store builder pointer
+    // Get the native builder pointer
     LLAMA_MOBILE_VD_MMapVectorStoreBuilder builder = static_cast<LLAMA_MOBILE_VD_MMapVectorStoreBuilder>(getNativePointer(builderId));
     if (builder == nullptr) {
         return;
     }
     
-    // Call the C function to destroy the MMap vector store builder
+    // Call the C function to destroy the builder
     llama_mobile_vd_mmap_vector_store_builder_destroy(builder);
     
     // Remove the native pointer from the map
     removeNativePointer(builderId);
-}
-
-// ==========================
-// MMapVectorStore JNI methods
-// ==========================
-
-// Open MMapVectorStore
-JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreOpen(
-        JNIEnv* env,
-        jclass clazz,
-        jstring filePath) {
-    
-    // Convert Java string to C++ string
-    const char* filePathStr = env->GetStringUTFChars(filePath, nullptr);
-    if (filePathStr == nullptr) {
-        return 0;
-    }
-    
-    LLAMA_MOBILE_VD_MMapVectorStore store = nullptr;
-    LLAMA_MOBILE_VD_Error error = LLAMA_MOBILE_VD_ERROR;
-    
-    // Call the C function to open the MMap vector store
-    error = llama_mobile_vd_mmap_vector_store_open(
-        filePathStr,
-        &store);
-    
-    env->ReleaseStringUTFChars(filePath, filePathStr);
-    
-    if (error != LLAMA_MOBILE_VD_OK) {
-        throwLlamaMobileVDException(env, "Failed to open MMap vector store", error);
-        return 0;
-    }
-    
-    return registerNativePointer(store);
-}
-
-// Search vectors in MMapVectorStore
-JNIEXPORT jobjectArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreSearch(
-        JNIEnv* env,
-        jclass clazz,
-        jlong storeId,
-        jfloatArray queryVector,
-        jint k) {
-    
-    // Get the native vector store pointer
-    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
-    if (store == nullptr) {
-        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
-        return nullptr;
-    }
-    
-    // Convert Java float array to C++ vector
-    std::vector<float> queryVec = jfloatArrayToVector(env, queryVector);
-    if (queryVec.empty()) {
-        throwLlamaMobileVDException(env, "Invalid query vector", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
-        return nullptr;
-    }
-    
-    // Allocate memory for search results
-    std::vector<LLAMA_MOBILE_VD_SearchResult> results(static_cast<size_t>(k));
-    
-    // Call the C function to search vectors
-    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_search(store, queryVec.data(), static_cast<size_t>(k), results.data(), static_cast<size_t>(k));
-    
-    if (error != LLAMA_MOBILE_VD_OK) {
-        throwLlamaMobileVDException(env, "Search failed", error);
-        return nullptr;
-    }
-    
-    // Create Java SearchResult objects
-    jclass resultClass = env->FindClass("com/llamamobile/vd/SearchResult");
-    jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(JF)V");
-    
-    jobjectArray resultArray = env->NewObjectArray(static_cast<jsize>(k), resultClass, nullptr);
-    
-    for (size_t i = 0; i < static_cast<size_t>(k); i++) {
-        jobject resultObj = env->NewObject(resultClass, constructor, static_cast<jlong>(results[i].id), static_cast<jfloat>(results[i].distance));
-        env->SetObjectArrayElement(resultArray, static_cast<jsize>(i), resultObj);
-    }
-    
-    return resultArray;
-}
-
-// Get vector by ID from MMapVectorStore
-JNIEXPORT jfloatArray JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreGetVector(
-        JNIEnv* env,
-        jclass clazz,
-        jlong storeId,
-        jlong id) {
-    
-    // Get the native vector store pointer
-    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
-    if (store == nullptr) {
-        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
-        return nullptr;
-    }
-    
-    // Get vector dimension
-    size_t dimension;
-    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_dimension(store, &dimension);
-    if (error != LLAMA_MOBILE_VD_OK) {
-        throwLlamaMobileVDException(env, "Failed to get vector dimension", error);
-        return nullptr;
-    }
-    
-    // Allocate memory for vector
-    float* vector = new float[dimension];
-    if (vector == nullptr) {
-        throwLlamaMobileVDException(env, "Memory allocation failed", LLAMA_MOBILE_VD_OUT_OF_MEMORY);
-        return nullptr;
-    }
-    
-    // Call the C function to get the vector
-    error = llama_mobile_vd_mmap_vector_store_get(store, static_cast<uint64_t>(id), vector, dimension);
-    
-    if (error != LLAMA_MOBILE_VD_OK) {
-        delete[] vector;
-        throwLlamaMobileVDException(env, "Failed to get vector", error);
-        return nullptr;
-    }
-    
-    // Convert C++ vector to Java float array
-    jfloatArray result = env->NewFloatArray(static_cast<jsize>(dimension));
-    if (result == nullptr) {
-        delete[] vector;
-        throwLlamaMobileVDException(env, "Failed to create Java array", LLAMA_MOBILE_VD_OUT_OF_MEMORY);
-        return nullptr;
-    }
-    
-    env->SetFloatArrayRegion(result, 0, static_cast<jsize>(dimension), vector);
-    
-    // Free the native vector
-    delete[] vector;
-    
-    return result;
-}
-
-// Contains vector in MMapVectorStore
-JNIEXPORT jboolean JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreContains(
-        JNIEnv* env,
-        jclass clazz,
-        jlong storeId,
-        jlong id) {
-    
-    // Get the native vector store pointer
-    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
-    if (store == nullptr) {
-        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
-        return JNI_FALSE;
-    }
-    
-    // Call the C function to check if vector exists
-    int exists;
-    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_contains(store, static_cast<uint64_t>(id), &exists);
-    
-    if (error != LLAMA_MOBILE_VD_OK) {
-        throwLlamaMobileVDException(env, "Failed to check vector existence", error);
-        return JNI_FALSE;
-    }
-    
-    return exists ? JNI_TRUE : JNI_FALSE;
-}
-
-// Get MMapVectorStore size
-JNIEXPORT jlong JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreGetSize(
-        JNIEnv* env,
-        jclass clazz,
-        jlong storeId) {
-    
-    // Get the native vector store pointer
-    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
-    if (store == nullptr) {
-        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
-        return 0;
-    }
-    
-    // Call the C function to get the size
-    size_t size;
-    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_size(store, &size);
-    
-    if (error != LLAMA_MOBILE_VD_OK) {
-        throwLlamaMobileVDException(env, "Failed to get vector store size", error);
-        return 0;
-    }
-    
-    return static_cast<jlong>(size);
-}
-
-// Get MMapVectorStore dimension
-JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreGetDimension(
-        JNIEnv* env,
-        jclass clazz,
-        jlong storeId) {
-    
-    // Get the native vector store pointer
-    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
-    if (store == nullptr) {
-        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
-        return 0;
-    }
-    
-    // Call the C function to get the dimension
-    size_t dimension;
-    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_dimension(store, &dimension);
-    
-    if (error != LLAMA_MOBILE_VD_OK) {
-        throwLlamaMobileVDException(env, "Failed to get vector store dimension", error);
-        return 0;
-    }
-    
-    return static_cast<jint>(dimension);
-}
-
-// Get MMapVectorStore metric
-JNIEXPORT jint JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreGetMetric(
-        JNIEnv* env,
-        jclass clazz,
-        jlong storeId) {
-    
-    // Get the native vector store pointer
-    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
-    if (store == nullptr) {
-        throwLlamaMobileVDException(env, "Invalid vector store", LLAMA_MOBILE_VD_INVALID_ARGUMENT);
-        return 0;
-    }
-    
-    // Call the C function to get the metric
-    LLAMA_MOBILE_VD_DistanceMetric metric;
-    LLAMA_MOBILE_VD_Error error = llama_mobile_vd_mmap_vector_store_metric(store, &metric);
-    
-    if (error != LLAMA_MOBILE_VD_OK) {
-        throwLlamaMobileVDException(env, "Failed to get vector store metric", error);
-        return 0;
-    }
-    
-    return static_cast<jint>(metric);
-}
-
-// Close MMapVectorStore
-JNIEXPORT void JNICALL Java_com_llamamobile_vd_LlamaMobileVD_nativeMMapVectorStoreClose(
-        JNIEnv* env,
-        jclass clazz,
-        jlong storeId) {
-    
-    // Get the native vector store pointer
-    LLAMA_MOBILE_VD_MMapVectorStore store = static_cast<LLAMA_MOBILE_VD_MMapVectorStore>(getNativePointer(storeId));
-    if (store == nullptr) {
-        return;
-    }
-    
-    // Call the C function to close the MMap vector store
-    // Close is void-returning, no error to check
-    llama_mobile_vd_mmap_vector_store_close(store);
-    
-    // Remove the native pointer from the map
-    removeNativePointer(storeId);
 }
 
 // ==========================
