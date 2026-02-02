@@ -2,6 +2,9 @@ import { registerPlugin } from '@capacitor/core';
 
 export interface LlamaMobileVDPlugin {
   getVersion(): Promise<{ version: string }>;
+  getVersionMajor(): Promise<{ major: number }>;
+  getVersionMinor(): Promise<{ minor: number }>;
+  getVersionPatch(): Promise<{ patch: number }>;
 
   createVectorStore(options: {
     dimension: number;

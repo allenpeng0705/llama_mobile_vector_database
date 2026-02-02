@@ -141,6 +141,12 @@ public class LlamaMobileVDFlutterPlugin: NSObject, FlutterPlugin {
         // Version methods
         case "getVersion":
             handleGetVersion(call, result: result)
+        case "getVersionMajor":
+            handleGetVersionMajor(call, result: result)
+        case "getVersionMinor":
+            handleGetVersionMinor(call, result: result)
+        case "getVersionPatch":
+            handleGetVersionPatch(call, result: result)
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -1642,6 +1648,21 @@ public class LlamaMobileVDFlutterPlugin: NSObject, FlutterPlugin {
     private func handleGetVersion(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let version = LlamaMobileVD.Version.full
         result(version)
+    }
+
+    private func handleGetVersionMajor(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        let major = LlamaMobileVD.Version.major
+        result(major)
+    }
+
+    private func handleGetVersionMinor(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        let minor = LlamaMobileVD.Version.minor
+        result(minor)
+    }
+
+    private func handleGetVersionPatch(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        let patch = LlamaMobileVD.Version.patch
+        result(patch)
     }
 
     // MARK: - Helper methods

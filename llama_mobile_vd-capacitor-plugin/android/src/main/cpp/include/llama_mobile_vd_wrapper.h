@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "llama_mobile_vd_version.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,11 +90,7 @@ LLAMA_MOBILE_VD_Error llama_mobile_vd_mmap_vector_store_dimension(LLAMA_MOBILE_V
 LLAMA_MOBILE_VD_Error llama_mobile_vd_mmap_vector_store_metric(LLAMA_MOBILE_VD_MMapVectorStore store, LLAMA_MOBILE_VD_DistanceMetric* metric);
 void llama_mobile_vd_mmap_vector_store_close(LLAMA_MOBILE_VD_MMapVectorStore store);
 
-// Version information
-const char* llama_mobile_vd_version();
-int llama_mobile_vd_version_major();
-int llama_mobile_vd_version_minor();
-int llama_mobile_vd_version_patch();
+
 
 #ifdef __cplusplus
 }

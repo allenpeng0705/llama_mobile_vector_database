@@ -45,3 +45,6 @@
 /scripts/sdk_backup
 /llama_mobile_vd-android-SDK/output
 /examples/androidJavaSDKExample/app/libs
+/llama_mobile_vd-flutter-SDK/android/src/main/jniLibs
+/llama_mobile_vd-capacitor-plugin/android/src/main/jniLibs
+/llama_mobile_vd-capacitor-plugin/android/src/main/jniLibs

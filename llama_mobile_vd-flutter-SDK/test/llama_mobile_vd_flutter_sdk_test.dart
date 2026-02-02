@@ -15,6 +15,24 @@ void main() {
       final String? version = await LlamaMobileVDFlutterSdk.version;
       expect(version, isNotNull);
     });
+
+    test('get version major', () async {
+      final int? major = await LlamaMobileVDFlutterSdk.versionMajor;
+      expect(major, isNotNull);
+      expect(major, equals(0));
+    });
+
+    test('get version minor', () async {
+      final int? minor = await LlamaMobileVDFlutterSdk.versionMinor;
+      expect(minor, isNotNull);
+      expect(minor, equals(1));
+    });
+
+    test('get version patch', () async {
+      final int? patch = await LlamaMobileVDFlutterSdk.versionPatch;
+      expect(patch, isNotNull);
+      expect(patch, equals(0));
+    });
   });
 
   // Test different dimensions and metrics for VectorStore

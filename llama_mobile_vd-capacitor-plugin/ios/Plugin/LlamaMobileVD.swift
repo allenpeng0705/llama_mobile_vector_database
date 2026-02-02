@@ -73,6 +73,17 @@ public class LlamaMobileVD {
             }
         }
         
+        /// Add a vector to the store asynchronously
+        /// - Parameters:
+        ///   - id: Unique identifier for the vector
+        ///   - vector: Array of float values representing the vector
+        public func addVectorAsync(id: UInt64, vector: [Float]) async throws {
+            try await Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self = self else { throw Error.operationFailed("Store deallocated") }
+                try self.addVector(id: id, vector: vector)
+            }.value
+        }
+        
         /// Search for similar vectors
         /// - Parameters:
         ///   - query: Query vector to search for
@@ -92,6 +103,18 @@ public class LlamaMobileVD {
             return results.map { ($0.id, $0.distance) }
         }
         
+        /// Search for similar vectors asynchronously
+        /// - Parameters:
+        ///   - query: Query vector to search for
+        ///   - k: Number of results to return
+        /// - Returns: Array of (id, distance) tuples sorted by distance
+        public func searchAsync(query: [Float], k: Int) async throws -> [(id: UInt64, distance: Float)] {
+            return try await Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self = self else { throw Error.operationFailed("Store deallocated") }
+                return try self.search(query: query, k: k)
+            }.value
+        }
+        
         /// Remove a vector by ID
         /// - Parameter id: Unique identifier of the vector to remove
         /// - Returns: True if the vector was found and removed, false otherwise
@@ -106,6 +129,16 @@ public class LlamaMobileVD {
             }
             
             return removed != 0
+        }
+        
+        /// Remove a vector by ID asynchronously
+        /// - Parameter id: Unique identifier of the vector to remove
+        /// - Returns: True if the vector was found and removed, false otherwise
+        public func removeVectorAsync(id: UInt64) async throws -> Bool {
+            return try await Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self = self else { throw Error.operationFailed("Store deallocated") }
+                return try self.removeVector(id: id)
+            }.value
         }
         
         /// Get a vector by ID
@@ -130,6 +163,16 @@ public class LlamaMobileVD {
             return vector
         }
         
+        /// Get a vector by ID asynchronously
+        /// - Parameter id: Unique identifier of the vector
+        /// - Returns: Array of float values representing the vector
+        public func getVectorAsync(id: UInt64) async throws -> [Float] {
+            return try await Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self = self else { throw Error.operationFailed("Store deallocated") }
+                return try self.getVector(id: id)
+            }.value
+        }
+        
         /// Clear all vectors from the store
         public func clear() throws {
             guard let store = store else { throw Error.operationFailed("Store not initialized") }
@@ -138,6 +181,14 @@ public class LlamaMobileVD {
             if error != LLAMA_MOBILE_VD_OK {
                 throw mapError(error, message: "Failed to clear store")
             }
+        }
+        
+        /// Clear all vectors from the store asynchronously
+        public func clearAsync() async throws {
+            try await Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self = self else { throw Error.operationFailed("Store deallocated") }
+                try self.clear()
+            }.value
         }
         
         /// Get the number of vectors in the store
@@ -151,6 +202,14 @@ public class LlamaMobileVD {
             }
             
             return count
+        }
+        
+        /// Get the number of vectors in the store asynchronously
+        public func countAsync() async throws -> Int {
+            return try await Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self = self else { throw Error.operationFailed("Store deallocated") }
+                return try self.count()
+            }.value
         }
         
         /// Get the dimension of vectors in the store
@@ -178,6 +237,17 @@ public class LlamaMobileVD {
             if error != LLAMA_MOBILE_VD_OK {
                 throw mapError(error, message: "Failed to update vector")
             }
+        }
+        
+        /// Update an existing vector in the store asynchronously
+        /// - Parameters:
+        ///   - id: Unique identifier for the vector
+        ///   - vector: Array of float values representing the new vector data
+        public func updateVectorAsync(id: UInt64, vector: [Float]) async throws {
+            try await Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self = self else { throw Error.operationFailed("Store deallocated") }
+                try self.updateVector(id: id, vector: vector)
+            }.value
         }
         
         /// Get the distance metric used by the vector store
@@ -217,6 +287,16 @@ public class LlamaMobileVD {
             return containsValue != 0
         }
         
+        /// Check if a vector with the specified ID exists in the store asynchronously
+        /// - Parameter id: Unique identifier to check
+        /// - Returns: True if the vector exists, false otherwise
+        public func containsVectorAsync(id: UInt64) async throws -> Bool {
+            return try await Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self = self else { throw Error.operationFailed("Store deallocated") }
+                return try self.containsVector(id: id)
+            }.value
+        }
+        
         /// Reserve capacity for a specific number of vectors
         /// - Parameter capacity: The number of vectors to reserve space for
         public func reserveCapacity(capacity: Int) throws {
@@ -226,6 +306,15 @@ public class LlamaMobileVD {
             if error != LLAMA_MOBILE_VD_OK {
                 throw mapError(error, message: "Failed to reserve capacity")
             }
+        }
+        
+        /// Reserve capacity for a specific number of vectors asynchronously
+        /// - Parameter capacity: The number of vectors to reserve space for
+        public func reserveCapacityAsync(capacity: Int) async throws {
+            try await Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self = self else { throw Error.operationFailed("Store deallocated") }
+                try self.reserveCapacity(capacity: capacity)
+            }.value
         }
         
         /// Deinitialize the vector store
@@ -308,6 +397,17 @@ public class LlamaMobileVD {
             }
         }
         
+        /// Add a vector to the HNSW index asynchronously
+        /// - Parameters:
+        ///   - id: Unique identifier for the vector
+        ///   - vector: Array of float values representing the vector
+        public func addVectorAsync(id: UInt64, vector: [Float]) async throws {
+            try await Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self = self else { throw Error.operationFailed("Index deallocated") }
+                try self.addVector(id: id, vector: vector)
+            }.value
+        }
+        
         /// Search for similar vectors in the HNSW index
         /// - Parameters:
         ///   - query: Query vector to search for
@@ -333,6 +433,18 @@ public class LlamaMobileVD {
             return results.map { ($0.id, $0.distance) }
         }
         
+        /// Search for similar vectors in the HNSW index asynchronously
+        /// - Parameters:
+        ///   - query: Query vector to search for
+        ///   - k: Number of results to return
+        /// - Returns: Array of (id, distance) tuples sorted by distance
+        public func searchAsync(query: [Float], k: Int) async throws -> [(id: UInt64, distance: Float)] {
+            return try await Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self = self else { throw Error.operationFailed("Index deallocated") }
+                return try self.search(query: query, k: k)
+            }.value
+        }
+        
         /// Set the ef_search parameter for the HNSW index
         /// - Parameter efSearch: The size of the dynamic list for search
         public func setEfSearch(_ efSearch: Int) throws {
@@ -342,6 +454,15 @@ public class LlamaMobileVD {
             if error != LLAMA_MOBILE_VD_OK {
                 throw mapError(error, message: "Failed to set ef_search")
             }
+        }
+        
+        /// Set the ef_search parameter for the HNSW index asynchronously
+        /// - Parameter efSearch: The size of the dynamic list for search
+        public func setEfSearchAsync(_ efSearch: Int) async throws {
+            try await Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self = self else { throw Error.operationFailed("Index deallocated") }
+                try self.setEfSearch(efSearch)
+            }.value
         }
         
         /// Get the current ef_search parameter
@@ -368,6 +489,14 @@ public class LlamaMobileVD {
             }
             
             return count
+        }
+        
+        /// Get the number of vectors in the index asynchronously
+        public func countAsync() async throws -> Int {
+            return try await Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self = self else { throw Error.operationFailed("Index deallocated") }
+                return try self.count()
+            }.value
         }
         
         /// Get the dimension of vectors in the index

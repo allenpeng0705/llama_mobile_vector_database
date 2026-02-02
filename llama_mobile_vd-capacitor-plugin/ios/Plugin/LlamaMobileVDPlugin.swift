@@ -7,6 +7,9 @@ public class LlamaMobileVDPlugin: CAPPlugin, CAPBridgedPlugin {
     public let jsName = "LlamaMobileVD"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "getVersion", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getVersionMajor", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getVersionMinor", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getVersionPatch", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "createVectorStore", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "destroyVectorStore", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "addVectors", returnType: CAPPluginReturnPromise),
@@ -58,7 +61,28 @@ public class LlamaMobileVDPlugin: CAPPlugin, CAPBridgedPlugin {
         // Add a prefix to make it clear this is from the native iOS plugin
         call.resolve(["version": version])
     }
-    
+
+    @objc public func getVersionMajor(_ call: CAPPluginCall) {
+        print("LlamaMobileVDPlugin: getVersionMajor called - instance: \(ObjectIdentifier(self))")
+        let major = LlamaMobileVD.Version.major
+        print("LlamaMobileVDPlugin: getVersionMajor returned: \(major)")
+        call.resolve(["major": major])
+    }
+
+    @objc public func getVersionMinor(_ call: CAPPluginCall) {
+        print("LlamaMobileVDPlugin: getVersionMinor called - instance: \(ObjectIdentifier(self))")
+        let minor = LlamaMobileVD.Version.minor
+        print("LlamaMobileVDPlugin: getVersionMinor returned: \(minor)")
+        call.resolve(["minor": minor])
+    }
+
+    @objc public func getVersionPatch(_ call: CAPPluginCall) {
+        print("LlamaMobileVDPlugin: getVersionPatch called - instance: \(ObjectIdentifier(self))")
+        let patch = LlamaMobileVD.Version.patch
+        print("LlamaMobileVDPlugin: getVersionPatch returned: \(patch)")
+        call.resolve(["patch": patch])
+    }
+
     @objc public func createVectorStore(_ call: CAPPluginCall) {
         guard let dimension = call.getInt("dimension") else {
             call.reject("Missing required parameter: dimension")

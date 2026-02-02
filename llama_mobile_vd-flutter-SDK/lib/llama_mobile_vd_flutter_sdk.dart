@@ -16,6 +16,21 @@ class LlamaMobileVDFlutterSdk {
     final String? version = await _channel.invokeMethod('getVersion');
     return version;
   }
+
+  static Future<int?> get versionMajor async {
+    final int? major = await _channel.invokeMethod('getVersionMajor');
+    return major;
+  }
+
+  static Future<int?> get versionMinor async {
+    final int? minor = await _channel.invokeMethod('getVersionMinor');
+    return minor;
+  }
+
+  static Future<int?> get versionPatch async {
+    final int? patch = await _channel.invokeMethod('getVersionPatch');
+    return patch;
+  }
 }
 
 enum DistanceMetric { l2, cosine, dot }

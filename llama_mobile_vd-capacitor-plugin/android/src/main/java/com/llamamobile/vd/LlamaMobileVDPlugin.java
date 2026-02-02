@@ -33,6 +33,30 @@ public class LlamaMobileVDPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void getVersionMajor(PluginCall call) {
+        int major = LlamaMobileVD.getVersionMajor();
+        JSObject result = new JSObject();
+        result.put("major", major);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void getVersionMinor(PluginCall call) {
+        int minor = LlamaMobileVD.getVersionMinor();
+        JSObject result = new JSObject();
+        result.put("minor", minor);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void getVersionPatch(PluginCall call) {
+        int patch = LlamaMobileVD.getVersionPatch();
+        JSObject result = new JSObject();
+        result.put("patch", patch);
+        call.resolve(result);
+    }
+
+    @PluginMethod
     public void createVectorStore(PluginCall call) {
         int dimension = call.getInt("dimension", -1);
         if (dimension < 0) {

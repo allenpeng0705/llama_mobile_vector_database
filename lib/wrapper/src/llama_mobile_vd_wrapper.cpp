@@ -1,9 +1,9 @@
 // QuiverDB Wrapper - Copyright (c) 2025 - MIT License
 #include "llama_mobile_vd_wrapper.h"
+#include "llama_mobile_vd_version.h"
 #include "core/vector_store.h"
 #include "core/hnsw_index.h"
 #include "core/mmap_vector_store.h"
-#include "core/version.h"
 
 #include <cstring>
 #include <stdexcept>
@@ -608,17 +608,17 @@ void llama_mobile_vd_mmap_vector_store_close(LLAMA_MOBILE_VD_MMapVectorStore sto
 // Version information
 
 const char* llama_mobile_vd_version() {
-    return VERSION_STRING;
+    return LLAMA_MOBILE_VD_VERSION_STRING;
 }
 
 int llama_mobile_vd_version_major() {
-    return VERSION_MAJOR;
+    return LLAMA_MOBILE_VD_VERSION_MAJOR;
 }
 
 int llama_mobile_vd_version_minor() {
-    return VERSION_MINOR;
+    return LLAMA_MOBILE_VD_VERSION_MINOR;
 }
 
 int llama_mobile_vd_version_patch() {
-    return VERSION_PATCH;
+    return LLAMA_MOBILE_VD_VERSION_PATCH;
 }

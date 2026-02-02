@@ -91,6 +91,9 @@ class LlamaMobileVDFlutterPlugin: FlutterPlugin, MethodCallHandler {
       "mmapVectorStoreSearchAsync" -> handleMMapVectorStoreSearchAsync(call, result)
       // Version methods
       "getVersion" -> handleGetVersion(call, result)
+      "getVersionMajor" -> handleGetVersionMajor(call, result)
+      "getVersionMinor" -> handleGetVersionMinor(call, result)
+      "getVersionPatch" -> handleGetVersionPatch(call, result)
       else -> {
         result.notImplemented()
       }
@@ -1317,6 +1320,33 @@ class LlamaMobileVDFlutterPlugin: FlutterPlugin, MethodCallHandler {
       result.success(version)
     } catch (e: Exception) {
       result.error("VERSION_FAILED", "Failed to get version: {e.message}", null)
+    }
+  }
+
+  private fun handleGetVersionMajor(call: MethodCall, result: Result) {
+    try {
+      val major = LlamaMobileVD.getVersionMajor()
+      result.success(major)
+    } catch (e: Exception) {
+      result.error("VERSION_FAILED", "Failed to get version major: {e.message}", null)
+    }
+  }
+
+  private fun handleGetVersionMinor(call: MethodCall, result: Result) {
+    try {
+      val minor = LlamaMobileVD.getVersionMinor()
+      result.success(minor)
+    } catch (e: Exception) {
+      result.error("VERSION_FAILED", "Failed to get version minor: {e.message}", null)
+    }
+  }
+
+  private fun handleGetVersionPatch(call: MethodCall, result: Result) {
+    try {
+      val patch = LlamaMobileVD.getVersionPatch()
+      result.success(patch)
+    } catch (e: Exception) {
+      result.error("VERSION_FAILED", "Failed to get version patch: {e.message}", null)
     }
   }
 }

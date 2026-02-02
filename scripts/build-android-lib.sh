@@ -166,6 +166,8 @@ echo "\n=== Copying Header Files ==="
 mkdir -p "$OUTPUT_DIR/include"
 cp "$WRAPPER_DIR/include/llama_mobile_vd_wrapper.h" "$OUTPUT_DIR/include/"
 echo "✓ Copied llama_mobile_vd_wrapper.h to $OUTPUT_DIR/include/"
+cp "$WRAPPER_DIR/include/llama_mobile_vd_version.h" "$OUTPUT_DIR/include/"
+echo "✓ Copied llama_mobile_vd_version.h to $OUTPUT_DIR/include/"
 
 # Build the C++ wrapper library for each architecture
 cd "$WRAPPER_DIR"
