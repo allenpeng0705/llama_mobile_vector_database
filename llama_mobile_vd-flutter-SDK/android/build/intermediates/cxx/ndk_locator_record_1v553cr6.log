@@ -11,7 +11,7 @@
       "fieldsDescending": {}
     },
     "memoizedSize": -1,
-    "memoizedHashCode": -1596532952
+    "memoizedHashCode": 2021028509
   },
   {
     "level_": 0,
@@ -25,7 +25,7 @@
       "fieldsDescending": {}
     },
     "memoizedSize": -1,
-    "memoizedHashCode": -804344849
+    "memoizedHashCode": -1481750684
   },
   {
     "level_": 0,
@@ -39,7 +39,7 @@
       "fieldsDescending": {}
     },
     "memoizedSize": -1,
-    "memoizedHashCode": -99883656
+    "memoizedHashCode": -777289491
   },
   {
     "level_": 0,
@@ -53,7 +53,7 @@
       "fieldsDescending": {}
     },
     "memoizedSize": -1,
-    "memoizedHashCode": 1762930414
+    "memoizedHashCode": 1085524579
   },
   {
     "level_": 0,
@@ -67,7 +67,7 @@
       "fieldsDescending": {}
     },
     "memoizedSize": -1,
-    "memoizedHashCode": 1123593955
+    "memoizedHashCode": 446188120
   },
   {
     "level_": 0,
@@ -81,6 +81,62 @@
       "fieldsDescending": {}
     },
     "memoizedSize": -1,
-    "memoizedHashCode": -1598414593
+    "memoizedHashCode": 2019146868
+  },
+  {
+    "level_": 0,
+    "message_": "Folder /Users/shileipeng/Library/Android/sdk/ndk/23.1.7779620 does not exist. Ignoring.",
+    "file_": "",
+    "tag_": "",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 1397596825
+  },
+  {
+    "level_": 0,
+    "message_": "Folder /Users/shileipeng/Library/Android/sdk/ndk-bundle does not exist. Ignoring.",
+    "file_": "",
+    "tag_": "",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": -1787970767
+  },
+  {
+    "level_": 0,
+    "message_": "No NDK was found. Trying to download it now.",
+    "file_": "",
+    "tag_": "",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": -151574769
+  },
+  {
+    "level_": 0,
+    "message_": "NDK 23.1.7779620 was downloaded to /Users/shileipeng/Library/Android/sdk/ndk/23.1.7779620. Using that.",
+    "file_": "",
+    "tag_": "",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": -1284509178
   }
 ]

@@ -36,6 +36,20 @@ if(NOT MSVC)
     target_compile_options(llama_mobile_vd PRIVATE -O3)
 endif()
 
+# Android-specific configuration for 16 KB page size alignment (required for Android 15+)
+if(ANDROID)
+    # Set 16 KB page size alignment for Android builds
+    # This is required for Android 15 (API level 35) and higher
+    target_link_options(llama_mobile_vd PRIVATE
+        -Wl,-z,max-page-size=16384
+    )
+    
+    # Optional: Suppress warnings about section mismatches
+    target_link_options(llama_mobile_vd PRIVATE
+        -Wl,--no-warn-mismatch
+    )
+endif()
+
 # Disable CUDA support by not enabling the language
 # This ensures we don't build with CUDA dependencies for mobile
 

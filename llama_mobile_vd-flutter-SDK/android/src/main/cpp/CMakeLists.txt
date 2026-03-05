@@ -26,3 +26,11 @@ target_link_libraries(llama_mobile_vd_jni
     -lc++_static
 )
 
+# Set 16 KB page size alignment for Android 15+ compatibility
+# This is required for Android 15 (API level 35) and higher
+if(ANDROID)
+    target_link_options(llama_mobile_vd_jni PRIVATE
+        -Wl,-z,max-page-size=16384
+    )
+endif()
+

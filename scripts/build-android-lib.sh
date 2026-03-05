@@ -186,6 +186,8 @@ build_android_library() {
     cd "$build_dir"
     
     # Run CMake configuration
+    # Note: 16 KB page size alignment is automatically applied via CMakeLists.txt
+    # This is required for Android 15 (API level 35) and higher
     cmake "$WRAPPER_DIR" \
         -G "Unix Makefiles" \
         -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_PATH/build/cmake/android.toolchain.cmake" \
